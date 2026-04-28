@@ -89,5 +89,3 @@ class Aircraft:
         )
 
 ac = Aircraft.from_json('jsons/ac.json')
-
-print(ac)
