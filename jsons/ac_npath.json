@@ -9,6 +9,13 @@
         "aspect_ratio" : null,
         "taper_ratio" : 1
     },
+    "engine" : 
+    {
+        "engine_type" : "prop",
+        "engine_name" : "Propellor Engine",
+        "power" : 300,
+        "thrust" : null
+    },
     "range" : 2000,
     "payload_mass" : 904
 }
