@@ -1,0 +1,7 @@
+{
+    "span" : 10,
+    "wing_area" : 20,
+    "airfoils" : ["NACA2412", "NACA0012"],
+    "aspect_ratio" : null,
+    "taper_ratio" : 1
+}

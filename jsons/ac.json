@@ -1,0 +1,7 @@
+{
+    "ac_type" : "B737",
+    "ac_config" : "conventional",
+    "wing_path" : "wing.json",
+    "range" : 2000,
+    "payload_mass" : 904
+}
