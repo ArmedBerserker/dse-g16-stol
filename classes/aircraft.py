@@ -34,6 +34,7 @@ class Engine:
     engine_name : str               # engine name
     power : float | None            # in hp 
     thrust : float | None           # in N
+    efficiency : float
 
     def __post_init__(self):
         if self.engine_type == 'jet':
@@ -87,5 +88,6 @@ class Aircraft:
             ac['range'],
             ac['payload_mass']
         )
+
 
 ac = Aircraft.from_json('jsons/ac.json')
