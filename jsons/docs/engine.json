@@ -1,7 +1,0 @@
-{
-    "engine_type" : "prop",
-    "engine_name" : "Propellor Engine",
-    "power" : 300,
-    "thrust" : null,
-    "efficiency" : null
-}

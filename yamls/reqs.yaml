@@ -1,0 +1,40 @@
+take_off:
+  to_distance: 100
+  runway_type: unprepared
+  to_altitude: null
+  to_temperature: null
+  to_mass_frac: null
+
+climb:
+  min_climb_rate: null
+  cl_altitude: null
+  cl_temperature: null
+  cl_mass_frac: null
+
+cruise:
+  cr_speed: null
+  cr_altitude: null
+  cr_mass_frac: null
+
+landing:
+  la_distance: null
+  runway_type: unprepared
+  runway_condition: wet
+  la_altitude: null
+  la_temp: null
+  la_mass_frac: null
+  loiter_time: null
+  diversion_range: null
+
+approach:
+  ap_altitude: null
+  ap_mass_frac: null
+  ap_temp: null
+  ap_speed: null
+
+climb_gradient:
+  cg1: null 
+  cg2: null
+  cg3: null
+  cg4: null
+  cg5: null

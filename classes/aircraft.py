@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import pandas as pd
 from typing import Literal
 
@@ -32,20 +32,40 @@ class Engine:
     '''This class defines the basics of the engine'''
     engine_type : engine_types      # jet or prop
     engine_name : str               # engine name
-    power : float | None            # in hp 
-    thrust : float | None           # in N
-    efficiency : float
+    fuel_energy : float             # specific energy of the fuel in J/kg
+    
+    @classmethod
+    def from_json(cls, path : str):
+        with open(path, 'r') as f:
+            data = json.load(f)
+        if data['engine_type'] == 'jet':
+            return Jet(**data)
+        elif data['engine_type'] == 'prop':
+            return Prop(**data)
+        else:
+            return cls(**data)
+    
+@dataclass
+class Jet(Engine):
+    engine_type : engine_types = field(default='jet', init=False) # ensures that the Engine class gets a jet type
+
+    thrust : float              # The thrust of the engine in N
+    TSFC : float | None         # Thrust Specific Fuel Consumption in g/kN/s
+    B : float                   # Bypass ratio
 
     def __post_init__(self):
-        if self.engine_type == 'jet':
-            power = None
-        else:
-            thrust = None
+        if self.TSFC == None:
+            self.TSFC = 22 * self.B ** -0.19
+    
 
-    def from_json(cls, file : str):
-        with open(file, 'r') as f:
-            data = json.load(f)
-        return cls(**data)
+
+@dataclass
+class Prop(Engine):
+    engine_type : engine_types = field(default='prop', init=False) 
+
+    power : float               # Power in hp
+    PSFC : float                # Power Specific Fuel Consumption in lb/hp/hr
+
 
 @dataclass
 class Aircraft:
@@ -57,6 +77,7 @@ class Aircraft:
     n_engine : int              # the number of these engines
     range : float | None        # range in km
     payload_mass : float | None # mass in kg
+
 
     @classmethod
     def from_json(cls, file : str, wing_from_path = True, engine_from_path = True):
@@ -90,4 +111,5 @@ class Aircraft:
         )
 
 
-ac = Aircraft.from_json('jsons/ac.json')
+
+ac = Aircraft.from_json('jsons/docs/ac.json', True, True)
