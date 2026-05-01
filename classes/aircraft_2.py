@@ -18,7 +18,11 @@ class loader:
     def __init__(self, filepath : str):
         self.filepath = filepath
     
-    def load(self, target_class : Type[T]) -> T:
+    @classmethod
+    def load(cls, filepath : str, target_class : Type[T]) -> T:
+        return cls(filepath).instload(target_class)
+    
+    def instload(self, target_class : Type[T]) -> T:
         '''wrapper to call easily'''
         data = self._read_file()
 

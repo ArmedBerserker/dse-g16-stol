@@ -8,5 +8,5 @@ Please follow the trend established in the rest of the code. As a general guidel
 To implement a class from a file. The easiest way to do this is to do:
 ```
 from classes.aircraft_2 import loader, Aircraft
-target = loader(source_file).load(target_class)
+target = loader.load(file_path, target_class)
 ```
