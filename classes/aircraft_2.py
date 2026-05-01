@@ -1,6 +1,11 @@
-'''
-# Redefining structures
-'''
+"""
+Aircraft data structures and YAML loading utilities.
+
+Defines the main dataclasses used to store aircraft requirements, mission,
+weights, wing geometry, fuselage geometry, and the complete Aircraft object.
+Also provides a simple loader class for reading YAML files into these
+dataclasses.
+"""
 
 from dataclasses import dataclass, is_dataclass, fields, field
 from typing import Type, TypeVar, Any
