@@ -1,6 +1,11 @@
-'''
-# Redefining structures
-'''
+"""
+Aircraft data structures and YAML loading utilities.
+
+Defines the main dataclasses used to store aircraft requirements, mission,
+weights, wing geometry, fuselage geometry, and the complete Aircraft object.
+Also provides a simple loader class for reading YAML files into these
+dataclasses.
+"""
 
 from dataclasses import dataclass, is_dataclass, fields, field
 from typing import Type, TypeVar, Any
@@ -8,7 +13,7 @@ import yaml
 
 T = TypeVar('T')
 
-class GenericFileLoader:
+class loader:
     '''Enables loading any kind of file into any class easily'''
     def __init__(self, filepath : str):
         self.filepath = filepath
@@ -16,7 +21,11 @@ class GenericFileLoader:
     def load(self, target_class : Type[T]) -> T:
         '''wrapper to call easily'''
         data = self._read_file()
-        return self._build_dataclass(target_class, data)
+
+        if hasattr(target_class, 'from_dict'):
+            return target_class.from_dict(data)
+        else:
+            return self._build_dataclass(target_class, data)
     
     def _read_file(self) -> dict:
         '''reads a yaml file and returns a dictionary'''
@@ -110,6 +119,9 @@ class Wing:
     aspect_ratio : float | None = None
     taper_ratio : float | None = None
     sweep : float | None = None
+    c_f : float | None = None
+    phi : float | None = None
+    psi : float | None = None
     airfoils : list[str] = None
     # ADD WHATEVER IS NEEDED
 
@@ -163,7 +175,3 @@ class Aircraft:
             text += f'{field_name}: {stripped_f_val} \n'
         return text
 
-l = GenericFileLoader('yamls/aircraft.yaml')
-ac = Aircraft.from_dict(l._read_file())
-
-print(ac)
