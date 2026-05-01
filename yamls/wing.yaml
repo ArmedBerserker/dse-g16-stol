@@ -1,8 +1,11 @@
 
-area: null
+area: 20
 span: null
-aspect_ratio: null
+aspect_ratio: 2
 taper_ratio: null
 sweep: null
+c_f: 0.2
+phi : 1
+psi : 1
 airfoils:
   - null

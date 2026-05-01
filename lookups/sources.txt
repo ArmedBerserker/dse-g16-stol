@@ -1,0 +1,3 @@
+skin_fric.csv : roskam 1
+s_wets.csv : roskam 1
+oswal_curves.csv : Vos AC design
