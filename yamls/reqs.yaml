@@ -1,5 +1,5 @@
 take_off:
-  to_distance: 100
+  to_distance: 200
   runway_type: unprepared
   to_altitude: null
   to_temperature: null
@@ -33,8 +33,14 @@ approach:
   ap_speed: null
 
 climb_gradient:
-  cg1: null 
+  cg1:
+      n_eng: 1
+
   cg2: null
   cg3: null
   cg4: null
   cg5: null
+
+general:
+  stall_speed: 50  # kts
+  standard_type: null  # string (to use with Roskam)
