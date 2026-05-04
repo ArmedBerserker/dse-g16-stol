@@ -38,3 +38,8 @@ climb_gradient:
   cg3: null
   cg4: null
   cg5: null
+
+general:
+  stall_speed : null
+  standard_type : null # must be a string
+  reserve  : null
