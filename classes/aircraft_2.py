@@ -106,6 +106,8 @@ class Weights:
     m_empty : float | None
     m_payload : float | None
     m_energy : float | dict[float]
+    m_fuel: float | None
+    m_battery: float | None
 
     def __str__(self):
         text = "The weights are:\n"

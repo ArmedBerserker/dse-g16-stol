@@ -1,0 +1,1 @@
+speeds in reqs.yaml defined in kts
