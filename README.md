@@ -10,3 +10,5 @@ To implement a class from a file. The easiest way to do this is to do:
 from classes.aircraft_2 import loader
 target = loader.load(file_path, target_class)
 ```
+
+Aircraft(Req)

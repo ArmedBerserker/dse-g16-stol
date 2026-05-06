@@ -1,36 +1,41 @@
 take_off:
-  to_distance: 200
+  to_distance: 200  # m
+  dist_balance_fl: True  # Check if the distance given is total or not
+  as_CL_max: null  # assumed C_L_max during take-off, will be updated after first class I/II iteration
   runway_type: unprepared
-  to_altitude: null
-  to_temperature: null
+  to_altitude: null  # ft
+  to_temperature_shift: null  # K
   to_mass_frac: null
 
 climb:
-  min_climb_rate: null
-  cl_altitude: null
-  cl_temperature: null
+  min_climb_rate: null  # ft/min
+  cl_altitude: null  # ft
+  cl_temperature_shift: null  # K
   cl_mass_frac: null
+  as_CL_max: null  # assumed C_L_max during cruise, will be updated after first class I/II iteration
 
 cruise:
-  cr_speed: null
-  cr_altitude: null
+  cr_speed: null  # kts
+  cr_altitude: null  # ft
   cr_mass_frac: null
 
 landing:
-  la_distance: null
+  la_distance: 150  # m
+  dist_balance_fl: True  # Check if the distance given is total or not
+  as_CL_max: null  # assumed C_L_max during landing, will be updated after first class I/II iteration
   runway_type: unprepared
   runway_condition: wet
-  la_altitude: null
-  la_temp: null
+  la_altitude: null  # ft
+  la_temp_shift: null  # K
   la_mass_frac: null
-  loiter_time: null
-  diversion_range: null
+  loiter_time: null  # s
+  diversion_range: null  # km
 
 approach:
-  ap_altitude: null
+  ap_altitude: null  # ft
   ap_mass_frac: null
-  ap_temp: null
-  ap_speed: null
+  ap_temp: null  # K
+  ap_speed: null  # kts
 
 climb_gradient:
   cg1:
@@ -44,3 +49,4 @@ climb_gradient:
 general:
   stall_speed: 50  # kts
   standard_type: null  # string (to use with Roskam)
+  max_wing_loading: 90  # kg/m2
