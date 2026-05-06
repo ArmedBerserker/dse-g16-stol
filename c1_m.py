@@ -4,88 +4,88 @@ from lookups.consts import *
 import pandas as pd
 import numpy as np
 
-class Class1:
-    def __init__(self, ac : Aircraft, frac_source : str = 'lookups/fuel_fracs1.csv', mass_source : str = 'lookups/mass_relations1.csv'):
-        self.ac = ac
-        if ac.requirements.general['standard_type'] == None:
-            print('No standard aircraft type found. Using Homebuilt.')
-            self.ac_type = 'Homebuilt'
-        else:
-            self.ac_type = ac.requirements.general['standard_type']
+# class Class1:
+#     def __init__(self, ac : Aircraft, frac_source : str = 'lookups/fuel_fracs1.csv', mass_source : str = 'lookups/mass_relations1.csv'):
+#         self.ac = ac
+#         if ac.requirements.general['standard_type'] == None:
+#             print('No standard aircraft type found. Using Homebuilt.')
+#             self.ac_type = 'Homebuilt'
+#         else:
+#             self.ac_type = ac.requirements.general['standard_type']
 
-        self.data = pd.read_csv(frac_source)
-        self.rel_data = self.data[self.data['Airplane Type'] == self.ac_type].iloc[0]
-        self.data2 = pd.read_csv(mass_source)    
-    @property
-    def _warm_up_frac(self) -> float:
-        return self.rel_data['Warm-up']
+#         self.data = pd.read_csv(frac_source)
+#         self.rel_data = self.data[self.data['Airplane Type'] == self.ac_type].iloc[0]
+#         self.data2 = pd.read_csv(mass_source)    
+#     @property
+#     def _warm_up_frac(self) -> float:
+#         return self.rel_data['Warm-up']
     
-    @property
-    def _taxi_frac(self) -> float:
-        return self.rel_data['Taxi']
+#     @property
+#     def _taxi_frac(self) -> float:
+#         return self.rel_data['Taxi']
     
-    @property
-    def _take_off_frac(self) -> float:
-        return self.rel_data['Take-off']
+#     @property
+#     def _take_off_frac(self) -> float:
+#         return self.rel_data['Take-off']
     
-    @property
-    def _climb_frac(self) -> float:
-        return self.rel_data['Climb']
+#     @property
+#     def _climb_frac(self) -> float:
+#         return self.rel_data['Climb']
     
-    @property
-    def _descent_frac(self) -> float:
-        return self.rel_data['Descent']
+#     @property
+#     def _descent_frac(self) -> float:
+#         return self.rel_data['Descent']
     
-    @property
-    def _landing_frac(self) -> float:
-        return self.rel_data['Landing Taxi']
+#     @property
+#     def _landing_frac(self) -> float:
+#         return self.rel_data['Landing Taxi']
     
-    @property
-    def _fuel_frac_cruise(self) -> float:
-        engine_type = self.ac.engine.engine_type
-        if engine_type == 'prop':
-            return self.breguet_prop()
-        elif engine_type == 'bat':
-            return self.breguet_bat()
-        elif engine_type == 'hyb':
-            return self.breguet_hyb()
+#     @property
+#     def _fuel_frac_cruise(self) -> float:
+#         engine_type = self.ac.engine.engine_type
+#         if engine_type == 'prop':
+#             return self.breguet_prop()
+#         elif engine_type == 'bat':
+#             return self.breguet_bat()
+#         elif engine_type == 'hyb':
+#             return self.breguet_hyb()
     
-    @property
-    def _fuel_frac_endurance(self) -> float:
-        engine_type = self.ac.engine.engine_type
-        if engine_type == 'prop':
-            ...
+#     @property
+#     def _fuel_frac_endurance(self) -> float:
+#         engine_type = self.ac.engine.engine_type
+#         if engine_type == 'prop':
+#             ...
 
-    def breguet_prop(self):
-        R = self.ac.mission.range / MIL_TO_KM
-        eta_prop = self.ac.engine.eta_prop
-        c_p = self.ac.engine.c_p # assumed in lbs/hr/hp
-        lnfrac = R / 375 * c_p / eta_prop / self.ac.wing.ld
-        fracinv = np.exp(lnfrac)
-        return 1 / fracinv
+#     def breguet_prop(self):
+#         R = self.ac.mission.range / MIL_TO_KM
+#         eta_prop = self.ac.engine.eta_prop
+#         c_p = self.ac.engine.c_p # assumed in lbs/hr/hp
+#         lnfrac = R / 375 * c_p / eta_prop / self.ac.wing.ld
+#         fracinv = np.exp(lnfrac)
+#         return 1 / fracinv
     
-    def breguet_(self):
-        R = self.ac.mission.range / NMIL_TO_KM
-        V = self.ac.mission.cruise_speed  # as long as v_cr in kts
-        c_j = self.ac.engine.c_j
-        lnfrac = R * c_j / V / self.ac.wing.ld
-        fracinv = np.exp(lnfrac)
-        return 1/fracinv
+#     def breguet_(self):
+#         R = self.ac.mission.range / NMIL_TO_KM
+#         V = self.ac.mission.cruise_speed  # as long as v_cr in kts
+#         c_j = self.ac.engine.c_j
+#         lnfrac = R * c_j / V / self.ac.wing.ld
+#         fracinv = np.exp(lnfrac)
+#         return 1/fracinv
     
-    def fuel_frac_used(self):
-        mulitple = self._warm_up_frac * self._taxi_frac * self._take_off_frac * self._climb_frac * self._fuel_frac * self._descent_frac * self._landing_frac
-        return ((1 - mulitple) * self.ac.weights.m_takeoff + self.ac.requirements.general['reserve']) / self.ac.weights.m_takeoff
+#     def fuel_frac_used(self):
+#         mulitple = self._warm_up_frac * self._taxi_frac * self._take_off_frac * self._climb_frac * self._fuel_frac * self._descent_frac * self._landing_frac
+#         return ((1 - mulitple) * self.ac.weights.m_takeoff + self.ac.requirements.general['reserve']) / self.ac.weights.m_takeoff
      
-    def struct_mass_frac(self, subtype : str = 'Propeller Driven'):
-        row = self.data2[
-        (self.data2["Airplane Type"] == self.ac_type) &
-        (self.data2["Subtype"] == subtype)
-        ]
-        A = row['A'].iloc[0]
-        B = row['B'].iloc[0]
+#     def struct_mass_frac(self, subtype : str = 'Propeller Driven'):
+#         row = self.data2[
+#         (self.data2["Airplane Type"] == self.ac_type) &
+#         (self.data2["Subtype"] == subtype)
+#         ]
+#         A = row['A'].iloc[0]
+#         B = row['B'].iloc[0]
 
-        W_e = 10 ** ((np.log10(self.ac.weights.m_takeoff / LBS_TO_KG) - A) / B)
-        return W_e / (self.ac.weights.m_takeoff / LBS_TO_KG)
+#         W_e = 10 ** ((np.log10(self.ac.weights.m_takeoff / LBS_TO_KG) - A) / B)
+#         return W_e / (self.ac.weights.m_takeoff / LBS_TO_KG)
     
 
 def energy_frac_needed(ac : Aircraft, frac_source : str = 'lookups/fuel_fracs1.csv'):
@@ -173,6 +173,31 @@ def breguet_hyb(ac : Aircraft) -> tuple[float, float]:
     battery_frac = (Phi / (1 - Phi)) * fuel_frac * (e_1 / e_2)
     return float(fuel_frac), float(battery_frac)
 
+def operating_empty_frac(ac : Aircraft, 
+                         correction : float = 1,
+                         source_for_fracs : str = 'references',
+                         subtype : str = 'Propeller Driven'):
+    
+    if source_for_fracs == 'references':
+        df = pd.read_csv('lookups/ref.csv')
+
+        # These coefficients come from a linear fit of our reference aircraft
+        a, b = 0.5873688639193038, -2.683435417799367
+        OEW = (a * ac.weights.m_takeoff + b) * correction # correction is for our innovations
+        return OEW / ac.weights.m_takeoff
+
+    else:
+        ac_type = ac.requirements.general['standard_type']
+
+        df = pd.read_csv(source_for_fracs)
+        row = df[
+        (df["Airplane Type"] == ac_type) &
+        (df["Subtype"] == subtype)
+        ]
+        A = row['A'].iloc[0]
+        B = row['B'].iloc[0]
+        W_e = 10 ** ((np.log10(ac.weights.m_takeoff / LBS_TO_KG) - A) / B)
+        return W_e / (ac.weights.m_takeoff / LBS_TO_KG)
 
 ac = loader.load('yamls/aircraft.yaml', Aircraft)
-print(energy_frac_needed(ac))
+print(operating_empty_frac(ac))
