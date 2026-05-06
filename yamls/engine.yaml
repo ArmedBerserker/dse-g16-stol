@@ -1,5 +1,8 @@
-engine_type : prop
-count : 2
-eta_prop : 0.9
-c_p : 0.40
-c_j : null
+engine_type : hyb # bat or hyb
+count : 2          # number of engines aboard
+eta_1 : 0.35        # branch 1 efficiency
+eta_2 : 0.9        # branch 2 efficiency
+eta_3 : 0.7        # branch 3 efficiency
+e_1 : 43000000     # specific energy for source 1 [J/kg] (the varying item)
+e_2 : 900000         # specific energy for source 2 [J/kg] (the constant item)
+Phi : 0.1            # power split ratio, P_b / (P_b + P_f)

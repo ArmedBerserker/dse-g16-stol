@@ -160,9 +160,12 @@ class Fuselage:
 class Engine:
     engine_type : str | None
     count : int | None
-    eta_prop : float | None
-    c_p : float | None # lbs/hp/hr
-    c_j : float | None  # lbs/lbs/hr
+    eta_1 : float | None
+    eta_2 : float | None
+    eta_3 : float | None
+    e_1 : float | None
+    e_2 : float | None
+    Phi : float | None
     def __str__(self):
         text = "The engine is:\n"
         for field_info in fields(self):

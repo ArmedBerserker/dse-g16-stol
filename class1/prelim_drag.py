@@ -129,7 +129,7 @@ def k(ac : Aircraft) -> float:
 
     wing = ac.wing
     assert wing.aspect_ratio != None and wing.psi != None and wing.phi != None, 'Aspect Ratio, Psi, Phi must be defined!'
-    e = 0.8 #1 / (np.pi * ac.wing.aspect_ratio * wing.psi + (1 / wing.phi))
+    e = 1 / (np.pi * ac.wing.aspect_ratio * wing.psi + (1 / wing.phi))
     k = 1 / (np.pi * ac.wing.aspect_ratio * e)
     return k, e
 
