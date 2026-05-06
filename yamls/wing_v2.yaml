@@ -3,22 +3,22 @@ wing:
   geometry:
     area: 17.10
     aspect_ratio: 12.4
-    taper_ratio: 0
+    taper_ratio: 0.5
     sweep_c4_deg: 0
 
   airfoil:
-    tc_ratio: 0
+    tc_ratio: 0.15
     airfoils:
       - 0
 
   settings:
     incidence_deg: 0
-    twist_deg: 0
-    dihedral_deg: 0
+    twist_deg: -2
+    dihedral_deg: 3
 
   structure:
-    front_spar: 0
-    rear_spar: 0
+    front_spar: 0.15
+    rear_spar: 0.65
 
   aerodynamic:
     c_f: 0.0035

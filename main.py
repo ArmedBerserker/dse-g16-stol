@@ -5,6 +5,8 @@ from geometry.wing_planform import (
     print_wing_geometry
 )
 
+from visualization.wing_plot import plot_wing_planform
+
 
 # ==========================================================
 # MAIN
@@ -31,6 +33,7 @@ def main():
     # ------------------------------------------------------
 
     print_wing_geometry(wing)
+    plot_wing_planform(wing)
 
 
 # ==========================================================
