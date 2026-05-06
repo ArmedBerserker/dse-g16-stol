@@ -10,6 +10,7 @@ dataclasses.
 from dataclasses import dataclass, is_dataclass, fields, field
 from typing import Type, TypeVar, Any
 import yaml
+import os
 
 T = TypeVar('T')
 
@@ -36,10 +37,13 @@ class loader:
         with open(self.filepath, 'r') as f:
             d = yaml.safe_load(f)
 
+        base_dir = os.path.dirname(self.filepath)
+
         for k, v in d.items():
             if isinstance(v, str) and v.endswith(('yaml', 'yml')):
+                full_path = os.path.join(base_dir, v)
                 print(f'{k} is being loaded from {v}')
-                with open(v, 'r') as w:
+                with open(full_path, 'r') as w:
                     d[k] = yaml.safe_load(w)
             else:
                 pass
@@ -67,6 +71,7 @@ class loader:
 
 @dataclass
 class Requirements:
+    general: dict
     take_off : dict
     climb : dict
     cruise : dict

@@ -8,7 +8,7 @@ Type of plot (P/W or T/W on y-axis), equations and selected optimal design point
 based on aircraft engine configuration.
 """
 
-from classes.aircraft_2 import Aircraft
+from classes.aircraft_2 import Aircraft, loader
 from lookups.consts import *
 from class1.prelim_drag import *
 import pandas as pd
@@ -34,7 +34,7 @@ def stall_speed_matching(ac : Aircraft,  # Change units
         W_P_or_T_W: np.ndarray = np.arange(0,10000,5)) -> np.ndarray:
     ''' Returns list of arrays (W/P or T/W and W_S)'''
     V_s = (ac.requirements.general.stall_speed)*KTS_TO_MS
-    rho = Atmosphere(height=ac.requirements.landing['la_altitude']*FT_TO_M, delta_T=ac.requirements.landing['la_temperature_shift']) 
+    rho = Atmosphere(height=ac.requirements.landing['la_altitude']*FT_TO_M, delta_T=ac.requirements.landing['la_temperature_shift'])
     CL_max_LD = ac.requirements.cruise['as_CL_max']
     W_S = (CL_max_LD*0.5*rho*V_s**2)*np.ones_like(W_P_or_T_W)
     return (W_P_or_T_W, W_S)
@@ -48,7 +48,7 @@ def takeoff_dist_matching(ac : Aircraft,  # Change units
 
     alt = ac.requirements.take_off.to_altitude*FT_TO_M
     temp_shift = ac.requirements.take_off.to_temperature
-    sigma = Atmosphere(alt, temp_shift).density_ratio 
+    sigma = Atmosphere(alt, temp_shift).density_ratio
     C_Lmax_TO = ac.requirements.take_off['as_CL_max']
 
     if balance_fl == True:
@@ -69,7 +69,7 @@ def landing_dist_matching(ac : Aircraft,
     ''' Returns list of arrays (W/P or T/W and W_S)'''
     # W_S = np.ones_like(W_P_or_T_W)
 
-    W_L = ac.weights.m_takeoff*ac.requirements.landing.mass_frac 
+    W_L = ac.weights.m_takeoff*ac.requirements.landing.mass_frac
     C_L_max_LD = ac.requirements.landing['as_CL_max']
 
     balance_fl = ac.requirements.take_off['dist_balance_fl']  # True or False dep on yaml
@@ -84,7 +84,7 @@ def landing_dist_matching(ac : Aircraft,
         # S_LG = S_L/1.938
         V_S_L = np.sqrt(S_L/0.5136)*KTS_TO_MS
 
-    else: 
+    else:
         S_LG = ac.requirements.landing.la_distance/FT_TO_M
         V_S_L = np.sqrt(S_LG/0.265)*KTS_TO_MS
 
@@ -108,7 +108,7 @@ def alpha_thrust(alt_m, B, T_K, V_mps, theta_break=1.07):
             return delta_t*(1-(0.43+0.014*B)*np.sqrt(M))
         elif theta_t>theta_break:
             return delta_t*(1-(0.43+0.014*B)*np.sqrt(M) -3*(theta_t-theta_break)/(1.5+M))
-        
+
 
 def cruise_speed_matching(ac : Aircraft,
         type_to_use : str = "Single Engine Propeller Driven",
@@ -145,21 +145,21 @@ def climb_rate_AEO_matching_23_65(ac : Aircraft,
         s_wet_source : str = 'lookups/s_wets.csv',
         W_S: np.ndarray = np.arange(0,10000,5)) -> float:
     ''' Returns list of arrays (W/P or T/W and W_S)
-    
+
     min climb rate 300 fpm at SL, 1:12 angle:
     - Not more than max cont. power
     - Gear not retracted
     - Flaps in TO config
-    - Cowl flaps? 
-    
-    for turbines: 
+    - Cowl flaps?
+
+    for turbines:
     - climb grad at least 4% at pressure alt 5000ft and 81 deg F under same circumstances'''
 
     CD0 = prelim_drag.cd0(type_to_use, friction_source, s_wet_source)
 
     eta_p =  # Propeller efficiency
-    sigma = 
-    A = 
+    sigma =
+    A =
     e =  # NOTE: Add changes to e and CD0 because of gear and flaps
     C_L_C_D_param = C_L3_2_C_D_max(CD0, A, e)
     RC =  300 # ft/min
@@ -176,7 +176,7 @@ def climb_rate_OEI_multiengine_matching_turbine():
     - Cowl flaps?'''
     alt = 5000  # ft
 
-    RC = 
+    RC =
 
 
 def climb_angle_AEO_matching_23_65(ac : Aircraft,
@@ -186,9 +186,9 @@ def climb_angle_AEO_matching_23_65(ac : Aircraft,
         W_S: np.ndarray = np.arange(0,10000,5)) -> float:
     ''' Returns list of arrays (W/P or T/W and W_S)'''
     CGR = 1/12
-    eta_p = 
-    sigma = 
-    C_L_max_TO = 
+    eta_p =
+    sigma =
+    C_L_max_TO =
     C_L_climb = C_L_max_TO - 0.2
     CD0 = prelim_drag.cd0(type_to_use, friction_source, s_wet_source)
     k = prelim_drag.k  # NOTE: add to CD0 bc config and call e + change due to config
@@ -211,9 +211,9 @@ def climb_angle_AEO_matching_23_77(ac : Aircraft,
     - Gear down
     - Flaps in landing position'''
     CGR = 1/30
-    eta_p = 
-    sigma = 
-    C_L_max_LD = 
+    eta_p =
+    sigma =
+    C_L_max_LD =
     C_L_climb = C_L_max_LD - 0.2
     CD0 = prelim_drag.cd0(type_to_use, friction_source, s_wet_source)
     k = prelim_drag.k  # NOTE: add to CD0 bc config and call e + change due to config
@@ -302,11 +302,11 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         friction_source : str = 'lookups/skin_fric.csv',
         s_wet_source : str = 'lookups/s_wets.csv',
         W_S_plot: np.ndarray = np.arange(0,10000,5),
-        W_P_or_T_W_plot: np.ndarray = np.arange(0,10000,5), 
+        W_P_or_T_W_plot: np.ndarray = np.arange(0,10000,5),
         output_filepath: str = 'outputs/Matching_Diagram.png') -> list:
-    
+
     # Is it a turbine (does it need those climb lines?)
-    turbine = 
+    turbine =
     # Compute plots
     stall_W_P_or_T_W, stall_W_S = stall_speed_matching(ac, W_P_or_T_W_plot)
     to_W_P_or_T_W, to_W_S = takeoff_dist_matching(ac, W_S_plot)
@@ -390,3 +390,11 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
     }
 
     return data
+
+
+if __name__ == '__main__':
+    file_path = "../yamls/aircraft.yaml"
+    target_class = Aircraft
+    target = loader.load(file_path, target_class)
+    # print(target.requirements.take_off['to_distance'])
+    # climb_rate_AEO_matching_23_65(ac = target, type_to_use = target.requirements.general['standard_type'])
