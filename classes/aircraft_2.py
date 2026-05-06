@@ -159,6 +159,7 @@ class Fuselage:
 @dataclass
 class Engine:
     engine_type : str | None
+    count : int | None
     eta_prop : float | None
     c_p : float | None # lbs/hp/hr
     c_j : float | None  # lbs/lbs/hr
@@ -173,6 +174,7 @@ class Engine:
 
 @dataclass
 class Aircraft:
+    name : str
     requirements : Requirements
     mission : Mission
     weights : Weights
@@ -182,7 +184,8 @@ class Aircraft:
 
     @classmethod
     def from_dict(cls, data : dict):
-        return cls(requirements = Requirements(**data['requirements']),
+        return cls(name = data['name'],
+                   requirements = Requirements(**data['requirements']),
                    mission = Mission(**data['mission']),
                    weights = Weights(**data['weights']),
                    wing = Wing(**data['wing']),

@@ -2,3 +2,4 @@ skin_fric.csv : roskam 1
 s_wets.csv : roskam 1
 oswald_curves.csv : Vos AC design
 fuel_fracs1.csv : roskam 1
+mass_relations1.csv : roskam 1

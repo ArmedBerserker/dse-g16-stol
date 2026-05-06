@@ -41,5 +41,5 @@ climb_gradient:
 
 general:
   stall_speed : null
-  standard_type : null # must be a string
-  reserve  : null
+  standard_type : Twin Engine # must be a string
+  reserve  : 0

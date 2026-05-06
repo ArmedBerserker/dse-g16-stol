@@ -86,7 +86,7 @@ def cd0(ac : Aircraft,
     
     # log(f) = a + b * c + b * d * log(m_to))
 
-    logf = a + b * c + b * d * np.log10(ac.weights.m_takeoff * LBS_TO_KG)
+    logf = a + b * c + b * d * np.log10(ac.weights.m_takeoff / LBS_TO_KG)
 
     f = 10 ** logf
 
@@ -129,9 +129,9 @@ def k(ac : Aircraft) -> float:
 
     wing = ac.wing
     assert wing.aspect_ratio != None and wing.psi != None and wing.phi != None, 'Aspect Ratio, Psi, Phi must be defined!'
-    e = 1 / (np.pi * ac.wing.aspect_ratio * wing.psi + (1 / wing.phi))
+    e = 0.8 #1 / (np.pi * ac.wing.aspect_ratio * wing.psi + (1 / wing.phi))
     k = 1 / (np.pi * ac.wing.aspect_ratio * e)
-    return k
+    return k, e
 
     
 def prelim_drag(ac : Aircraft,
@@ -160,4 +160,4 @@ def prelim_drag(ac : Aircraft,
         Estimated maximum lift-to-drag ratio.
     """
 
-    return 0.5 * np.sqrt(1 / k(ac) / cd0(ac, type_to_use, friction_source, s_wet_source))
+    return 0.5 * np.sqrt(1 / k(ac)[0] / cd0(ac, type_to_use, friction_source, s_wet_source))
