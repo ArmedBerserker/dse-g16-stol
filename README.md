@@ -130,23 +130,6 @@ c_l_max = 2.1
 
 unless doing so improves clarity in a specific context.
 
-### Function Names
-
-Function names should use `camelCase`:
-
-```python
-def calculateRange():
-    pass
-
-def estimateFuelMass():
-    pass
-
-def loadAircraftConfiguration():
-    pass
-```
-
-The first word should start with a lowercase letter, and each following word should start with an uppercase letter.
-
 ### File Names
 
 File names should be lowercase and use underscores where needed:
@@ -176,33 +159,19 @@ Use clear and consistent branch names so that everyone can understand the purpos
 Recommended branch format:
 
 ```text
-<type>/<short-description>
+<short-description>
 ```
 
 Examples:
 
 ```text
-feature/range-estimation
-feature/landing-gear-sizing
-fix/propulsion-bug
-docs/update-readme
-analysis/wing-loading-study
-refactor/aircraft-class
+range-estimation
+landing-gear-sizing
+propulsion-bug
+update-readme
+wing-loading-study
+aircraft-class
 ```
-
-### Branch Types
-
-Use the following branch prefixes:
-
-| Prefix | Purpose |
-|---|---|
-| `feature/` | New code, models, tools, or functionality |
-| `fix/` | Bug fixes or corrections |
-| `docs/` | Documentation updates |
-| `analysis/` | Trade studies, calculations, or design analysis |
-| `refactor/` | Code restructuring without changing functionality |
-| `test/` | Testing or verification work |
-| `misc/` | Small changes that do not fit another category |
 
 ### Branch Naming Rules
 
@@ -218,10 +187,10 @@ Branch names should:
 Good examples:
 
 ```text
-feature/hybrid-range-model
-analysis/stol-performance
-fix/mass-fraction-equation
-docs/code-style-guide
+hybrid-range-model
+stol-performance
+mass-fraction-equation
+code-style-guide
 ```
 
 Poor examples:
@@ -400,9 +369,9 @@ Recommended units:
 | Weight | N |
 | Distance | m or km |
 | Time | s |
-| Speed | m/s |
+| Speed | m/s or kts| 
 | Energy | J |
-| Power | W |
+| Power | W or hp |
 | Area | m² |
 | Density | kg/m³ |
 
@@ -414,42 +383,4 @@ Examples:
 aircraft_mass = 1200.0  # kg
 wing_area = 18.5        # m^2
 cruise_speed = 62.0     # m/s
-```
-
----
-
-## Contact
-
-For questions about repository structure or project-specific code, contact the relevant subsystem lead or repository maintainer.
-# dse-g16-stol
-
-This repository contains the code, documentation, analyses, and supporting tools used by Group 16 for the 2026 Design Synthesis Exercise project on a STOL aircraft concept.
-
-The goal of this repository is to keep all project work organized, reproducible, and easy for team members to understand and extend.
-
----
-
-## Repository Overview
-
-The repository may contain:
-
-- Aircraft sizing and performance code
-- Aerodynamic, propulsion, structural, and stability analysis tools
-- Class definitions for aircraft components and configurations
-- Input files and generated results
-- Project documentation
-- Trade studies and design notebooks
-- Verification and validation material
-
-Each subfolder should include its own short explanation if the contents are not immediately obvious.
-
----
-
-## Getting Started
-
-Clone the repository:
-
-```bash
-git clone <repository-url>
-cd dse-g16-stol
 ```
