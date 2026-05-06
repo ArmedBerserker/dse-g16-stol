@@ -104,7 +104,7 @@ def energy_frac_needed(ac : Aircraft, frac_source : str = 'lookups/fuel_fracs1.c
     else:
         return ValueError('Engine type not defined correctly. Must by "prop", "bat" or "hyb"')
     
-def breguet_prop(ac : Aircraft, frac_source : str) -> float:
+def breguet_prop(ac : Aircraft, frac_source : str) -> float | tuple[float]:
     '''
     Applies the Vos + Roskam methods
     '''
@@ -149,7 +149,7 @@ def breguet_bat(ac : Aircraft) -> float:
     battery_fraction = R / (eta_prop * eta_bat * ld * efg)
     return battery_fraction 
 
-def breguet_hyb(ac : Aircraft) -> float:
+def breguet_hyb(ac : Aircraft) -> tuple[float, float]:
     '''
     Applies the de Vries, Hoogreef, Vos method for hybrid fractions \n
     corresponding to eq 17 from *"Range Equation for Hybrid-Electric Aircraft with Constant Power Split"*
@@ -165,13 +165,14 @@ def breguet_hyb(ac : Aircraft) -> float:
     Phi = ac.engine.Phi
 
     ld = ac.wing.ld
-    R = ac.mission.range
+    R = ac.mission.range * 1000
 
     lnfrac = R / (eta_3 * (e_1 / g) * ld * (eta_1 + eta_2 * (Phi / (1 - Phi))))
-    frac = np.exp(lnfrac)
+    fuel_frac = 1 - np.exp(-lnfrac)
 
+    battery_frac = (Phi / (1 - Phi)) * fuel_frac * (e_1 / e_2)
+    return float(fuel_frac), float(battery_frac)
 
-    
 
 ac = loader.load('yamls/aircraft.yaml', Aircraft)
 print(energy_frac_needed(ac))
