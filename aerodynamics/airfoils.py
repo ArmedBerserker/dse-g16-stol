@@ -113,4 +113,24 @@ AIRFOIL_DB: List[Airfoil] = [
         drag_bucket_cl=(0.2, 0.6),
         stall_type="Moderate"
     )
+    Airfoil(
+        name="Selig S1223",
+        thickness_pct=12.1,
+        camber_pct=8.7,
+        cl_max_2d=2.10,          
+        cm_c4=-0.200,         # very strong   
+        drag_bucket_cl=(0.8, 1.6),  
+        stall_type="Moderate"    
+    ),
+
+    Airfoil(
+        name="Eppler 423",
+        thickness_pct=12.5,
+        camber_pct=5.5,
+        cl_max_2d=1.90,
+        cm_c4=-0.120,
+        drag_bucket_cl=(0.5, 1.2),
+        stall_type="Gentle"
+    )
+
 ]
