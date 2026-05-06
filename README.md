@@ -1,12 +1,32 @@
 # dse-g16-stol
-This is the GitHub repository for G16 of the 2026 DSE session. It contains code and documentation utilised during the project.
 
-## Guide for users
-Please follow the trend established in the rest of the code. As a general guideline, classes should start with a capital letter, and have as few words as possible. Use all small letters for variables, with underscores between words, unless the variable is a well known aerodynamic property (for example no need to write cd0 as c_d_0). Finally name functions with camelCase (ie. a function is name with the first letter lowercase, with new words starting with uppercase)
+This repository contains the code, documentation, analyses, and supporting tools used by Group 16 for the 2026 Design Synthesis Exercise project on a STOL aircraft concept.
 
-### General Things
-To implement a class from a file. The easiest way to do this is to do:
-```
-from classes.aircraft_2 import loader
-target = loader.load(file_path, target_class)
+The goal of this repository is to keep all project work organized, reproducible, and easy for team members to understand and extend.
+
+---
+
+## Repository Overview
+
+The repository may contain:
+
+- Aircraft sizing and performance code
+- Aerodynamic, propulsion, structural, and stability analysis tools
+- Class definitions for aircraft components and configurations
+- Input files and generated results
+- Project documentation
+- Trade studies and design notebooks
+- Verification and validation material
+
+Each subfolder should include its own short explanation if the contents are not immediately obvious.
+
+---
+
+## Getting Started
+
+Clone the repository:
+
+```bash
+git clone <repository-url>
+cd dse-g16-stol
 ```
