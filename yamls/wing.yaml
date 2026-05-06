@@ -5,8 +5,8 @@ aspect_ratio: 12.4
 taper_ratio: null
 sweep: null
 c_f: 0.0035
-phi : 1
-psi : 0.8
+phi : 0.95
+psi : 0.007
 airfoils:
   - null
 ld:
