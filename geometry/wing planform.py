@@ -56,30 +56,91 @@ class Wing:
 
 def load_wing_from_yaml(filepath):
 
+    # ------------------------------------------------------
+    # LOAD YAML FILE
+    # ------------------------------------------------------
+
     with open(filepath, "r") as file:
         data = yaml.safe_load(file)
 
+    # ------------------------------------------------------
+    # ACCESS MAIN WING DICTIONARY
+    # ------------------------------------------------------
+
     wing_data = data["wing"]
+
+    # ------------------------------------------------------
+    # ACCESS SUB-DICTIONARIES
+    # ------------------------------------------------------
+
+    geometry = wing_data["geometry"]
+
+    airfoil = wing_data["airfoil"]
+
+    settings = wing_data["settings"]
+
+    structure = wing_data["structure"]
+
+    aerodynamic = wing_data["aerodynamic"]
+
+    correction = wing_data["correction_factors"]
+
+    # ------------------------------------------------------
+    # CREATE WING OBJECT
+    # ------------------------------------------------------
 
     wing = Wing(
 
-        S=wing_data["S"],
-        AR=wing_data["AR"],
+        # --------------------------------------------------
+        # GEOMETRY
+        # --------------------------------------------------
 
-        taper_ratio=wing_data["taper_ratio"],
+        S=geometry["area"],
 
-        sweep_c4_deg=wing_data["sweep_c4_deg"],
+        AR=geometry["aspect_ratio"],
 
-        tc_ratio=wing_data["tc_ratio"],
+        taper_ratio=geometry["taper_ratio"],
 
-        dihedral_deg=wing_data["dihedral_deg"],
+        sweep_c4_deg=geometry["sweep_c4_deg"],
 
-        incidence_deg=wing_data["incidence_deg"],
+        # --------------------------------------------------
+        # AIRFOIL
+        # --------------------------------------------------
 
-        twist_deg=wing_data["twist_deg"],
+        tc_ratio=airfoil["tc_ratio"],
 
-        front_spar_frac=wing_data["front_spar_frac"],
-        rear_spar_frac=wing_data["rear_spar_frac"]
+        # --------------------------------------------------
+        # SETTINGS
+        # --------------------------------------------------
+
+        dihedral_deg=settings["dihedral_deg"],
+
+        incidence_deg=settings["incidence_deg"],
+
+        twist_deg=settings["twist_deg"],
+
+        # --------------------------------------------------
+        # STRUCTURE
+        # --------------------------------------------------
+
+        front_spar_frac=structure["front_spar"],
+
+        rear_spar_frac=structure["rear_spar"]
+
+        # --------------------------------------------------
+        # OPTIONAL FUTURE PARAMETERS
+        # --------------------------------------------------
+        #
+        # c_f=aerodynamic["c_f"],
+        #
+        # ld=aerodynamic["ld"],
+        #
+        # phi=correction["phi"],
+        #
+        # psi=correction["psi"]
+        #
+        # Add these later if included in Wing dataclass
+        # --------------------------------------------------
     )
 
     return wing

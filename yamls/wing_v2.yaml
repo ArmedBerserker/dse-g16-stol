@@ -1,0 +1,29 @@
+wing:
+
+  geometry:
+    area: 17.10
+    aspect_ratio: 12.4
+    taper_ratio: null
+    sweep_c4_deg: null
+
+  airfoil:
+    tc_ratio: null
+    airfoils:
+      - null
+
+  settings:
+    incidence_deg: null
+    twist_deg: null
+    dihedral_deg: null
+
+  structure:
+    front_spar: null
+    rear_spar: null
+
+  aerodynamic:
+    c_f: 0.0035
+    ld: 13
+
+  correction_factors:
+    phi: 1.0
+    psi: 0.8
