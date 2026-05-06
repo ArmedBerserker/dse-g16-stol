@@ -1,0 +1,13 @@
+Airplane Type,Warm-up,Taxi,Take-off,Climb,Descent,Landing Taxi
+Homebuilt,0.998,0.998,0.998,0.995,0.995,0.995
+Single Engine,0.995,0.997,0.998,0.992,0.993,0.993
+Twin Engine,0.992,0.996,0.996,0.990,0.992,0.992
+Agricultural,0.996,0.995,0.996,0.998,0.999,0.998
+Business Jets,0.990,0.995,0.995,0.980,0.990,0.992
+Regional TBP's,0.990,0.995,0.995,0.985,0.985,0.995
+Transport Jets,0.990,0.990,0.995,0.980,0.990,0.992
+Military Trainers,0.990,0.990,0.990,0.980,0.990,0.995
+Fighters,0.990,0.990,0.990,0.94,0.990,0.995
+"Mil. Patrol, Bomb, Transport",0.990,0.990,0.995,0.980,0.990,0.992
+"Flying Boats, Amphibious, Float Airplanes",0.992,0.990,0.996,0.985,0.990,0.990
+Supersonic Cruise,0.990,0.995,0.995,0.90,0.985,0.992

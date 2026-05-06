@@ -1,0 +1,22 @@
+Category No.,Airplane Type,Subtype,A,B
+1,Homebuilt,Pers. fun and transportation,0.3411,0.9519
+1,Homebuilt,Scaled Fighters,0.5542,0.8654
+1,Homebuilts,Composites,0.8222,0.8050
+2,Single Engine,Propeller Driven,-0.1440,1.1162
+3,Twin Engine,Propeller Driven,0.0966,1.0298
+3,Twin Engine,Composites,0.1130,1.0403
+4,Agricultural,,-0.4398,1.1946
+5,Business Jets,,0.2678,0.9979
+6,Regional TBP,,0.3774,0.9647
+7,Transport Jets,,0.0833,1.0383
+8,Military Trainers,Jets,0.6632,0.8640
+8,Military Trainers,Turboprops,-1.4041,1.4660
+8,Military Trainers,Turboprops Without No.2,0.1677,0.9978
+8,Military Trainers,Piston/Props,0.5627,0.8761
+9,Fighters,Jets(+ ext.load),0.5091,0.9505
+9,Fighters,Jets(clean),0.1362,1.0116
+9,Fighters,Turboprops(+ ext.load),0.2705,0.9830
+10,"Mil. Patrol, Bomb and Transport",Jets,-0.2009,1.1037
+10,"Mil. Patrol, Bomb and Transport",Turboprops,-0.4179,1.1446
+11,"Flying Boats, Amphibious and Float Airplanes",,0.1703,1.0083
+12,Supersonic Cruise,,0.4221,0.9876

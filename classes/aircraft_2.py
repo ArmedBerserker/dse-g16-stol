@@ -73,6 +73,7 @@ class Requirements:
     landing : dict
     approach : dict
     climb_gradient : dict
+    general : dict
 
     def __str__(self):
         text = "The requirements are:\n"
@@ -127,6 +128,7 @@ class Wing:
     phi : float | None = None
     psi : float | None = None
     airfoils : list[str] = None
+    ld : float | None = None
     # ADD WHATEVER IS NEEDED
 
     def __str__(self):
@@ -155,20 +157,40 @@ class Fuselage:
         return text
 
 @dataclass
+class Engine:
+    engine_type : str | None
+    count : int | None
+    eta_prop : float | None
+    c_p : float | None # lbs/hp/hr
+    c_j : float | None  # lbs/lbs/hr
+    def __str__(self):
+        text = "The engine is:\n"
+        for field_info in fields(self):
+            field_name = field_info.name
+            field_value = getattr(self, field_name)
+
+            text += f'{field_name}: {field_value} \n'
+        return text
+
+@dataclass
 class Aircraft:
+    name : str
     requirements : Requirements
     mission : Mission
     weights : Weights
     wing : Wing
     fuselage : Fuselage
+    engine : Engine
 
     @classmethod
     def from_dict(cls, data : dict):
-        return cls(requirements = Requirements(**data['requirements']),
+        return cls(name = data['name'],
+                   requirements = Requirements(**data['requirements']),
                    mission = Mission(**data['mission']),
                    weights = Weights(**data['weights']),
                    wing = Wing(**data['wing']),
-                   fuselage = Fuselage(**data['fuselage']))
+                   fuselage = Fuselage(**data['fuselage']),
+                   engine = Engine(**data['engine']))
     
     def __str__(self):
         text = "The aircraft is:\n"
