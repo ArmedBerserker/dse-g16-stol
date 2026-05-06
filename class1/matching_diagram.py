@@ -20,6 +20,9 @@ from classes.isa import Atmosphere
 # density = Atmosphere(3000, 0).density
 # print(density)
 
+''' TO DO:
+    - Change matching plotter to include climb requirements lines properly'''
+
 ''' Key points to pay attention to:
     - Finish RoC and Climb gradient (after trade-off)
     - Are conversions done right for climb gradient and climb rate
@@ -50,7 +53,6 @@ def takeoff_dist_matching(ac : Aircraft,  # Change units
 
     if balance_fl == True:
         S_TO = ac.requirements.take_off.to_distance/FT_TO_M
-        # Add check for prop or jet
         ''' Eqn 3.6 Roskam'''
         x = (-8.134+np.sqrt(8.134**2+S_TO*4*0.0149))
     else:
@@ -222,6 +224,7 @@ def climb_angle_AEO_matching_23_77(ac : Aircraft,
     return (W_P, W_S)
 
 
+# NOTE: add this function to logbook because Claude helped
 def find_design_point(datasets, max_wingloading,
                       ws_margin_frac=0.05, wp_margin_frac=0.05):
     """
@@ -350,7 +353,7 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
     print(f"Limited in W/S by: {result['limiting_ws_constraint']}")
     print(f"Limited in W/P by: {result['limiting_wp_constraint']}")
 
-    # --- Plot the selected point on your existing figure ---
+    # Plotting design point
     ax.scatter(result["W_S"], result["W_P"],
             marker="*", s=250, color="red", zorder=10,
             label=f"Design point ({result['W_S']:.0f}, {result['W_P']:.4f})")
@@ -380,13 +383,10 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
     plt.savefig(output_filepath, dpi=300)
 
     data = {
-        "W/P": ,
-        "W/S": ,
-        "limiting_ws_constraint": ,
-        "limiting_wp_constraint": ,
-        "A": ,
-        "CL_max_LD": 
+        "W/P": result['W_P'],
+        "W/S": result['W_S'],
+        "limiting_ws_constraint": result['limiting_ws_constraint'],
+        "limiting_wp_constraint": result['limiting_wp_constraint'],
     }
 
-    
     return data

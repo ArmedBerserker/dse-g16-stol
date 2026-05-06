@@ -3,8 +3,8 @@ take_off:
   dist_balance_fl: True  # Check if the distance given is total or not
   as_CL_max: null  # assumed C_L_max during take-off, will be updated after first class I/II iteration
   runway_type: unprepared
-  to_altitude: null  # ft
-  to_temperature_shift: null  # K
+  to_altitude: 2000  # ft
+  to_temperature_shift: 20  # K
   to_mass_frac: null
 
 climb:
@@ -25,8 +25,8 @@ landing:
   as_CL_max: null  # assumed C_L_max during landing, will be updated after first class I/II iteration
   runway_type: unprepared
   runway_condition: wet
-  la_altitude: null  # ft
-  la_temp_shift: null  # K
+  la_altitude: 2000  # ft
+  la_temp_shift: 20  # K
   la_mass_frac: null
   loiter_time: null  # s
   diversion_range: null  # km
