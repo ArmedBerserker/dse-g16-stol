@@ -1,12 +1,69 @@
-import class1.prelim_drag as drag1
-from classes.aircraft_2 import loader, Aircraft
+"""
+Class I aircraft sizing utilities.
+
+Provides preliminary estimates for mission energy fractions and operating empty
+mass fraction for propeller, battery-electric, and hybrid-electric aircraft.
+
+Main functions
+--------------
+energy_frac_needed
+    Selects the appropriate energy fraction method based on engine type.
+
+breguet_prop
+    Estimates fuel fraction for a conventional propeller aircraft.
+
+breguet_bat
+    Estimates battery fraction for a fully electric aircraft.
+
+breguet_hyb
+    Estimates fuel and battery fractions for a hybrid-electric aircraft.
+
+operating_empty_frac
+    Estimates operating empty mass fraction from either reference-aircraft data
+    or statistical mass fraction coefficients.
+
+Notes
+-----
+Inputs are expected to come from an `Aircraft` object. Masses are in kg, mission
+range is in km, energy densities are in J/kg, and efficiencies are dimensionless.
+These methods are intended for preliminary Class I sizing only.
+"""
+
+from classes.aircraft_2 import Aircraft
 from lookups.consts import *
 import pandas as pd
 import numpy as np
 
 
 def energy_frac_needed(ac : Aircraft, frac_source : str = 'lookups/fuel_fracs1.csv'):
-     
+    """
+    Compute the required energy fraction for an aircraft mission.
+
+    This function selects the appropriate Breguet-based energy fraction method
+    depending on the aircraft engine type.
+
+    Parameters
+    ----------
+    ac : Aircraft
+        Aircraft object containing engine, wing, mission, requirement, and weight data.
+    frac_source : str, optional
+        Path to the CSV file containing mission fuel fraction factors for conventional
+        fuel-powered aircraft. Default is 'lookups/fuel_fracs1.csv'.
+
+    Returns
+    -------
+    float or tuple[float, float]
+        Required energy fraction. For propeller and battery aircraft, returns a single
+        fraction. For hybrid aircraft, returns a tuple containing fuel fraction and
+        battery fraction.
+
+    Raises
+    ------
+    AssertionError
+        If the engine type and power split parameter Phi are inconsistent.
+    ValueError
+        If the engine type is not 'prop', 'bat', or 'hyb'.
+    """
     # Check the engine type of the aircraft
     eng_type = ac.engine.engine_type
     if eng_type == 'prop':
@@ -22,9 +79,30 @@ def energy_frac_needed(ac : Aircraft, frac_source : str = 'lookups/fuel_fracs1.c
         return ValueError('Engine type not defined correctly. Must by "prop", "bat" or "hyb"')
     
 def breguet_prop(ac : Aircraft, frac_source : str) -> float | tuple[float]:
-    '''
-    Applies the Vos + Roskam methods
-    '''
+    """
+    Compute the fuel fraction required for a conventional propeller aircraft.
+
+    This method applies the Vos and Roskam combined method using Breguet range relation.\n
+
+    Parameters
+    ----------
+    ac : Aircraft
+        Aircraft object containing engine efficiency, fuel energy density, lift-to-drag
+        ratio, range, and aircraft type data.
+    frac_source : str
+        Path to the CSV file containing non-cruise fuel fraction factors for different
+        aircraft categories.
+
+    Returns
+    -------
+    float
+        Fraction of takeoff mass required as fuel for the mission.
+
+    Notes
+    -----
+    If no standard aircraft type is defined in the aircraft requirements, the function
+    defaults to using the 'Homebuilt' aircraft type.
+    """
 
     if ac.requirements.general['standard_type'] == None:
         print('No standard aircraft type found. Using Homebuilt.')
@@ -54,9 +132,24 @@ def breguet_prop(ac : Aircraft, frac_source : str) -> float | tuple[float]:
     return 1 - fuel_frac
 
 def breguet_bat(ac : Aircraft) -> float:
-    '''
-    Applies the Vos method for energy fraction
-    '''
+    """
+    Compute the battery mass fraction required for a fully electric aircraft.
+
+    This method applies the Vos method for electric form of the Breguet range equation using
+    battery efficiency, propulsive efficiency, battery specific energy, lift-to-drag
+    ratio, and mission range.
+
+    Parameters
+    ----------
+    ac : Aircraft
+        Aircraft object containing battery energy density, efficiencies, lift-to-drag
+        ratio, and mission range.
+
+    Returns
+    -------
+    float
+        Required battery mass fraction relative to takeoff mass.
+    """
     eta_bat = ac.engine.eta_1
     eta_prop = ac.engine.eta_2
     e_f = ac.engine.e_f
@@ -67,11 +160,33 @@ def breguet_bat(ac : Aircraft) -> float:
     return battery_fraction 
 
 def breguet_hyb(ac : Aircraft) -> tuple[float, float]:
-    '''
-    Applies the de Vries, Hoogreef, Vos method for hybrid fractions \n
-    corresponding to eq 17 from *"Range Equation for Hybrid-Electric Aircraft with Constant Power Split"*
-    '''
+    """
+    Compute fuel and battery fractions for a hybrid-electric aircraft.
 
+    This function applies the constant power split hybrid-electric range relation
+    from de Vries, Hoogreef, and Vos, corresponding to Equation 17 from
+    "Range Equation for Hybrid-Electric Aircraft with Constant Power Split".
+
+    Parameters
+    ----------
+    ac : Aircraft
+        Aircraft object containing hybrid engine efficiencies, fuel and battery
+        energy densities, power split ratio, lift-to-drag ratio, and mission range.
+
+    Returns
+    -------
+    tuple[float, float]
+        Tuple containing:
+
+        - fuel_frac : float
+            Required fuel mass fraction.
+        - battery_frac : float
+            Required battery mass fraction.
+
+    Notes
+    -----
+    The power split parameter Phi should satisfy 0 < Phi < 1 for hybrid aircraft.
+    """
     eta_1 = ac.engine.eta_1
     eta_2 = ac.engine.eta_2
     eta_3 = ac.engine.eta_3
@@ -94,7 +209,49 @@ def operating_empty_frac(ac : Aircraft,
                          correction : float = 1,
                          source_for_fracs : str = 'references',
                          subtype : str = 'Propeller Driven'):
-    
+    """
+    Estimate the operating empty mass fraction of an aircraft.
+
+    The function can estimate operating empty mass fraction using either a fitted
+    relation from the local reference aircraft dataset or a statistical mass relation
+    from an external CSV lookup table.
+
+    Parameters
+    ----------
+    ac : Aircraft
+        Aircraft object containing takeoff mass and requirement data.
+    correction : float, optional
+        Multiplicative correction factor applied to the estimated operating empty
+        mass. This can be used to account for design innovations or assumptions.
+        Default is 1.
+    source_for_fracs : str, optional
+        Source used for estimating operating empty mass fraction.
+
+        If set to 'references', a linear fit based on reference aircraft is used.
+        Otherwise, this should be the path to a CSV file containing statistical
+        mass relation coefficients. Default is 'references'.
+    subtype : str, optional
+        Aircraft subtype used when looking up statistical mass relation coefficients.
+        Default is 'Propeller Driven'.
+
+    Returns
+    -------
+    float
+        Operating empty mass fraction, defined as operating empty mass divided by
+        takeoff mass.
+
+    Notes
+    -----
+    For the 'references' method, the current fitted relation is:
+
+        OEW = 0.5873688639193038 * MTOW - 2.683435417799367
+
+    where both OEW and MTOW are in kilograms.
+
+    For the lookup-table method, the function uses coefficients A and B from the
+    selected aircraft type and subtype, with the Roskam-style logarithmic relation
+    evaluated in pounds.
+    """
     if source_for_fracs == 'references':
         df = pd.read_csv('lookups/ref.csv')
 
@@ -115,93 +272,3 @@ def operating_empty_frac(ac : Aircraft,
         B = row['B'].iloc[0]
         W_e = 10 ** ((np.log10(ac.weights.m_takeoff / LBS_TO_KG) - A) / B)
         return W_e / (ac.weights.m_takeoff / LBS_TO_KG)
-
-ac = loader.load('yamls/aircraft.yaml', Aircraft)
-print(operating_empty_frac(ac))
-
-
-
-
-# class Class1:
-#     def __init__(self, ac : Aircraft, frac_source : str = 'lookups/fuel_fracs1.csv', mass_source : str = 'lookups/mass_relations1.csv'):
-#         self.ac = ac
-#         if ac.requirements.general['standard_type'] == None:
-#             print('No standard aircraft type found. Using Homebuilt.')
-#             self.ac_type = 'Homebuilt'
-#         else:
-#             self.ac_type = ac.requirements.general['standard_type']
-
-#         self.data = pd.read_csv(frac_source)
-#         self.rel_data = self.data[self.data['Airplane Type'] == self.ac_type].iloc[0]
-#         self.data2 = pd.read_csv(mass_source)    
-#     @property
-#     def _warm_up_frac(self) -> float:
-#         return self.rel_data['Warm-up']
-    
-#     @property
-#     def _taxi_frac(self) -> float:
-#         return self.rel_data['Taxi']
-    
-#     @property
-#     def _take_off_frac(self) -> float:
-#         return self.rel_data['Take-off']
-    
-#     @property
-#     def _climb_frac(self) -> float:
-#         return self.rel_data['Climb']
-    
-#     @property
-#     def _descent_frac(self) -> float:
-#         return self.rel_data['Descent']
-    
-#     @property
-#     def _landing_frac(self) -> float:
-#         return self.rel_data['Landing Taxi']
-    
-#     @property
-#     def _fuel_frac_cruise(self) -> float:
-#         engine_type = self.ac.engine.engine_type
-#         if engine_type == 'prop':
-#             return self.breguet_prop()
-#         elif engine_type == 'bat':
-#             return self.breguet_bat()
-#         elif engine_type == 'hyb':
-#             return self.breguet_hyb()
-    
-#     @property
-#     def _fuel_frac_endurance(self) -> float:
-#         engine_type = self.ac.engine.engine_type
-#         if engine_type == 'prop':
-#             ...
-
-#     def breguet_prop(self):
-#         R = self.ac.mission.range / MIL_TO_KM
-#         eta_prop = self.ac.engine.eta_prop
-#         c_p = self.ac.engine.c_p # assumed in lbs/hr/hp
-#         lnfrac = R / 375 * c_p / eta_prop / self.ac.wing.ld
-#         fracinv = np.exp(lnfrac)
-#         return 1 / fracinv
-    
-#     def breguet_(self):
-#         R = self.ac.mission.range / NMIL_TO_KM
-#         V = self.ac.mission.cruise_speed  # as long as v_cr in kts
-#         c_j = self.ac.engine.c_j
-#         lnfrac = R * c_j / V / self.ac.wing.ld
-#         fracinv = np.exp(lnfrac)
-#         return 1/fracinv
-    
-#     def fuel_frac_used(self):
-#         mulitple = self._warm_up_frac * self._taxi_frac * self._take_off_frac * self._climb_frac * self._fuel_frac * self._descent_frac * self._landing_frac
-#         return ((1 - mulitple) * self.ac.weights.m_takeoff + self.ac.requirements.general['reserve']) / self.ac.weights.m_takeoff
-     
-#     def struct_mass_frac(self, subtype : str = 'Propeller Driven'):
-#         row = self.data2[
-#         (self.data2["Airplane Type"] == self.ac_type) &
-#         (self.data2["Subtype"] == subtype)
-#         ]
-#         A = row['A'].iloc[0]
-#         B = row['B'].iloc[0]
-
-#         W_e = 10 ** ((np.log10(self.ac.weights.m_takeoff / LBS_TO_KG) - A) / B)
-#         return W_e / (self.ac.weights.m_takeoff / LBS_TO_KG)
-    
