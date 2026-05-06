@@ -2,6 +2,20 @@ import numpy as np
 from dataclasses import dataclass
 
 
+
+
+## Working
+# Class 1 yields us the wing area and aspect ratio. We can use these to compute the span and root chord. We can then compute the tip chord from the taper ratio. With the root and tip chords, we can compute the mean aerodynamic chord (MAC) and its location. Finally, we can compute the quarter-chord and trailing edge sweep angles from the leading edge sweep.
+# From reference AC in Roskam we obtain the following parameters: sweep & taper ratio
+# The following parameters are then calculated:
+# c_root, c_tip, span, MAC, y_MAC, x_LE_MAC, sweep_c4, sweep_TE
+# 
+# Select t/c ratio --> choose airfoil (Cd, Cldes, Mcrit, Cmc/4)
+# Decide on type, size and location of control devices
+# Draw the front and rear spar lines in the wing planform
+# Compute wing fuel volume
+# Decide on the wing dihedral angle
+# Decide on the wing incidence angle
 # ==========================================================
 # DATA STRUCTURE
 # ==========================================================
