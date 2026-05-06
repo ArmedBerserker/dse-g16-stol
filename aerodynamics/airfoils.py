@@ -21,6 +21,7 @@ class Airfoil:
 
 AIRFOIL_DB: List[Airfoil] = [
     
+    # --- Original Airfoils ---
     Airfoil(
         name="Wortmann FX 63-137",
         thickness_pct=13.7,
@@ -48,7 +49,6 @@ AIRFOIL_DB: List[Airfoil] = [
         drag_bucket_cl=(0.2, 0.8),
         stall_type="Moderate"
     ),
-
     Airfoil(
         name="NACA 4412",
         thickness_pct=12.0,
@@ -85,7 +85,6 @@ AIRFOIL_DB: List[Airfoil] = [
         drag_bucket_cl=(0.3, 0.9),
         stall_type="Moderate"
     ),
-
     Airfoil(
         name="USA 35B",
         thickness_pct=11.6,
@@ -112,17 +111,16 @@ AIRFOIL_DB: List[Airfoil] = [
         cm_c4=-0.070,
         drag_bucket_cl=(0.2, 0.6),
         stall_type="Moderate"
-    )
+    ),
     Airfoil(
         name="Selig S1223",
         thickness_pct=12.1,
         camber_pct=8.7,
         cl_max_2d=2.10,          
-        cm_c4=-0.200,         # very strong   
+        cm_c4=-0.200,         
         drag_bucket_cl=(0.8, 1.6),  
         stall_type="Moderate"    
     ),
-
     Airfoil(
         name="Eppler 423",
         thickness_pct=12.5,
@@ -131,6 +129,43 @@ AIRFOIL_DB: List[Airfoil] = [
         cm_c4=-0.120,
         drag_bucket_cl=(0.5, 1.2),
         stall_type="Gentle"
-    )
+    ),
 
+   
+    Airfoil(
+        name="NACA 23012",
+        thickness_pct=12.0,
+        camber_pct=1.8,
+        cl_max_2d=1.60,
+        cm_c4=-0.015,                
+        drag_bucket_cl=(0.1, 0.4),
+        stall_type="Sharp"           
+    ),
+    Airfoil(
+        name="NACA 63A418",
+        thickness_pct=18.0,
+        camber_pct=2.2,
+        cl_max_2d=1.55,
+        cm_c4=-0.070,
+        drag_bucket_cl=(0.2, 0.6),
+        stall_type="Moderate"
+    ),
+    Airfoil(
+        name="NACA 64-514",
+        thickness_pct=14.0,
+        camber_pct=2.8,
+        cl_max_2d=1.60,
+        cm_c4=-0.090,
+        drag_bucket_cl=(0.3, 0.7),
+        stall_type="Moderate"
+    ),
+    Airfoil(
+        name="NACA 63A516",
+        thickness_pct=16.0,
+        camber_pct=2.8,
+        cl_max_2d=1.55,
+        cm_c4=-0.090,
+        drag_bucket_cl=(0.3, 0.7),
+        stall_type="Moderate"
+    )
 ]
