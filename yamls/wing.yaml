@@ -9,5 +9,4 @@ phi : 0.95
 psi : 0.007
 airfoils:
   - null
-ld:
-  13
+ld: 13
