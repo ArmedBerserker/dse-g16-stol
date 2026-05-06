@@ -1,3 +1,7 @@
+# possible airfoils
+# PARAMETERS TO LOOK AT IN AIRFOIL TRADE-OFF:
+# Cd @ Cldes, t/c, trim AoA, Clmax, maximum AoA at stall
+
 from dataclasses import dataclass
 from typing import List, Tuple
 
@@ -21,7 +25,7 @@ class Airfoil:
 
 AIRFOIL_DB: List[Airfoil] = [
     
-    # --- Original Airfoils ---
+    
     Airfoil(
         name="Wortmann FX 63-137",
         thickness_pct=13.7,
@@ -130,8 +134,6 @@ AIRFOIL_DB: List[Airfoil] = [
         drag_bucket_cl=(0.5, 1.2),
         stall_type="Gentle"
     ),
-
-   
     Airfoil(
         name="NACA 23012",
         thickness_pct=12.0,
@@ -167,5 +169,61 @@ AIRFOIL_DB: List[Airfoil] = [
         cm_c4=-0.090,
         drag_bucket_cl=(0.3, 0.7),
         stall_type="Moderate"
+    ),
+
+    Airfoil(
+        name="NACA 64A215",
+        thickness_pct=15.0,
+        camber_pct=1.1,
+        cl_max_2d=1.45,
+        cm_c4=-0.040,
+        drag_bucket_cl=(0.0, 0.4),
+        stall_type="Moderate"
+    ),
+    Airfoil(
+        name="NACA 65(3)-415",
+        thickness_pct=15.0,
+        camber_pct=2.2,
+        cl_max_2d=1.50,
+        cm_c4=-0.075,
+        drag_bucket_cl=(0.1, 0.7),
+        stall_type="Moderate"
+    ),
+    Airfoil(
+        name="NACA 63(2)-215",
+        thickness_pct=15.0,
+        camber_pct=1.1,
+        cl_max_2d=1.45,
+        cm_c4=-0.040,
+        drag_bucket_cl=(0.0, 0.4),
+        stall_type="Moderate"
+    ),
+    Airfoil(
+        name="NACA 63-415",
+        thickness_pct=15.0,
+        camber_pct=2.2,
+        cl_max_2d=1.55,
+        cm_c4=-0.070,
+        drag_bucket_cl=(0.2, 0.6),
+        stall_type="Moderate"
+    ),
+    Airfoil(
+        name="NACA 2413",
+        thickness_pct=13.0,
+        camber_pct=2.0,
+        cl_max_2d=1.60,
+        cm_c4=-0.045,
+        drag_bucket_cl=(0.1, 0.5),
+        stall_type="Moderate"
+    ),
+    Airfoil(
+        name="NACA 63(3)-615",
+        thickness_pct=15.0,
+        camber_pct=3.3,
+        cl_max_2d=1.65,
+        cm_c4=-0.110,
+        drag_bucket_cl=(0.3, 0.9),
+        stall_type="Moderate"
     )
 ]
+
