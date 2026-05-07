@@ -11,7 +11,9 @@ take_off:
 climb:
   engine_placement: wing # fuselage or wing
   take_off_flap_deflection: 20 # [deg] assumed flap deflection during climb
+  landing_flap_deflection: 30 # [deg] assumed flap deflection during climb
   turbine_condition: True # check if aircraft is turbined or non-turbined
+  engine_type: turbine # "turbine" or "non-turbine"
   to_altitude_turbine: 5000 # [ft] altitude of additional condition from CS23.65 for turbined aircraft
   to_temperature_shift_turbine: 12 # [K] temperature of additional condition from CS23.65 for turbined aircraft
 
@@ -47,14 +49,6 @@ approach:
   ap_mass_frac: null
   ap_temp: null  # K
   ap_speed: null  # kts
-
-climb_gradient:
-  n_eng: 1
-  engine_type: null # "turbine" or "non-turbine"
-  engine_placement: null # fuselage or wing
-  flap_deflection: 10 # deg
-  to_altitude_turbine: 5000 # ft
-  to_temperature_shift_turbine: 12 # K
 
 general:
   stall_speed: 45  # [kts] stall speed requirement as specified by stakeholders

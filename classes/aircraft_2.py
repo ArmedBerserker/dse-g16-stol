@@ -11,6 +11,7 @@ from dataclasses import dataclass, is_dataclass, fields, field
 from typing import Type, TypeVar, Any
 import yaml
 import os
+import math as m
 
 T = TypeVar('T')
 
@@ -77,7 +78,6 @@ class Requirements:
     cruise : dict
     landing : dict
     approach : dict
-    climb_gradient : dict
 
     def __str__(self):
         text = "The requirements are:\n"
@@ -162,12 +162,38 @@ class Fuselage:
         return text
 
 @dataclass
+class Engine:
+    engine_type : str | None
+    count : int | None
+    eta_1 : list[float] | None        # this corresponds to the fuel always
+    eta_2 : list[float] | None        # this corresponds to the battery always
+    eta_3 : list[float] | None        # this corresponds to the prop always. Prop is always last
+    e_1 : float | None
+    e_2 : float | None
+    Phi : float | None
+
+    def __post_init__(self):
+        self.eta_1 = m.prod(self.eta_1)
+        self.eta_2 = m.prod(self.eta_2)
+        self.eta_prop = self.eta_3[-1]
+        self.eta_3 = m.prod(self.eta_3)
+    def __str__(self):
+        text = "The engine is:\n"
+        for field_info in fields(self):
+            field_name = field_info.name
+            field_value = getattr(self, field_name)
+
+            text += f'{field_name}: {field_value} \n'
+        return text
+
+@dataclass
 class Aircraft:
     requirements : Requirements
     mission : Mission
     weights : Weights
     wing : Wing
     fuselage : Fuselage
+    engine: Engine
 
     @classmethod
     def from_dict(cls, data : dict):
@@ -175,7 +201,8 @@ class Aircraft:
                    mission = Mission(**data['mission']),
                    weights = Weights(**data['weights']),
                    wing = Wing(**data['wing']),
-                   fuselage = Fuselage(**data['fuselage']))
+                   fuselage = Fuselage(**data['fuselage']),
+                   engine = Engine(**data['engine']))
     
     def __str__(self):
         text = "The aircraft is:\n"
