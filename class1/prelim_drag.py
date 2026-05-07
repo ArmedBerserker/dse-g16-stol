@@ -94,7 +94,7 @@ def cd0(ac : Aircraft,
     
     return cd0
 
-def k(ac : Aircraft) -> float:
+def k(ac : Aircraft) -> tuple[float, float]:
     """
     Estimate the induced drag factor, k, using the Vos method.
 

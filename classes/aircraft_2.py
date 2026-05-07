@@ -42,7 +42,7 @@ class loader:
         for k, v in d.items():
             if isinstance(v, str) and v.endswith(('yaml', 'yml')):
                 full_path = os.path.join(base_dir, v)
-                print(f'{k} is being loaded from {v}')
+                # print(f'{k} is being loaded from {v}')
                 with open(full_path, 'r') as w:
                     d[k] = yaml.safe_load(w)
             else:
