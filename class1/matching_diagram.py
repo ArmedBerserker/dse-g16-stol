@@ -103,6 +103,7 @@ def cruise_speed_matching(ac: Aircraft,
     alpha_p_electric = 1
 
     alpha_p = alpha_p_electric * ac.engine.Phi + alpha_p_turboprop * (1 - ac.engine.Phi)
+
     W_P = eta_p * alpha_p / cruise_mass_frac * (CD0 * 0.5 * rho * V_cr ** 3 / (cruise_mass_frac * W_S) + cruise_mass_frac * W_S / (np.pi * A * e * 0.5 * rho * V_cr)) ** (-1)
 
     return W_P, W_S
@@ -354,7 +355,7 @@ def find_design_point(datasets, max_wingloading,
 
     # --- 2. Evaluate all curves at ws_opt to find upper W/P bound ----------
     # Curves where feasible region is BELOW: optimal W/P = min of all curves
-    curve_labels = ["Take-off", "Cruise", "Climb", "Series C", "Turbine"]
+    curve_labels = ["Take-off field length", "Cruise speed", "AEO RoC", "AEO Climb gradient", "AEO Climb gradient (turbine)", "Balked landing", "Balked landing (turbine)", "OEI RoC/Climb gradient I (turbine)", "OEI RoC/Climb gradient II (turbine)"]
     curve_values = {}
 
     for ds in datasets:
@@ -392,44 +393,45 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         type_to_use : str = "Single Engine Propeller Driven",
         friction_source : str = 'lookups/skin_fric.csv',
         s_wet_source : str = 'lookups/s_wets.csv',
-        W_S_plot: np.ndarray = np.arange(0,10000,5),
-        W_P_plot: np.ndarray = np.arange(0,10000,5),
+        W_S_plot: np.ndarray = np.arange(5,10000),
+        W_P_plot: np.ndarray = np.arange(5,10000),
         output_filepath: str = 'outputs/Matching_Diagram.png') -> list:
 
-    # Is it a turbine (does it need those climb lines?)
-    turbine =
     # Compute plots
     stall_W_P, stall_W_S = stall_speed_matching(ac, W_P_plot)
     to_W_P, to_W_S = takeoff_dist_matching(ac, W_S_plot)
     ld_W_P, ld_W_S = landing_dist_matching(ac, W_P_plot)
     cr_W_P, cr_W_S = cruise_speed_matching(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
 
-    cl1_W_P, cl1_W_S = climb_angle_AEO_matching_23_65(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
-    cl2_W_P, cl2_W_S = climb_rate_AEO_matching_23_65(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
-    cl3_W_P, cl3_W_S = climb_angle_AEO_matching_23_77(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
+    AEO1_W_P, AEO2_W_P, AEO3_turb_W_P, AEO_W_S = all_engine_operative(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
+    OEI1a_W_P, OEI1b_W_P, OEI2a_W_P, OEI2b_W_P, OEI_W_S = one_engine_inoperative(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
+    BL_W_P, BL_turb_W_P, BL_W_S = balked_landing(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
 
-    if turbine:
-        turb1_W_P, turb1_W_S = climb_rate_OEI_multiengine_matching_turbine(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
-        turb2_W_P, turb2_W_S = climb_rate_OEI_multiengine_matching_turbine(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
+    OEI1_W_P = np.min(OEI1a_W_P, OEI1b_W_P)
+    OEI2_W_P = np.min(OEI2a_W_P, OEI2b_W_P)
 
     # Start actual plotting stuff
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.set_xlim(0, 100)
-    ax.set_ylim(-10, 10)
+    ax.set_xlim(min(W_S_plot), max(W_S_plot))
+    ax.set_ylim(min(W_P_plot), max(W_P_plot))
 
     datasets = [
         {"x": stall_W_S, "y": stall_W_P, "label": "Stall speed"},
         {"x": to_W_S, "y": to_W_P, "label": "Take-off field length"},
         {"x": ld_W_S, "y": ld_W_P, "label": "Landing field length"},
         {"x": cr_W_S, "y":cr_W_P, "label": "Cruise speed"},
-        {"x": cl1_W_S, "y": cl1_W_P, "label": "Series C"},
-        {"x": cl2_W_S, "y": cl2_W_P, "label": "Series C"},
-        {"x": cl3_W_S, "y": cl3_W_P, "label": "Series C"}
+        {"x": AEO_W_S, "y": AEO1_W_P, "label": "AEO RoC"},
+        {"x": AEO_W_S, "y": AEO2_W_P, "label": "AEO Climb gradient"},
+        {"x": BL_W_S, "y": BL_W_P, "label": "Balked landing"}
     ]
 
-    if turbine:
-        datasets.append({"x": turb1_W_S, "y": turb1_W_P, "label": "Turbine climb"})
-        datasets.append({"x": turb2_W_S, "y": turb2_W_P, "label": "Turbine cruise"})
+    if ac.requirements.climb['turbine_condition']:
+        datasets.append({"x": AEO_W_S, "y": AEO3_turb_W_P, "label": "AEO Climb gradient (turbine)"})
+        datasets.append({"x": BL_turb_W_P, "y":BL_W_S, "label": "Balked landing (turbine)"})
+
+    if ac.requirements.climb['turbine_condition'] and ac.requirements.climb_gradient['n_eng']:
+        {"x": OEI_W_S, "y": OEI1_W_P, "label": "OEI RoC/Climb gradient I (turbine)"},
+        {"x": OEI_W_S, "y": OEI2_W_P, "label": "OEI RoC/Climb gradient II (turbine)"},
 
     colors = cm.tab10(np.linspace(0, 1, len(datasets)))
 
