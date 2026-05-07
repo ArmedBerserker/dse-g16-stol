@@ -10,6 +10,7 @@ dataclasses.
 from dataclasses import dataclass, is_dataclass, fields, field
 from typing import Type, TypeVar, Any
 import yaml
+import math as m
 
 T = TypeVar('T')
 
@@ -160,12 +161,18 @@ class Fuselage:
 class Engine:
     engine_type : str | None
     count : int | None
-    eta_1 : float | None
-    eta_2 : float | None
-    eta_3 : float | None
+    eta_1 : list[float] | None        # this corresponds to the fuel always
+    eta_2 : list[float] | None        # this corresponds to the battery always
+    eta_3 : list[float] | None        # this corresponds to the prop always. Prop is always last
     e_1 : float | None
     e_2 : float | None
     Phi : float | None
+
+    def __post_init__(self):
+        self.eta_1 = m.prod(self.eta_1)
+        self.eta_2 = m.prod(self.eta_2)
+        self.eta_prop = self.eta_3[-1]
+        self.eta_3 = m.prod(self.eta_3)
     def __str__(self):
         text = "The engine is:\n"
         for field_info in fields(self):
@@ -203,4 +210,3 @@ class Aircraft:
             stripped_f_val = str(field_value).split('\n', 1)[1]
             text += f'{field_name}: {stripped_f_val} \n'
         return text
-
