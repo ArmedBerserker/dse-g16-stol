@@ -3,3 +3,4 @@ mission: mission.yaml
 weights: weights.yaml
 wing: wing.yaml
 fuselage: fuselage.yaml
+engine: engine.yaml

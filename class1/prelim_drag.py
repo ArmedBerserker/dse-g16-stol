@@ -70,7 +70,7 @@ def cd0(ac : Aircraft,
     # log(f) = a + b * log(S_w) in lbs and ft2
 
     ######### WE FIND CD0 HERE ####################################
-    cf_tab = pd.read_csv(friction_source)
+    cf_tab = pd.read_csv(str(friction_source))
     cf_tab = cf_tab.sort_values('c_f').to_numpy() 
 
     a = np.interp(ac.wing.c_f, cf_tab[:,0], cf_tab[:, 1])
