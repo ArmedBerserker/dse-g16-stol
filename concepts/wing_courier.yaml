@@ -1,0 +1,12 @@
+
+area: 17.10
+span: 14.55
+aspect_ratio: 7
+taper_ratio: null
+sweep: null
+c_f: 0.0035
+phi : 0.95
+psi : 0.007
+airfoils:
+  - null
+ld: 13
