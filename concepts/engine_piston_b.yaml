@@ -1,0 +1,11 @@
+engine_type : prop 
+count : 1          # number of engines aboard
+#       [combustion]
+eta_1 : [0.25]
+#       null
+eta_2 : null
+#       [Prop]
+eta_3 : [0.8]
+e_1 : 43000000     # specific energy for source 1 [J/kg] (the varying item)
+e_2 : null         # specific energy for source 2 [J/kg] (the constant item)
+Phi : 0            # power split ratio, P_b / (P_b + P_f)
