@@ -115,7 +115,7 @@ def breguet_prop(ac : Aircraft, frac_source : str) -> float | tuple[float]:
     rel_data = data[data['Airplane Type'] == ac_type].iloc[0]
 
     eta_fuel = ac.engine.eta_1
-    eta_prop = ac.engine.eta_2
+    eta_prop = ac.engine.eta_prop
     e_f = ac.engine.e_1
     ld = ac.wing.ld
     R = ac.mission.range * 1000 # convert to meters
@@ -150,13 +150,13 @@ def breguet_bat(ac : Aircraft) -> float:
     float
         Required battery mass fraction relative to takeoff mass.
     """
-    eta_bat = ac.engine.eta_1
-    eta_prop = ac.engine.eta_2
-    e_f = ac.engine.e_f
+    eta_bat = ac.engine.eta_2
+    eta_prop = ac.engine.eta_prop
+    e_b = ac.engine.e_2
     ld = ac.wing.ld
     R = ac.mission.range * 1000 # convert to meters
-    efg = e_f / g
-    battery_fraction = R / (eta_prop * eta_bat * ld * efg)
+    ebg = e_b / g
+    battery_fraction = R / (eta_prop * eta_bat * ld * ebg)
     return battery_fraction 
 
 def breguet_hyb(ac : Aircraft) -> tuple[float, float]:
