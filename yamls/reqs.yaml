@@ -36,7 +36,7 @@ landing:
 
   la_mass_frac: 0.90 # [-] assumed landing mass fraction, to be updated with a more accurate value
   dist_balance_fl_condition: False  # check if landing field distance is landing field length or ground roll
-  la_distance: 150  # [m] landing distance requirement as specified by stakeholders
+  la_distance: 130  # [m] landing distance requirement as specified by stakeholders
 
   runway_type: unprepared
   runway_condition: wet
@@ -51,7 +51,7 @@ approach:
   ap_speed: null  # kts
 
 general:
-  stall_speed: 50  # [kts] stall speed requirement as specified by stakeholders
+  stall_speed: 45  # [kts] stall speed requirement as specified by stakeholders
   standard_type: 'Single Engine Propeller Driven'  # string (to use with Roskam)
   engine_type: ''
-  max_wing_loading: 90  # kg/m2
+  max_wing_loading: 80  # kg/m2
