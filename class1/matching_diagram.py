@@ -108,14 +108,9 @@ def cruise_speed_matching(ac: Aircraft,
     alpha_p_turboprop = sigma ** 0.75
     alpha_p_electric = 1
 
-    if ac.engine.alpha_p_id == 'turboprop':
-        alpha_p = alpha_p_electric * ac.engine.Phi + alpha_p_turboprop * (1 - ac.engine.Phi)
-    elif ac.engine.alpha_p_id == 'piston':
-        alpha_p = alpha_p_electric * ac.engine.Phi + alpha_p_piston * (1 - ac.engine.Phi)
-    elif ac.engine.alpha_p_id == 'hydrogen':
-        alpha_p = alpha_p_electric
+    alpha_p = alpha_p_electric * ac.engine.Phi + alpha_p_turboprop * (1 - ac.engine.Phi)
 
-    W_P = eta_p * alpha_p / cruise_mass_frac / (CD0 * 0.5 * rho * V_cr ** 3 / (cruise_mass_frac * W_S) + cruise_mass_frac * W_S / (np.pi * A * e * 0.5 * rho * V_cr))
+    W_P = eta_p * alpha_p / cruise_mass_frac * (CD0 * 0.5 * rho * V_cr ** 3 / (cruise_mass_frac * W_S) + cruise_mass_frac * W_S / (np.pi * A * e * 0.5 * rho * V_cr)) ** (-1)
 
     return W_P, W_S
 
@@ -331,7 +326,7 @@ def balked_landing(ac : Aircraft,
 
 # NOTE: add this function to logbook because Claude helped
 def find_design_point(datasets, max_wingloading,
-                      ws_margin_frac=0.01, wp_margin_frac=0.01):
+                      ws_margin_frac=0.02, wp_margin_frac=0.02):
     """
     Automatically selects the optimal (most upper-right) design point
     from a matching diagram, respecting all constraints with margin.
@@ -407,9 +402,7 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         W_S_plot: np.ndarray = np.arange(1,10000),
         W_P_plot: np.ndarray = np.arange(1,10000),
         output_filepath: str = 'outputs/Matching_Diagram.png', 
-        show_plot: bool = False,
-        requirement_to_meet: str = 'all'  # options: 'all', 'cruise', 'to'
-        ) -> dict:
+        show_plot: bool = False) -> list:
 
     # Compute plots
     stall_W_P, stall_W_S = stall_speed_matching(ac, W_P_plot)
@@ -454,15 +447,9 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
     for ds, color in zip(datasets, colors):
         ax.plot(ds["x"], ds["y"], color=color, label=ds["label"], linewidth=2)
 
-    if requirement_to_meet == 'all':
-        datasets_design_point = datasets
-    elif requirement_to_meet == 'cruise':
-        datadatasets_design_pointsets1 = [d for d in datasets if d["label"] == "cruise speed" or "landing field length" or "maximum wing loading" or "stall speed"]
-    elif requirement_to_meet == 'to':
-        datasets_design_point = [d for d in datasets if d["label"] != "cruise speed"]
-    result = find_design_point(datasets_design_point, max_wingloading=ac.requirements.general["max_wing_loading"]*g,
-                                ws_margin_frac=0.01,
-                                wp_margin_frac=0.01)
+    result = find_design_point(datasets, max_wingloading=ac.requirements.general["max_wing_loading"]*g,
+                                ws_margin_frac=0.02,
+                                wp_margin_frac=0.02)
 
     print(f"Design point:  W/S = {result['W_S']:.1f}  |  W/P = {result['W_P']:.4f}")
     print(f"Limited in W/S by: {result['limiting_ws_constraint']}")
