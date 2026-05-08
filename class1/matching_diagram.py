@@ -30,7 +30,9 @@ import pandas as pd
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 BASE_DIR = Path(__file__).resolve().parent
 
-
+# def Range(ac: Aircraft):
+#     max_L_D_cr = 
+#     R_lost = 1 / 0.7 * max_L_D_cr * (ac.requirements.cruise['cr_altitude'] * FT_TO_M + (ac.requirements.cruise['cr_speed'] * KTS_TO_MS) ** 2 / (2 * g))
 
 def stall_speed_matching(ac: Aircraft,  # Change units
                          W_P: np.ndarray = np.arange(1,10000)
