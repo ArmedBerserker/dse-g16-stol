@@ -39,6 +39,7 @@ class loader:
             d = yaml.safe_load(f)
 
         base_dir = os.path.dirname(self.filepath)
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(self.filepath)))
 
         for k, v in d.items():
             if isinstance(v, str) and v.endswith(('yaml', 'yml')):
@@ -165,6 +166,7 @@ class Fuselage:
 @dataclass
 class Engine:
     engine_type : str | None
+    alpha_p_id : str | None
     count : int | None
     eta_1 : list[float] | None        # this corresponds to the fuel always
     eta_2 : list[float] | None        # this corresponds to the battery always
