@@ -35,6 +35,14 @@ def Resize_CL_max_LD(limit_W_S):
         resize = True
     return resize
 
+def max_RC_and_Climb_grad(W_S, W_P, k, rho, eta_p, CD0):
+    V_RC = np.sqrt(W_S / (0.5 * rho) * np.sqrt(k / (3 * CD0)))
+    V_CG = 4 * W_S * k / (rho * eta_p / W_P)
+
+    RC = eta_p / W_P - V_RC * (0.5 * rho * V_RC ** 2 / W_S * CD0 + W_S * k / (0.5 * rho * V_RC ** 2))
+    CG = np.arcsin(eta_p / V_CG / W_P - 0.5 * rho * V_CG ** 2 / W_S * CD0 - W_S * k / (0.5 * rho * V_CG ** 2))
+    return RC, np.rad2deg(CG)
+
 def sensitivity_study(
         ac: Aircraft,
         type_to_use: str,
@@ -188,8 +196,6 @@ def Weight_est_and_match_concept(ac : Aircraft,  # Change units
         initial_W_P=W_P,
         initial_W_S=W_S,
     )
-
-    
 
     # # Check if need to check CL_max_landing change
     # CL_LD_resize: bool = Resize_CL_max_LD(limiting_ws_constraint)
@@ -355,13 +361,21 @@ def run_sensitivity_study_save_results(aircraft_files: list[str] = ['yamls/aircr
         file_paths_CL.append(filepath1)
         file_paths_A.append(filepath2)
 
-        # INSERT WEIGHT EST
+        # Climb gra
+        RC, CG = max_RC_and_Climb_grad(output_CL['W/S'][0],
+                                       output_CL['W/P'][0],
+                                       k=k(ac),
+                                       rho=Atmosphere(ac.requirements.take_off['to_altitude'], ac.requirements.take_off['to_temp_shift']).density,
+                                       eta_p=ac.engine.eta_prop,
+                                       CD0=cd0(ac, type_to_use))
+
+        # WEIGHT EST
         m_to: float = ac.weights.m_takeoff
         m_pl: float = ac.weights.m_payload
         m_f_frac: float = sum(c1_m.energy_frac_needed(ac))  # Tuple with fuel_frac, battery_frac
         m_oe_frac = c1_m.operating_empty_frac(ac)
         # pl_mtow = m_pl/m_to
-        rows_mass.append({'Concept_ID': i+1, 'Fuel/energy frac': m_f_frac, 'OEW/MTOW': m_oe_frac, 'PL/MTOW': m_pl/m_to, 'MTOW': m_to, 'Fuel/energy source mass': m_f_frac*m_to, 'OEW': m_oe_frac*m_to, 'PL mass': m_pl, 'Sum mass fracs': m_oe_frac+m_f_frac+m_pl/m_to})
+        rows_mass.append({'Concept_ID': i+1, 'Fuel/energy frac': m_f_frac, 'OEW/MTOW': m_oe_frac, 'PL/MTOW': m_pl/m_to, 'MTOW': m_to, 'Fuel/energy source mass': m_f_frac*m_to, 'OEW': m_oe_frac*m_to, 'PL mass': m_pl, 'Sum mass fracs': m_oe_frac+m_f_frac+m_pl/m_to, 'Max RoC [m/s]': RC, 'Max climb angle [deg at TO]': CG})
 
 
     # Save main df to csv

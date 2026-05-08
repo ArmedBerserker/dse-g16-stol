@@ -1,4 +1,5 @@
 engine_type : hyb # bat or hyb
+alpha_p_id : turboprop  # turboprop or hydrogen or piston
 count : 2          # number of engines aboard
 #        thing1  thing2  thing3
 eta_1 : [0.8,    0.8,    0.8]
