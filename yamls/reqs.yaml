@@ -1,45 +1,57 @@
 take_off:
-  to_distance: 100
+  to_altitude: 2000 # [ft] take-off altitude requirement as specified by stakeholders
+  to_temp_shift: 20  # [K] take-off temperature requirement as specified by stakeholders
+  as_CL_max_to: 2.7  # [-] assumed C_L_max during take-off, will be updated after first class I/II iteration
+
+  to_distance: 200  # [m]
+  dist_balance_fl: True  # Check if the distance given is total or not
   runway_type: unprepared
-  to_altitude: null
-  to_temperature: null
   to_mass_frac: null
 
 climb:
-  min_climb_rate: null
-  cl_altitude: null
-  cl_temperature: null
+  engine_placement: wing # fuselage or wing
+  take_off_flap_deflection: 20 # [deg] assumed flap deflection during climb
+  landing_flap_deflection: 30 # [deg] assumed flap deflection during climb
+  turbine_condition: True # check if aircraft is turbined or non-turbined
+  engine_type: turbine # "turbine" or "non-turbine"
+  to_altitude_turbine: 5000 # [ft] altitude of additional condition from CS23.65 for turbined aircraft
+  to_temperature_shift_turbine: 12 # [K] temperature of additional condition from CS23.65 for turbined aircraft
+
+  min_climb_rate: null  # ft/min
+  cl_altitude: null  # ft
+  cl_temperature_shift: null  # K
   cl_mass_frac: null
+  as_CL_max: null  # assumed C_L_max during cruise, will be updated after first class I/II iteration
+  n_eng: 1
 
 cruise:
-  cr_speed: null
-  cr_altitude: null
-  cr_mass_frac: null
+  cr_speed: 150  # [kts] cruise speed requirement as specified by stakeholders
+  cr_altitude: 8500  # [ft] minimum service ceiling requirement as specified by stakeholders
+  cr_mass_frac: 0.95 # [-] assumed cruise mass fraction, to be updated with a more accurate value
 
 landing:
-  la_distance: null
+  la_altitude: 2000  # [ft] landing altitude requirement as specified by stakeholders
+  la_temp_shift: 20  # [K] landing temperature requirement as specified by stakeholders
+  as_CL_max_la: 3.3  # [-] assumed C_L_max during landing, will be updated after first class I/II iteration
+
+  la_mass_frac: 0.90 # [-] assumed landing mass fraction, to be updated with a more accurate value
+  dist_balance_fl_condition: True  # check if landing field distance is landing field length or ground roll
+  la_distance: 130  # [m] landing distance requirement as specified by stakeholders
+
   runway_type: unprepared
   runway_condition: wet
-  la_altitude: null
-  la_temp: null
-  la_mass_frac: null
-  loiter_time: null
-  diversion_range: null
+
+  loiter_time: null  # s
+  diversion_range: null  # km
 
 approach:
-  ap_altitude: null
+  ap_altitude: null  # ft
   ap_mass_frac: null
-  ap_temp: null
-  ap_speed: null
-
-climb_gradient:
-  cg1: null 
-  cg2: null
-  cg3: null
-  cg4: null
-  cg5: null
+  ap_temp: null  # K
+  ap_speed: null  # kts
 
 general:
-  stall_speed : null
-  standard_type : Twin Engine # must be a string
-  reserve  : 0
+  stall_speed: 45  # [kts] stall speed requirement as specified by stakeholders
+  standard_type: null  # string (to use with Roskam)
+  engine_type: ''
+  max_wing_loading: 80  # kg/m2
