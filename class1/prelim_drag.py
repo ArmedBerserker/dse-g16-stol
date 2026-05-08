@@ -86,7 +86,7 @@ def cd0(ac : Aircraft,
     
     # log(f) = a + b * c + b * d * log(m_to))
 
-    logf = a + b * c + b * d * np.log10(ac.weights.m_takeoff * LBS_TO_KG)
+    logf = a + b * c + b * d * np.log10(ac.weights.m_takeoff / LBS_TO_KG)
 
     f = 10 ** logf
 

@@ -1,6 +1,14 @@
-requirements: reqs.yaml
-mission: mission.yaml
-weights: weights.yaml
-wing: wing.yaml
-fuselage: fuselage.yaml
-engine: engine.yaml
+name : 
+  Diamond DA62
+requirements : 
+  yamls/reqs.yaml
+mission : 
+  yamls/mission.yaml
+weights : 
+  yamls/weights.yaml
+wing : 
+  yamls/wing.yaml
+fuselage : 
+  yamls/fuselage.yaml
+engine : 
+  yamls/engine.yaml

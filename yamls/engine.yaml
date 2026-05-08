@@ -1,8 +1,11 @@
-engine_type : hyb
-count : 2
-eta_1 : [0.8, 0.8, 0.8]
-eta_2 : [0.8, 0.8, 0.8]
-eta_3 : [0.8, 0.8, 0.8]
-e_1 : 43000000
-e_2 : 900000
-Phi : 0.1
+engine_type : hyb # bat or hyb
+count : 2          # number of engines aboard
+#        thing1  thing2  thing3
+eta_1 : [0.8,    0.8,    0.8]
+#        thing1  thing2  thing3
+eta_2 : [0.8,    0.8,    0.8]
+#        thing1  thing2  prop
+eta_3 : [0.8,    0.8,    0.8]
+e_1 : 43000000     # specific energy for source 1 [J/kg] (the varying item)
+e_2 : 900000         # specific energy for source 2 [J/kg] (the constant item)
+Phi : 0.1            # power split ratio, P_b / (P_b + P_f)

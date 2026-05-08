@@ -1,5 +1,5 @@
 
-range: null
+range: 500
 cruise_altitude: null
-cruise_speed: null
-endurance: null
+cruise_speed: 150 # kts
+endurance: # s

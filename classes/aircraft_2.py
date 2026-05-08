@@ -134,6 +134,7 @@ class Wing:
     phi : float | None = None
     psi : float | None = None
     airfoils : list[str] = None
+    ld : float | None = None
     # ADD WHATEVER IS NEEDED
 
     def __str__(self):
@@ -188,16 +189,18 @@ class Engine:
 
 @dataclass
 class Aircraft:
+    name : str
     requirements : Requirements
     mission : Mission
     weights : Weights
     wing : Wing
     fuselage : Fuselage
-    engine: Engine
+    engine : Engine
 
     @classmethod
     def from_dict(cls, data : dict):
-        return cls(requirements = Requirements(**data['requirements']),
+        return cls(name = data['name'],
+                   requirements = Requirements(**data['requirements']),
                    mission = Mission(**data['mission']),
                    weights = Weights(**data['weights']),
                    wing = Wing(**data['wing']),
@@ -212,4 +215,3 @@ class Aircraft:
             stripped_f_val = str(field_value).split('\n', 1)[1]
             text += f'{field_name}: {stripped_f_val} \n'
         return text
-
