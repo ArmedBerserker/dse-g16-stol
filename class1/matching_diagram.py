@@ -459,7 +459,7 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         ax.plot(ds["x"], ds["y"], color=color, label=ds["label"], linewidth=2)
 
     if requirement_to_meet == 'all':
-        datasets_design_point = datasets
+        datasets_design_point = [d for d in datasets if d["label"] != "oei roc/climb gradient I (turbine)" or "oei roc/climb gradient II (turbine)" or "aeo climb gradient (turbine)" or "balked landing (turbine)"]
     elif requirement_to_meet == 'cruise':
         datasets_design_point = [d for d in datasets if d["label"] == "cruise speed" or "landing field length" or "maximum wing loading" or "stall speed"]
     elif requirement_to_meet == 'to':
@@ -498,7 +498,9 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
     ax.grid(True, linestyle="--", alpha=0.5)
 
     plt.tight_layout()
-    plt.savefig(output_filepath, dpi=300)
+    # plt.savefig(output_filepath, dpi=300)
+    if output_filepath is not None:
+        plt.savefig(output_filepath, dpi=300)
     if show_plot:
         plt.show()
 
