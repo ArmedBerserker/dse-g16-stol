@@ -479,8 +479,8 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
     ax.grid(True, linestyle="--", alpha=0.5)
 
     plt.tight_layout()
-    plt.show()
     plt.savefig(output_filepath, dpi=300)
+    plt.show()
 
     data = {
         "W/P": result['W_P'],
