@@ -9,4 +9,8 @@ phi : 0.95
 psi : 0.007
 airfoils:
   - null
+<<<<<<< HEAD
 ld: 10.4
+=======
+ld: 13
+>>>>>>> 28218e2 (inital commit)
