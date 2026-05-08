@@ -11,6 +11,10 @@ based on aircraft engine configuration.
 
 import sys
 import os
+
+# Fix path FIRST, before any local imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 from classes.aircraft_2 import Aircraft, loader
 from class1.prelim_drag import *
 import numpy as np
@@ -23,7 +27,7 @@ from typing import Any
 from numpy import dtype, ndarray
 import pandas as pd
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+# sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 BASE_DIR = Path(__file__).resolve().parent
 
 
@@ -36,6 +40,7 @@ def stall_speed_matching(ac: Aircraft,  # Change units
     landing_temperature_shift = ac.requirements.landing['la_temp_shift']
     atmos_model = Atmosphere(landing_altitude, landing_temperature_shift)
     rho = atmos_model.density
+    print(f'Density: {rho} \n stall speed: {V_s0} \n alt: {landing_altitude}')
 
     CL_max_landing = ac.requirements.landing['as_CL_max_la']
 
@@ -135,7 +140,7 @@ def takeoff_dist_matching(ac: Aircraft,  # Change units
 
     W_P = (x * sigma * CL_max_take_off / W_S) * LBSpHP_TO_NpW
 
-    return W_P, W_S
+    return W_P, W_S / PA_TO_LBSpFT2
 
 
 def C_L3_2_C_D_max(C_D0, A, e):
@@ -220,7 +225,7 @@ def all_engine_operative(ac : Aircraft,
         CGR = 0.04
         W_P_AEO_turbine_additional_condition_CGR = W_P_for_CGR(CGR, L_D, C_L_climb, eta_p, sigma, W_S)
 
-    return W_P_AEO_turbine_and_non_turbine_ROC, W_P_AEO_turbine_and_non_turbine_CGR, W_P_AEO_turbine_additional_condition_CGR, W_S
+    return W_P_AEO_turbine_and_non_turbine_ROC, W_P_AEO_turbine_and_non_turbine_CGR, W_P_AEO_turbine_additional_condition_CGR, W_S / PA_TO_LBSpFT2
 
 
 def one_engine_inoperative(ac : Aircraft,
@@ -230,6 +235,7 @@ def one_engine_inoperative(ac : Aircraft,
     friction_source = BASE_DIR / "../lookups/skin_fric.csv"
     s_wet_source = BASE_DIR / "../lookups/s_wets.csv"
 
+    W_S = W_S * PA_TO_LBSpFT2
     W_P_OEI_turbine_condition_1_ROC = W_S * 0
     W_P_OEI_turbine_condition_1_CGR = W_S * 0
     W_P_OEI_turbine_condition_2_ROC = W_S * 0
@@ -272,7 +278,7 @@ def one_engine_inoperative(ac : Aircraft,
         CGR = 0.006
         W_P_OEI_turbine_condition_2_CGR = W_P_for_CGR(CGR, L_D, C_L_climb, eta_p, sigma, W_S)
 
-    return W_P_OEI_turbine_condition_1_ROC, W_P_OEI_turbine_condition_1_CGR, W_P_OEI_turbine_condition_2_ROC, W_P_OEI_turbine_condition_2_CGR, W_S
+    return W_P_OEI_turbine_condition_1_ROC, W_P_OEI_turbine_condition_1_CGR, W_P_OEI_turbine_condition_2_ROC, W_P_OEI_turbine_condition_2_CGR, W_S / PA_TO_LBSpFT2
 
 
 def balked_landing(ac : Aircraft,
@@ -282,6 +288,7 @@ def balked_landing(ac : Aircraft,
     friction_source = BASE_DIR / "../lookups/skin_fric.csv"
     s_wet_source = BASE_DIR / "../lookups/s_wets.csv"
 
+    W_S = W_S * PA_TO_LBSpFT2
     eta_p = ac.engine.eta_3  # Propeller efficiency
 
     take_off_altitude = ac.requirements.take_off['to_altitude'] * FT_TO_M
@@ -313,7 +320,7 @@ def balked_landing(ac : Aircraft,
         RC = 0  # ft/min
         W_P_BL_turbine_additional_condition_ROC = W_P_for_ROC(RC, eta_p, W_S, C_L_C_D_param, sigma)
 
-    return W_P_BL_turbine_and_non_turbine_CGR, W_P_BL_turbine_additional_condition_ROC, W_S
+    return W_P_BL_turbine_and_non_turbine_CGR, W_P_BL_turbine_additional_condition_ROC, W_S / PA_TO_LBSpFT2
 
 
 # NOTE: add this function to logbook because Claude helped
@@ -338,7 +345,7 @@ def find_design_point(datasets, max_wingloading,
 
     # --- 1. Identify vertical-line constraints (stall, landing) -----------
     # These are datasets where x is a scalar or near-constant (vertical line)
-    vertical_labels = ["Stall speed", "Landing field length"]
+    vertical_labels = ["stall speed", "landing field length", "maximum wing loading"]
     vertical_limits = {"max wing loading": max_wingloading}
 
     for ds in datasets:
@@ -355,7 +362,7 @@ def find_design_point(datasets, max_wingloading,
 
     # --- 2. Evaluate all curves at ws_opt to find upper W/P bound ----------
     # Curves where feasible region is BELOW: optimal W/P = min of all curves
-    curve_labels = ["Take-off field length", "Cruise speed", "AEO RoC", "AEO Climb gradient", "AEO Climb gradient (turbine)", "Balked landing", "Balked landing (turbine)", "OEI RoC/Climb gradient I (turbine)", "OEI RoC/Climb gradient II (turbine)"]
+    curve_labels = ["take-off field length", "cruise speed", "aeo roc", "aeo climb gradient", "aeo climb gradient (turbine)", "balked landing", "balked landing (turbine)", "oei roc/climb gradient I (turbine)", "oei roc/climb gradient II (turbine)"]
     curve_values = {}
 
     for ds in datasets:
@@ -391,24 +398,22 @@ def find_design_point(datasets, max_wingloading,
 
 def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         type_to_use : str = "Single Engine Propeller Driven",
-        friction_source : str = 'lookups/skin_fric.csv',
-        s_wet_source : str = 'lookups/s_wets.csv',
-        W_S_plot: np.ndarray = np.arange(5,10000),
-        W_P_plot: np.ndarray = np.arange(5,10000),
+        W_S_plot: np.ndarray = np.arange(1,10000),
+        W_P_plot: np.ndarray = np.arange(1,10000),
         output_filepath: str = 'outputs/Matching_Diagram.png') -> list:
 
     # Compute plots
     stall_W_P, stall_W_S = stall_speed_matching(ac, W_P_plot)
     to_W_P, to_W_S = takeoff_dist_matching(ac, W_S_plot)
     ld_W_P, ld_W_S = landing_dist_matching(ac, W_P_plot)
-    cr_W_P, cr_W_S = cruise_speed_matching(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
+    cr_W_P, cr_W_S = cruise_speed_matching(ac, type_to_use, W_S_plot)
 
-    AEO1_W_P, AEO2_W_P, AEO3_turb_W_P, AEO_W_S = all_engine_operative(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
-    OEI1a_W_P, OEI1b_W_P, OEI2a_W_P, OEI2b_W_P, OEI_W_S = one_engine_inoperative(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
-    BL_W_P, BL_turb_W_P, BL_W_S = balked_landing(ac, type_to_use, friction_source, s_wet_source, W_S_plot)
+    AEO1_W_P, AEO2_W_P, AEO3_turb_W_P, AEO_W_S = all_engine_operative(ac, type_to_use, W_S_plot)
+    OEI1a_W_P, OEI1b_W_P, OEI2a_W_P, OEI2b_W_P, OEI_W_S = one_engine_inoperative(ac, type_to_use, W_S_plot)
+    BL_W_P, BL_turb_W_P, BL_W_S = balked_landing(ac, type_to_use, W_S_plot)
 
-    OEI1_W_P = np.min(OEI1a_W_P, OEI1b_W_P)
-    OEI2_W_P = np.min(OEI2a_W_P, OEI2b_W_P)
+    OEI1_W_P = np.minimum(OEI1a_W_P, OEI1b_W_P)
+    OEI2_W_P = np.minimum(OEI2a_W_P, OEI2b_W_P)
 
     # Start actual plotting stuff
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -416,24 +421,26 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
     ax.set_ylim(min(W_P_plot), max(W_P_plot))
 
     datasets = [
-        {"x": stall_W_S, "y": stall_W_P, "label": "Stall speed"},
-        {"x": to_W_S, "y": to_W_P, "label": "Take-off field length"},
-        {"x": ld_W_S, "y": ld_W_P, "label": "Landing field length"},
-        {"x": cr_W_S, "y":cr_W_P, "label": "Cruise speed"},
-        {"x": AEO_W_S, "y": AEO1_W_P, "label": "AEO RoC"},
-        {"x": AEO_W_S, "y": AEO2_W_P, "label": "AEO Climb gradient"},
-        {"x": BL_W_S, "y": BL_W_P, "label": "Balked landing"}
+        {"x": stall_W_S, "y": stall_W_P, "label": "stall speed"},
+        {"x": to_W_S, "y": to_W_P, "label": "take-off field length"},
+        {"x": ld_W_S, "y": ld_W_P, "label": "landing field length"},
+        {"x": cr_W_S, "y":cr_W_P, "label": "cruise speed"},
+        {"x": AEO_W_S, "y": AEO1_W_P, "label": "aeo roc"},
+        {"x": AEO_W_S, "y": AEO2_W_P, "label": "aeo climb gradient"},
+        {"x": BL_W_S, "y": BL_W_P, "label": "balked landing"},
+        {"x": ac.requirements.general["max_wing_loading"]*g*np.ones_like(W_P_plot), "y": W_P_plot, "label": "maximum wing loading"}
     ]
 
     if ac.requirements.climb['turbine_condition']:
-        datasets.append({"x": AEO_W_S, "y": AEO3_turb_W_P, "label": "AEO Climb gradient (turbine)"})
-        datasets.append({"x": BL_turb_W_P, "y":BL_W_S, "label": "Balked landing (turbine)"})
+        datasets.append({"x": AEO_W_S, "y": AEO3_turb_W_P, "label": "aeo climb gradient (turbine)"})
+        datasets.append({"x": BL_W_S, "y":BL_turb_W_P, "label": "balked landing (turbine)"})
+        print(f'Balked landing data: \n W/S: {BL_W_S} \t W/P: {BL_turb_W_P}')
 
-    if ac.requirements.climb['turbine_condition'] and ac.requirements.climb_gradient['n_eng']:
-        {"x": OEI_W_S, "y": OEI1_W_P, "label": "OEI RoC/Climb gradient I (turbine)"},
-        {"x": OEI_W_S, "y": OEI2_W_P, "label": "OEI RoC/Climb gradient II (turbine)"},
+    if ac.requirements.climb['turbine_condition'] and ac.requirements.climb['n_eng']:
+        datasets.append({"x": OEI_W_S, "y": OEI1_W_P, "label": "oei roc/climb gradient I (turbine)"}),
+        datasets.append({"x": OEI_W_S, "y": OEI2_W_P, "label": "oei roc/climb gradient II (turbine)"}),
 
-    colors = cm.tab10(np.linspace(0, 1, len(datasets)))
+    colors = cm.tab20(np.linspace(0, 1, len(datasets)))
 
     for ds, color in zip(datasets, colors):
         ax.plot(ds["x"], ds["y"], color=color, label=ds["label"], linewidth=2)
@@ -448,20 +455,20 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
 
     # Plotting design point
     ax.scatter(result["W_S"], result["W_P"],
-            marker="*", s=250, color="red", zorder=10,
+            marker="x", s=150, color="red", zorder=10,
             label=f"Design point ({result['W_S']:.0f}, {result['W_P']:.4f})")
 
     ax.annotate(
-        f"  \t DESIGN POINT: \n"
-        f"  W/S = {result['W_S']:.1f}\n"
-        f"  W/P = {result['W_P']:.4f}\n"
+        f"  DESIGN POINT: \n"
+        f"  W/S = {result['W_S']:.1f} N/m$^2$ \n"
+        f"  W/P = {result['W_P']:.4f} N/W \n"
         f"  [{result['limiting_ws_constraint']}]\n"
         f"  [{result['limiting_wp_constraint']}]",
         xy=(result["W_S"], result["W_P"]),
         xytext=(result["W_S"] * 0.75, result["W_P"] * 1.15),
         fontsize=8,
-        arrowprops=dict(arrowstyle="->", color="red"),
-        color="red",
+        arrowprops=dict(arrowstyle="->", color="blue"),
+        color="blue",
     )
 
     # Labels and shit
@@ -486,24 +493,8 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
 
 
 if __name__ == '__main__':
-    file_path = "../yamls/aircraft.yaml"
+    file_path = "yamls/aircraft.yaml"
     target_class = Aircraft
     ac = loader.load(file_path, target_class)
 
-
-
-# def alpha_thrust(alt_m, B, T_K, V_mps, theta_break=1.07):
-#     p = Atmosphere(alt_m, delta_T=20) # ISA pressure at alt
-#     M = V_mps/np.sqrt(1.4*287*T_K)
-#     delta_t = p/101325*(1+0.2*M**2)**(1.4/0.4)
-#     theta_t = T_K/288.15*(1+0.2*M**2)
-#     if 0<B<5:
-#         if theta_t <= theta_break:
-#             return delta_t
-#         elif theta_t>theta_break:
-#             return delta_t*(1-2.1*(theta_t-theta_break)/theta_t)
-#     elif 5<B<15:
-#         if theta_t <= theta_break:
-#             return delta_t*(1-(0.43+0.014*B)*np.sqrt(M))
-#         elif theta_t>theta_break:
-#             return delta_t*(1-(0.43+0.014*B)*np.sqrt(M) -3*(theta_t-theta_break)/(1.5+M))
+    plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.08,0.0001), W_S_plot=np.arange(1,1250))
