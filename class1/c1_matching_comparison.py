@@ -366,7 +366,7 @@ def run_sensitivity_study_save_results(aircraft_files: list[str] = ['yamls/aircr
         # Climb grad stuff
         RC, CG = max_RC_and_Climb_grad(output_CL['W/S'][0],
                                        output_CL['W/P'][0],
-                                       k=k(ac),
+                                       k=k(ac)[0],
                                        rho=Atmosphere(ac.requirements.take_off['to_altitude'], ac.requirements.take_off['to_temp_shift']).density,
                                        eta_p=ac.engine.eta_prop,
                                        CD0=cd0(ac, type_to_use))
@@ -636,12 +636,13 @@ if __name__ == '__main__':
     output_dir = Path("outputs")
     folder = output_dir / 'Matching_concepts'
     folder.mkdir(parents=True, exist_ok=True)
-    output_path = folder / "Sensitivity_study_graph.png"
+    output_path1 = folder / "Sensitivity_study_graph_A.png"
+    output_path2 = folder / "Sensitivity_study_graph_CL.png"
 
     folder1 = folder / 'Sensitivity_study_graphs'
     folder1.mkdir(parents=True, exist_ok=True)
 
     file_paths_A, file_paths_CL = run_sensitivity_study_save_results()
-    plot_sensitivity_study(file_paths_A, file_paths_CL, output_path, param='A')
-    plot_sensitivity_study(file_paths_A, file_paths_CL, output_path, param='CL_max_LD')
+    plot_sensitivity_study(file_paths_A, file_paths_CL, output_path1, param='A')
+    plot_sensitivity_study(file_paths_A, file_paths_CL, output_path2, param='CL_max_LD')
     # plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250))
