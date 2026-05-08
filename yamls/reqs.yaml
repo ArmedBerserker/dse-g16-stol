@@ -1,10 +1,10 @@
 take_off:
   to_altitude: 2000 # [ft] take-off altitude requirement as specified by stakeholders
   to_temp_shift: 20  # [K] take-off temperature requirement as specified by stakeholders
-  as_CL_max_to: 2.7  # [-] assumed C_L_max during take-off, will be updated after first class I/II iteration
+  as_CL_max_to: 2.1  # [-] assumed C_L_max during take-off, will be updated after first class I/II iteration
 
   to_distance: 200  # [m]
-  dist_balance_fl: True  # Check if the distance given is total or not
+  dist_balance_fl: False  # Check if the distance given is total or not
   runway_type: unprepared
   to_mass_frac: null
 
@@ -32,10 +32,10 @@ cruise:
 landing:
   la_altitude: 2000  # [ft] landing altitude requirement as specified by stakeholders
   la_temp_shift: 20  # [K] landing temperature requirement as specified by stakeholders
-  as_CL_max_la: 3.3  # [-] assumed C_L_max during landing, will be updated after first class I/II iteration
+  as_CL_max_la: 2.7  # [-] assumed C_L_max during landing, will be updated after first class I/II iteration
 
   la_mass_frac: 0.90 # [-] assumed landing mass fraction, to be updated with a more accurate value
-  dist_balance_fl_condition: True  # check if landing field distance is landing field length or ground roll
+  dist_balance_fl_condition: False  # check if landing field distance is landing field length or ground roll
   la_distance: 130  # [m] landing distance requirement as specified by stakeholders
 
   runway_type: unprepared
@@ -52,6 +52,6 @@ approach:
 
 general:
   stall_speed: 45  # [kts] stall speed requirement as specified by stakeholders
-  standard_type: null  # string (to use with Roskam)
+  standard_type: 'Single Engine Propeller Driven'  # string (to use with Roskam)
   engine_type: ''
   max_wing_loading: 80  # kg/m2

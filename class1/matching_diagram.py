@@ -326,7 +326,7 @@ def balked_landing(ac : Aircraft,
 
 # NOTE: add this function to logbook because Claude helped
 def find_design_point(datasets, max_wingloading,
-                      ws_margin_frac=0.05, wp_margin_frac=0.05):
+                      ws_margin_frac=0.02, wp_margin_frac=0.02):
     """
     Automatically selects the optimal (most upper-right) design point
     from a matching diagram, respecting all constraints with margin.
@@ -448,8 +448,8 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         ax.plot(ds["x"], ds["y"], color=color, label=ds["label"], linewidth=2)
 
     result = find_design_point(datasets, max_wingloading=ac.requirements.general["max_wing_loading"]*g,
-                                ws_margin_frac=0.05,
-                                wp_margin_frac=0.05)
+                                ws_margin_frac=0.02,
+                                wp_margin_frac=0.02)
 
     print(f"Design point:  W/S = {result['W_S']:.1f}  |  W/P = {result['W_P']:.4f}")
     print(f"Limited in W/S by: {result['limiting_ws_constraint']}")
@@ -501,4 +501,4 @@ if __name__ == '__main__':
     target_class = Aircraft
     ac = loader.load(file_path, target_class)
 
-    plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.08,0.0001), W_S_plot=np.arange(1,1250), show_plot=False)
+    plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=True)

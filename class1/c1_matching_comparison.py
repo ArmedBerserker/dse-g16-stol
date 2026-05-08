@@ -143,8 +143,8 @@ def Weight_est_and_match_concept(ac : Aircraft,  # Change units
         W_S_plot: np.ndarray = np.arange(0,10000,5),
         W_P_or_T_W_plot: np.ndarray = np.arange(0,10000,5), 
         output_filepath_base: str = 'outputs/Matching_Diagram', 
-        CL_max_step: float = 0.2, 
-        A_step: float = 2,
+        CL_max_step: float = 0.1, 
+        A_step: float = 0.5,
         n_steps: int = 6) -> dict:
 
     # Initial matching diagram
@@ -316,9 +316,9 @@ def Weight_est_and_match_concept(ac : Aircraft,  # Change units
 def run_sensitivity_study_save_results(aircraft_files: list[str] = ['yamls/aircraft.yaml','yamls/aircraft.yaml','yamls/aircraft.yaml'],
                                        concept_IDs: list[str] = ['CP_1', 'CP_2', 'CP_3'],
                                        W_S_plot: np.ndarray = np.arange(1,1250),
-                                       W_P_or_T_W_plot: np.ndarray = np.arange(0.00000001,0.08,0.0001),
-                                       CL_max_step: float = 0.2,
-                                       A_step: float = 2,
+                                       W_P_or_T_W_plot: np.ndarray = np.arange(0.00000001,0.15,0.0001),
+                                       CL_max_step: float = 0.1,
+                                       A_step: float = 0.5,
                                        n_steps: int = 6,
                                        ) -> None:
 
@@ -628,4 +628,4 @@ if __name__ == '__main__':
     file_paths_A, file_paths_CL = run_sensitivity_study_save_results()
     plot_sensitivity_study(file_paths_A, file_paths_CL, output_path, param='A')
     plot_sensitivity_study(file_paths_A, file_paths_CL, output_path, param='CL_max_LD')
-    # plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.08,0.0001), W_S_plot=np.arange(1,1250))
+    # plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250))
