@@ -160,7 +160,7 @@ def breguet_bat(ac : Aircraft) -> float:
     R = ac.mission.range * 1000 # convert to meters
     ebg = e_b / g
     battery_fraction = R / (eta_prop * eta_bat * ld * ebg)
-    return battery_fraction 
+    return (battery_fraction, ) 
 
 def breguet_hyb(ac : Aircraft, Phi : float = None) -> tuple[float, float]:
     """
