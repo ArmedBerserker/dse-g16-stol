@@ -209,3 +209,6 @@ __marimo__/
 # PyCharm stuff
 *.xml
 *.iml
+
+# Outputs folder
+Outputs/

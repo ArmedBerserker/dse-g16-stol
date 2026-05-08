@@ -1,3 +1,7 @@
+# Fix path FIRST, before any local imports
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from classes.aircraft_2 import loader, Aircraft
 from lookups.consts import *
 from class1.prelim_drag import *
@@ -18,7 +22,7 @@ from pathlib import Path
 
 def Resize_A(limit_W_P):
     resize = False
-    if limit_W_P == "Cruise speed" or "AEO RoC" or "AEO Climb gradient" or "AEO Climb gradient (turbine)" or "Balked landing" or "Balked landing (turbine)" or "OEI RoC/Climb gradient I (turbine)" or "OEI RoC/Climb gradient II (turbine)":
+    if limit_W_P == "cruise speed" or "aeo roc" or "aeo climb gradient" or "aeo climb gradient (turbine)" or "balked landing" or "balked landing (turbine)" or "oei roc/climb gradient I (turbine)" or "oei roc/climb gradient II (turbine)":
         resize = True
     return resize
     # elif limit_W_P == :  # NOTE: fill in names of lines and check it runs
@@ -27,15 +31,13 @@ def Resize_A(limit_W_P):
 
 def Resize_CL_max_LD(limit_W_S):
     resize = False
-    if limit_W_S == "Stall speed" or "Landing field length":
+    if limit_W_S == "stall speed" or "landing field length":
         resize = True
     return resize
 
 def sensitivity_study(
         ac: Aircraft,
         type_to_use: str,
-        friction_source: str,
-        s_wet_source: str,
         W_S_plot: np.ndarray,
         W_P_or_T_W_plot: np.ndarray,
         output_filepath_base: str,
@@ -105,10 +107,13 @@ def sensitivity_study(
             apply_step(i)
 
             output_filepath_i = f"{output_filepath_base}_r{i}_{param}.png"
-            data_i = plot_matching_and_select_design_point(
-                ac, type_to_use, friction_source, s_wet_source,
-                W_S_plot, W_P_or_T_W_plot, output_filepath_i
-            )
+            data_i = plot_matching_and_select_design_point(ac, 
+                                                           type_to_use,
+                                                           W_S_plot, 
+                                                           W_P_or_T_W_plot, 
+                                                           output_filepath_i,
+                                                           show_plot=False)
+            plt.close('all')
 
             W_P_history.append(data_i['W/P'])
             W_S_history.append(data_i['W/S'])
@@ -135,19 +140,16 @@ def sensitivity_study(
 
 def Weight_est_and_match_concept(ac : Aircraft,  # Change units
         type_to_use : str = "Single Engine Propeller Driven",
-        friction_source : str = 'lookups/skin_fric.csv',
-        s_wet_source : str = 'lookups/s_wets.csv',
         W_S_plot: np.ndarray = np.arange(0,10000,5),
         W_P_or_T_W_plot: np.ndarray = np.arange(0,10000,5), 
-        output_filepath_base: str = 'outputs/Matching_Diagram.png', 
+        output_filepath_base: str = 'outputs/Matching_Diagram', 
         CL_max_step: float = 0.2, 
         A_step: float = 2,
         n_steps: int = 6) -> dict:
 
     # Initial matching diagram
     output_filepath = f"{output_filepath_base}.png"
-    data = plot_matching_and_select_design_point(ac, type_to_use, friction_source, s_wet_source,
-                                                 W_S_plot, W_P_or_T_W_plot, output_filepath)
+    data = plot_matching_and_select_design_point(ac, type_to_use, W_S_plot, W_P_or_T_W_plot, output_filepath, show_plot=False)
     W_P = data['W/P']
     W_S = data['W/S']
 
@@ -164,7 +166,7 @@ def Weight_est_and_match_concept(ac : Aircraft,  # Change units
     # limiting_ws_constraint_history = [limiting_ws_constraint]
 
     results_CL = sensitivity_study(
-        ac, type_to_use, friction_source, s_wet_source,
+        ac, type_to_use,
         W_S_plot, W_P_or_T_W_plot, output_filepath_base,
         param='CL_max_LD',
         step=CL_max_step,
@@ -176,7 +178,7 @@ def Weight_est_and_match_concept(ac : Aircraft,  # Change units
     )
 
     results_A = sensitivity_study(
-        ac, type_to_use, friction_source, s_wet_source,
+        ac, type_to_use,
         W_S_plot, W_P_or_T_W_plot, output_filepath_base,
         param='A',
         step=A_step,
@@ -313,10 +315,8 @@ def Weight_est_and_match_concept(ac : Aircraft,  # Change units
 
 def run_sensitivity_study_save_results(aircraft_files: list[str] = ['yamls/aircraft.yaml','yamls/aircraft.yaml','yamls/aircraft.yaml'],
                                        concept_IDs: list[str] = ['CP_1', 'CP_2', 'CP_3'],
-                                       W_S_plot: np.ndarray = np.arange(0,1200,1),
-                                       W_P_or_T_W_plot: np.ndarray = np.arange(0,100000,2),
-                                       friction_source: str = 'lookups/skin_fric.csv',
-                                       s_wet_source: str = 'lookups/s_wets.csv',
+                                       W_S_plot: np.ndarray = np.arange(1,1250),
+                                       W_P_or_T_W_plot: np.ndarray = np.arange(0.00000001,0.08,0.0001),
                                        CL_max_step: float = 0.2,
                                        A_step: float = 2,
                                        n_steps: int = 6,
@@ -333,14 +333,16 @@ def run_sensitivity_study_save_results(aircraft_files: list[str] = ['yamls/aircr
     # Original points dataframe for concepts
     rows_main = []
     rows_mass = []
+    file_paths_A = []
+    file_paths_CL = []
 
     ''' Start looping over concepts'''
     for i, file in enumerate(aircraft_files):
         Concept_ID: str = concept_IDs[i]
         ac = loader.load(file, Aircraft)
         type_to_use = ac.requirements.general['standard_type']
-        img_filepath_base = f"outputs/{Concept_ID}_MD"
-        output_CL, output_A = Weight_est_and_match_concept(ac, type_to_use, friction_source, s_wet_source, W_S_plot, W_P_or_T_W_plot, img_filepath_base, CL_max_step, A_step, n_steps)
+        img_filepath_base = f"outputs/Matching_concepts/Sensitivity_study_graphs/{Concept_ID}_MD"
+        output_CL, output_A = Weight_est_and_match_concept(ac, type_to_use, W_S_plot, W_P_or_T_W_plot, img_filepath_base, CL_max_step, A_step, n_steps)
 
         # Add og results to main df and save its own df
         rows_main.append({'Concept_ID': i+1, 'W/S': output_CL['W/S'][0], 'W/P': output_CL['W/P'][0]})
@@ -350,14 +352,16 @@ def run_sensitivity_study_save_results(aircraft_files: list[str] = ['yamls/aircr
         filepath2 = folder / f'{Concept_ID}_A_results.csv'
         df1.to_csv(filepath1, index=False)
         df2.to_csv(filepath2, index=False)
+        file_paths_CL.append(filepath1)
+        file_paths_A.append(filepath2)
 
         # INSERT WEIGHT EST
-        m_to = ac.weights.m_takeoff
-        m_pl = ac.weights.m_payload
-        m_f_frac = c1_m.energy_frac_needed(ac)  # Tuple with fuel_frac, battery_frac
+        m_to: float = ac.weights.m_takeoff
+        m_pl: float = ac.weights.m_payload
+        m_f_frac: float = sum(c1_m.energy_frac_needed(ac))  # Tuple with fuel_frac, battery_frac
         m_oe_frac = c1_m.operating_empty_frac(ac)
-
-        rows_mass.append({'Concept_ID': i+1, 'Fuel frac': m_f_frac, 'OEW/MTOW': m_oe_frac, 'PL/MTOW': m_pl/m_to, 'MTOW': m_to, 'Fuel mass': m_f_frac*m_to, 'OEW': m_oe_frac*m_to, 'PL mass': m_pl, 'Sum mass fracs': m_oe_frac+m_f_frac+m_pl/m_to})
+        # pl_mtow = m_pl/m_to
+        rows_mass.append({'Concept_ID': i+1, 'Fuel/energy frac': m_f_frac, 'OEW/MTOW': m_oe_frac, 'PL/MTOW': m_pl/m_to, 'MTOW': m_to, 'Fuel/energy source mass': m_f_frac*m_to, 'OEW': m_oe_frac*m_to, 'PL mass': m_pl, 'Sum mass fracs': m_oe_frac+m_f_frac+m_pl/m_to})
 
 
     # Save main df to csv
@@ -366,8 +370,10 @@ def run_sensitivity_study_save_results(aircraft_files: list[str] = ['yamls/aircr
     df = pd.DataFrame(rows_mass)
     df.to_csv(output_csv_path1, index=False)
 
+    return file_paths_A, file_paths_CL
 
-def plot_sensitivity_study(
+
+def plot_sensitivity_study1(
         A_csv_paths: list[str],
         CL_csv_paths: list[str],
         output_filepath: str,
@@ -482,3 +488,144 @@ def plot_sensitivity_study(
     plt.tight_layout()
     plt.savefig(output_filepath, dpi=150)
     plt.show()
+
+def plot_sensitivity_study(
+        A_csv_paths: list[str],
+        CL_csv_paths: list[str],
+        output_filepath: str,
+        concept_names: list[str] = None,
+        param: str = 'both'  # options: 'A', 'CL_max_LD', 'both'
+) -> None:
+    """
+    Plots sensitivity study results for aspect ratio (A) and max lift coefficient (CL_max_LD)
+    across multiple aircraft concepts.
+
+    Args:
+        A_csv_paths:      One CSV per concept for the A sensitivity study.
+        CL_csv_paths:     One CSV per concept for the CL_max_LD sensitivity study.
+        output_filepath:  Path to save the output plot.
+        concept_names:    Optional list of concept names for the legend.
+                          Defaults to 'Concept 1', 'Concept 2', etc.
+        param:            Which sensitivity to plot: 'A', 'CL_max_LD', or 'both' (default).
+    """
+    assert len(A_csv_paths) == len(CL_csv_paths), \
+        "Must provide the same number of CSV paths for A and CL studies."
+    assert param in ('A', 'CL_max_LD', 'both'), \
+        f"param must be 'A', 'CL_max_LD', or 'both', got '{param}'"
+
+    n_concepts = len(A_csv_paths)
+    if concept_names is None:
+        concept_names = [f"Concept {i+1}" for i in range(n_concepts)]
+
+    colors = plt.cm.tab10(np.linspace(0, 1, n_concepts))
+    marker_A  = 'x'
+    marker_CL = 'o'
+
+    # Collect data to scale axis limits (zoom in)
+    all_W_S = []
+    all_W_P = []
+    datasets = []  # list of (A_df, CL_df) per concept
+
+    for i, (a_path, cl_path) in enumerate(zip(A_csv_paths, CL_csv_paths)):
+        df_A  = pd.read_csv(a_path)
+        df_CL = pd.read_csv(cl_path)
+        datasets.append((df_A, df_CL))
+        if param in ('A', 'both'):
+            all_W_S.extend(df_A['W/S'].tolist())
+            all_W_P.extend(df_A['W/P'].tolist())
+        if param in ('CL_max_LD', 'both'):
+            all_W_S.extend(df_CL['W/S'].tolist())
+            all_W_P.extend(df_CL['W/P'].tolist())
+
+    # Scale axis limits
+    pad = 0.05
+    W_S_min, W_S_max = min(all_W_S), max(all_W_S)
+    W_P_min, W_P_max = min(all_W_P), max(all_W_P)
+    W_S_range = W_S_max - W_S_min or 1
+    W_P_range = W_P_max - W_P_min or 1
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(9, 6))
+
+    for i, (df_A, df_CL) in enumerate(datasets):
+        color = colors[i]
+
+        if param in ('A', 'both'):
+            ax.plot(
+                df_A['W/S'], df_A['W/P'],
+                marker=marker_A, linestyle='-', color=color,
+                markersize=7, linewidth=1.5,
+            )
+            for _, row in df_A.iterrows():
+                ax.annotate(
+                    f"A={row['A']:.1f}",
+                    xy=(row['W/S'], row['W/P']),
+                    xytext=(4, 4), textcoords='offset points',
+                    fontsize=7, color=color,
+                )
+
+        if param in ('CL_max_LD', 'both'):
+            ax.plot(
+                df_CL['W/S'], df_CL['W/P'],
+                marker=marker_CL, linestyle='--', color=color,
+                markersize=7, linewidth=1.5,
+            )
+            for _, row in df_CL.iterrows():
+                ax.annotate(
+                    f"CL={row['CL_max_LD']:.2f}",
+                    xy=(row['W/S'], row['W/P']),
+                    xytext=(4, -10), textcoords='offset points',
+                    fontsize=7, color=color,
+                )
+
+    # Tight axis limits
+    ax.set_xlim(W_S_min - pad * W_S_range, W_S_max + pad * W_S_range)
+    ax.set_ylim(W_P_min - pad * W_P_range, W_P_max + pad * W_P_range)
+
+    ax.set_xlabel('W/S', fontsize=12)
+    ax.set_ylabel('W/P', fontsize=12)
+    title_map = {'A': 'Aspect Ratio', 'CL_max_LD': '$C_{L,max}$', 'both': 'A and $C_{L,max}$'}
+    ax.set_title(f'Sensitivity Study: {title_map[param]} Design Point Shift', fontsize=13)
+    ax.grid(True, linestyle='--', alpha=0.5)
+
+    # Legend
+    concept_handles = [
+        mlines.Line2D([], [], color=colors[i], marker='o', linestyle='-',
+                      markersize=7, label=concept_names[i])
+        for i in range(n_concepts)
+    ]
+    style_handles = []
+    if param in ('A', 'both'):
+        style_handles.append(mlines.Line2D([], [], color='grey', marker=marker_A,
+                                           linestyle='-', markersize=7, label='A sensitivity'))
+    if param in ('CL_max_LD', 'both'):
+        style_handles.append(mlines.Line2D([], [], color='grey', marker=marker_CL,
+                                           linestyle='--', markersize=7, label='$C_{L,max}$ sensitivity'))
+
+    ax.legend(
+        handles=concept_handles + style_handles,
+        fontsize=9, loc='best', framealpha=0.8,
+    )
+
+    plt.tight_layout()
+    plt.savefig(output_filepath, dpi=150)
+    plt.show()
+
+if __name__ == '__main__':
+    file_path = "yamls/aircraft.yaml"
+    target_class = Aircraft
+    ac = loader.load(file_path, target_class)
+
+    # Sensitivity study matching plot output path:
+    output_dir = Path("outputs")
+    folder = output_dir / 'Matching_concepts'
+    folder.mkdir(parents=True, exist_ok=True)
+    output_path = folder / "Sensitivity_study_graph.png"
+
+    folder1 = folder / 'Sensitivity_study_graphs'
+    folder1.mkdir(parents=True, exist_ok=True)
+
+    file_paths_A, file_paths_CL = run_sensitivity_study_save_results()
+    plot_sensitivity_study(file_paths_A, file_paths_CL, output_path, param='A')
+    plot_sensitivity_study(file_paths_A, file_paths_CL, output_path, param='CL_max_LD')
+    # plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.08,0.0001), W_S_plot=np.arange(1,1250))

@@ -31,6 +31,7 @@ import pandas as pd
 BASE_DIR = Path(__file__).resolve().parent
 
 
+
 def stall_speed_matching(ac: Aircraft,  # Change units
                          W_P: np.ndarray = np.arange(1,10000)
                          ):
@@ -40,7 +41,7 @@ def stall_speed_matching(ac: Aircraft,  # Change units
     landing_temperature_shift = ac.requirements.landing['la_temp_shift']
     atmos_model = Atmosphere(landing_altitude, landing_temperature_shift)
     rho = atmos_model.density
-    print(f'Density: {rho} \n stall speed: {V_s0} \n alt: {landing_altitude}')
+    # print(f'Density: {rho} \n stall speed: {V_s0} \n alt: {landing_altitude}')
 
     CL_max_landing = ac.requirements.landing['as_CL_max_la']
 
@@ -72,7 +73,7 @@ def landing_dist_matching(ac: Aircraft,
         S_LG = ac.requirements.landing['la_distance'] / FT_TO_M
         V_S_L = np.sqrt(S_LG / 0.265) * KTS_TO_MS
 
-    W_S_LD = (V_S_L ** 2 / (1 / 2 * rho * C_L_max_landing)) * np.ones_like(W_P)
+    W_S_LD = (V_S_L ** 2 * (1 / 2 * rho * C_L_max_landing)) * np.ones_like(W_P)
     W_S = W_S_LD * ac.weights.m_takeoff / W_L
 
     return W_P, W_S
@@ -400,7 +401,8 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         type_to_use : str = "Single Engine Propeller Driven",
         W_S_plot: np.ndarray = np.arange(1,10000),
         W_P_plot: np.ndarray = np.arange(1,10000),
-        output_filepath: str = 'outputs/Matching_Diagram.png') -> list:
+        output_filepath: str = 'outputs/Matching_Diagram.png', 
+        show_plot: bool = False) -> list:
 
     # Compute plots
     stall_W_P, stall_W_S = stall_speed_matching(ac, W_P_plot)
@@ -434,7 +436,7 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
     if ac.requirements.climb['turbine_condition']:
         datasets.append({"x": AEO_W_S, "y": AEO3_turb_W_P, "label": "aeo climb gradient (turbine)"})
         datasets.append({"x": BL_W_S, "y":BL_turb_W_P, "label": "balked landing (turbine)"})
-        print(f'Balked landing data: \n W/S: {BL_W_S} \t W/P: {BL_turb_W_P}')
+        # print(f'Balked landing data: \n W/S: {BL_W_S} \t W/P: {BL_turb_W_P}')
 
     if ac.requirements.climb['turbine_condition'] and ac.requirements.climb['n_eng']:
         datasets.append({"x": OEI_W_S, "y": OEI1_W_P, "label": "oei roc/climb gradient I (turbine)"}),
@@ -480,7 +482,8 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
 
     plt.tight_layout()
     plt.savefig(output_filepath, dpi=300)
-    plt.show()
+    if show_plot:
+        plt.show()
 
     data = {
         "W/P": result['W_P'],
@@ -493,8 +496,9 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
 
 
 if __name__ == '__main__':
-    file_path = "yamls/aircraft.yaml"
+    # file_path = "dse-g16-stol/yamls/aircraft.yaml"
+    file_path = BASE_DIR.parent / "yamls" / "aircraft.yaml"  # uses BASE_DIR you defined above
     target_class = Aircraft
     ac = loader.load(file_path, target_class)
 
-    plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.08,0.0001), W_S_plot=np.arange(1,1250))
+    plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.08,0.0001), W_S_plot=np.arange(1,1250), show_plot=False)
