@@ -459,9 +459,9 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         ax.plot(ds["x"], ds["y"], color=color, label=ds["label"], linewidth=2)
 
     if requirement_to_meet == 'all':
-        datasets_design_point = [d for d in datasets if d["label"] != "oei roc/climb gradient I (turbine)" or "oei roc/climb gradient II (turbine)" or "aeo climb gradient (turbine)" or "balked landing (turbine)"]
+        datasets_design_point = datasets  # [d for d in datasets if d["label"] not in ["oei roc/climb gradient I (turbine)", "oei roc/climb gradient II (turbine)", "aeo climb gradient (turbine)", "balked landing (turbine)"]]
     elif requirement_to_meet == 'cruise':
-        datasets_design_point = [d for d in datasets if d["label"] == "cruise speed" or "landing field length" or "maximum wing loading" or "stall speed"]
+        datasets_design_point = [d for d in datasets if d["label"] in ["cruise speed", "landing field length", "maximum wing loading", "stall speed"]]
     elif requirement_to_meet == 'to':
         datasets_design_point = [d for d in datasets if d["label"] != "cruise speed"]
     result = find_design_point(datasets_design_point, max_wingloading=ac.requirements.general["max_wing_loading"]*g,
@@ -520,4 +520,4 @@ if __name__ == '__main__':
     target_class = Aircraft
     ac = loader.load(file_path, target_class)
 
-    plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=True)
+    plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=True, requirement_to_meet='cruise')
