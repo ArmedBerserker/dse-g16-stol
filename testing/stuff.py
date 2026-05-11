@@ -7,5 +7,6 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 
-from class1 import matching_diagram as match
+from class1 import c1_matching_comparison as match
 
+match.plot
