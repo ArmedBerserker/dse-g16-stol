@@ -321,8 +321,7 @@ def Weight_est_and_match_concept(ac : Aircraft,  # Change units
     return results_CL, results_A
 
 
-def run_sensitivity_study_save_results(aircraft_files: list[str] = ['yamls/aircraft.yaml','yamls/aircraft.yaml','yamls/aircraft.yaml'],
-                                       concept_IDs: list[str] = ['CP_1', 'CP_2', 'CP_3'],
+def run_sensitivity_study_save_results(aircraft: Aircraft,
                                        W_S_plot: np.ndarray = np.arange(1,1250),
                                        W_P_or_T_W_plot: np.ndarray = np.arange(0.00000001,0.15,0.0001),
                                        CL_max_step: float = 0.1,
@@ -345,39 +344,42 @@ def run_sensitivity_study_save_results(aircraft_files: list[str] = ['yamls/aircr
     file_paths_CL = []
 
     ''' Start looping over concepts'''
-    for i, file in enumerate(aircraft_files):
-        Concept_ID: str = concept_IDs[i]
-        ac = loader.load(file, Aircraft)
-        type_to_use = ac.requirements.general['standard_type']
-        img_filepath_base = f"outputs/Matching_concepts/Sensitivity_study_graphs/{Concept_ID}_MD"
-        output_CL, output_A = Weight_est_and_match_concept(ac, type_to_use, W_S_plot, W_P_or_T_W_plot, img_filepath_base, CL_max_step, A_step, n_steps)
+    ac = aircraft
+    Concept_ID = ac.name
+    type_to_use = ac.requirements.general['standard_type'] + ' Propeller Driven'
+    img_filepath_base = f"outputs/Matching_concepts/Sensitivity_study_graphs/{Concept_ID}_MD"
+    output_CL, output_A = Weight_est_and_match_concept(ac, type_to_use, W_S_plot, W_P_or_T_W_plot, img_filepath_base, CL_max_step, A_step, n_steps)
 
-        # Add og results to main df and save its own df
-        rows_main.append({'Concept_ID': i+1, 'W/S': output_CL['W/S'][0], 'W/P': output_CL['W/P'][0]})
-        df1 = pd.DataFrame(output_CL)
-        df2 = pd.DataFrame(output_A)
-        filepath1 = folder / f'{Concept_ID}_CL_results.csv'
-        filepath2 = folder / f'{Concept_ID}_A_results.csv'
-        df1.to_csv(filepath1, index=False)
-        df2.to_csv(filepath2, index=False)
-        file_paths_CL.append(filepath1)
-        file_paths_A.append(filepath2)
+    # Add og results to main df and save its own df
+    rows_main.append({
+    'Concept_ID': Concept_ID,
+    'W/S': output_CL['W/S'][0],
+    'W/P': output_CL['W/P'][0],
+    })
+    df1 = pd.DataFrame(output_CL)
+    df2 = pd.DataFrame(output_A)
+    filepath1 = folder / f'{Concept_ID}_CL_results.csv'
+    filepath2 = folder / f'{Concept_ID}_A_results.csv'
+    df1.to_csv(filepath1, index=False)
+    df2.to_csv(filepath2, index=False)
+    file_paths_CL.append(filepath1)
+    file_paths_A.append(filepath2)
 
-        # Climb grad stuff
-        RC, CG = max_RC_and_Climb_grad(output_CL['W/S'][0],
-                                       output_CL['W/P'][0],
-                                       k=k(ac)[0],
-                                       rho=Atmosphere(ac.requirements.take_off['to_altitude'], ac.requirements.take_off['to_temp_shift']).density,
-                                       eta_p=ac.engine.eta_prop,
-                                       CD0=cd0(ac, type_to_use))
+    # Climb grad stuff
+    RC, CG = max_RC_and_Climb_grad(output_CL['W/S'][0],
+                                    output_CL['W/P'][0],
+                                    k=k(ac)[0],
+                                    rho=Atmosphere(ac.requirements.take_off['to_altitude'], ac.requirements.take_off['to_temp_shift']).density,
+                                    eta_p=ac.engine.eta_prop,
+                                    CD0=cd0(ac, type_to_use))
 
-        # WEIGHT EST
-        m_to: float = ac.weights.m_takeoff
-        m_pl: float = ac.weights.m_payload
-        m_f_frac: float = sum(c1_m.energy_frac_needed(ac))  # Tuple with fuel_frac, battery_frac
-        m_oe_frac = c1_m.operating_empty_frac(ac)
-        # pl_mtow = m_pl/m_to
-        rows_mass.append({'Concept_ID': i+1, 'Fuel/energy frac': m_f_frac, 'OEW/MTOW': m_oe_frac, 'PL/MTOW': m_pl/m_to, 'MTOW': m_to, 'Fuel/energy source mass': m_f_frac*m_to, 'OEW': m_oe_frac*m_to, 'PL mass': m_pl, 'Sum mass fracs': m_oe_frac+m_f_frac+m_pl/m_to, 'Max RoC [m/s]': RC, 'Max climb angle [deg at TO]': CG})
+    # WEIGHT EST
+    m_to: float = ac.weights.m_takeoff
+    m_pl: float = ac.weights.m_payload
+    m_f_frac: float = sum(c1_m.energy_frac_needed(ac))  # Tuple with fuel_frac, battery_frac
+    m_oe_frac = c1_m.operating_empty_frac(ac)
+    # pl_mtow = m_pl/m_to
+    rows_mass.append({'Concept_ID': Concept_ID, 'Fuel/energy frac': m_f_frac, 'OEW/MTOW': m_oe_frac, 'PL/MTOW': m_pl/m_to, 'MTOW': m_to, 'Fuel/energy source mass': m_f_frac*m_to, 'OEW': m_oe_frac*m_to, 'PL mass': m_pl, 'Sum mass fracs': m_oe_frac+m_f_frac+m_pl/m_to, 'Max RoC [m/s]': RC, 'Max climb angle [deg at TO]': CG})
 
 
     # Save main df to csv

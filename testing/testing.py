@@ -20,11 +20,13 @@ def explore_concepts(eng_paths : str,
                      fuse_path : str,
                      mission_path : str,
                      weights_path : str,
-                     do_powers : bool):
+                     do_powers : bool, 
+                     do_sensitivity : bool):
     ############## THIS WHOLE SEGMENT CALCULATES THE MASS FRACTIONS FOR EACH ONE, ASSUMING CRUISE SIZING
     ac_dict = {}
     match_cr = {}
     match_to = {}
+    sens_dict = {}
     gear = ("Taildragger", "Tricycle")
     engines = ("H2", "Boosted Piston", "Piston Hybrid", "Boosted Turboprop", "Turbine Hybrid")
     for i, e in enumerate(eng_paths):
@@ -71,15 +73,18 @@ def explore_concepts(eng_paths : str,
                 match_cr[name] = data_cr
                 match_to[name] = data_to
                 print(f'Drag for this config is {drag.prelim_drag(aircraft, type_to_use= 'Twin Engine Propeller Driven')}')
-    
+            if do_sensitivity:
+                sens_dict[name] = match.run_sensitivity_study_save_results(aircraft,
+                                                          W_S_plot = np.arange(0.1, 1000),
+                                                          W_P_or_T_W_plot = np.arange(1e-8, 1e-1, 1e-4))
     df = pd.DataFrame(ac_dict).T
     df_cr = pd.DataFrame(match_cr).T
     df_to = pd.DataFrame(match_to).T
         
 
-    return df, df_cr, df_to
+    return df, df_cr, df_to, sens_dict
 
-def main(masses = True, powers = True, plots = False):
+def main(masses = True, powers = True, sensitivity = True, plots = False):
     eng_paths = [('concepts/engine_h2.yaml', 'turboprop'),                 # Hydrogen Engine
                 ('concepts/engine_piston_b.yaml', 'piston'),           # Piston Engine + Booster
                 ('concepts/engine_piston_e.yaml', 'piston'),           # Piston Engine as generator
@@ -247,7 +252,7 @@ def main(masses = True, powers = True, plots = False):
         plt.savefig("outputs/piston_electric_total_mass_fraction_phi.svg")
         #plt.show()
     if powers:
-        _, cr_results, to_results = explore_concepts(eng_paths, 
+        _, cr_results, to_results, JUNK = explore_concepts(eng_paths, 
                                                      wing_paths,
                                                      reqs_paths, 
                                                      fuse_path, 
@@ -321,6 +326,11 @@ def main(masses = True, powers = True, plots = False):
         plt.savefig("outputs/battery_needed_takeoff.svg")
         #plt.show()
 
+        if sensitivity:
+            results = explore_concepts()
+    if sensitivity:
+        _, _, _, thing = explore_concepts(eng_paths, wing_paths, reqs_paths, fuse_path, mission_path, weights_path, False, True)
+        print(thing)
         
 if __name__ == '__main__':
-    main(True, True, False)
+    main(False, False, True, False)

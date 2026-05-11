@@ -7,5 +7,8 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 
-from class1 import matching_diagram as match
+from class1 import c1_matching_comparison as match
 
+match.plot_sensitivity_study([r'outputs\Matching_concepts\Taildragger Boosted Piston_A_results.csv'], 
+                             [r'outputs\Matching_concepts\Taildragger Boosted Piston_CL_results.csv'],
+                             r'outputs')
