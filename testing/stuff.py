@@ -9,4 +9,10 @@ if ROOT not in sys.path:
 
 from class1 import c1_matching_comparison as match
 
+<<<<<<< HEAD
 match.plot
+=======
+match.plot_sensitivity_study([r'outputs\Matching_concepts\Taildragger Boosted Piston_A_results.csv'], 
+                             [r'outputs\Matching_concepts\Taildragger Boosted Piston_CL_results.csv'],
+                             r'outputs')
+>>>>>>> 19acaa9 (performing sensitivity study)
