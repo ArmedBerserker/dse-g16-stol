@@ -23,9 +23,11 @@ import json
 import os
 from dataclasses import asdict, dataclass, field
 from typing import Callable
+import numpy as np
 
 from classes.aircraft_2 import Aircraft, loader
-from class1 import c1_m
+from class1 import c1_m, matching_diagram
+from lookups.consts import *
 
 
 # 1. Configuration
@@ -143,11 +145,10 @@ def compute_fuselage(ac: Aircraft) -> Aircraft:
 
 def compute_class_I_mass(ac: Aircraft) -> Aircraft:
     """Initial mass estimate from wing loading, T/W, statistical methods etc."""
-    ac.weights.m_takeoff = ...
+    ac.weights.m_takeoff = ...  # NOTE: fill this in if needed or remove
     oew_frac = c1_m.operating_empty_frac(ac)
 
     result = c1_m.energy_frac_needed(ac)
-
     if isinstance(result, tuple) and len(result) == 2:
         fuel_frac, bat_frac = result
         energy_frac = fuel_frac + bat_frac
@@ -158,11 +159,20 @@ def compute_class_I_mass(ac: Aircraft) -> Aircraft:
         pl_frac = 1 - oew_frac - bat_frac
         energy_frac = bat_frac
     
-    ac.weights.m_empty = 
-    ac.weights.m_energy = sum(c1_m.energy_frac_needed(ac)) * ac.weights.m_takeoff
-    ac.weights.m_fuel = c1_m.energy_frac_needed(ac)[0]
-    ac.weights.m_battery = 
-    ac.weights.m_payload = ac.weights.m_takeoff - 
+    ac.weights.m_empty = oew_frac * ac.weights.m_takeoff
+    ac.weights.m_energy = energy_frac * ac.weights.m_takeoff
+    ac.weights.m_fuel = fuel_frac * ac.weights.m_takeoff
+    ac.weights.m_battery = bat_frac * ac.weights.m_takeoff
+    ac.weights.m_payload = pl_frac * ac.weights.m_takeoff
+
+    type_to_use = ...  # NOTE: add this later (check if stored in ac object)
+    # NOTE: check if we need to add tw options for requirements to meet or add W/P result used by Shubhankar for weight est
+    data = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='all')
+    W_P = data['W/P']
+    W_S = data['W/S']
+    # NOTE: check if we need to update multiple power values and if they exist already
+    ac.engine.power = ac.weights.m_takeoff * g / W_P
+    ac.wing.area = ac.weights.m_takeoff * g / W_S
     return ac
 
 def compute_class_II_mass(ac: Aircraft) -> Aircraft:
@@ -181,7 +191,6 @@ ITERATION_STEPS: list[Callable[[Aircraft], Aircraft]] = [
 
 
 # 3. Define single iteration cycle
-
 def run_iteration(ac: Aircraft,
                   INNER_TOLERANCE: float = 0.01  # 1 % standard for Class I and II OEW convergence tolerance
                   ) -> tuple[Aircraft, bool]:
@@ -211,7 +220,6 @@ def run_iteration(ac: Aircraft,
     return ac, inner_converged
 
 
-
 # 4. Check convergence
 def _get_nested(ac: Aircraft, dotpath: str) -> float:
     """
@@ -226,7 +234,6 @@ def _get_nested(ac: Aircraft, dotpath: str) -> float:
     for attr in dotpath.split("."):
         obj = getattr(obj, attr)
     return obj
-
 
 def has_converged(prev: Aircraft, curr: Aircraft,
                   params: list[ConvergenceParam]) -> tuple[bool, dict]:
@@ -255,7 +262,6 @@ def has_converged(prev: Aircraft, curr: Aircraft,
 
 
 # 5. History logging -> read-only, can look at after running, loop always uses memory not this log
-
 def _snapshot(epoch: int, ac: Aircraft, deltas: dict, inner_converged: bool) -> dict:
     """Build a JSON-serialisable record for one epoch."""
     return {
@@ -264,7 +270,6 @@ def _snapshot(epoch: int, ac: Aircraft, deltas: dict, inner_converged: bool) -> 
         "deltas" : deltas,          # convergence deltas for quick inspection
         "aircraft": asdict(ac),     # full recursive snapshot of every field
     }
-
 
 def _append_epoch(record: dict, history_file: str) -> None:
     """
@@ -358,14 +363,12 @@ def run_design_loop(
     return ac
 
 
-
 # 7. Helper functions for printing stuff
 def _print_header(params: list[ConvergenceParam]) -> None:
     col_w = 18
     header = f"{'Epoch':>6}  " + "".join(f"{p.dotpath:>{col_w}}" for p in params)
     print(header)
     print("─" * len(header))
-
 
 def _print_epoch(epoch: int, ac: Aircraft, deltas: dict,
                  params: list[ConvergenceParam], converged: bool,
@@ -386,7 +389,6 @@ def _print_epoch(epoch: int, ac: Aircraft, deltas: dict,
 
 
 # 8. Stuff for after running
-
 def load_history(history_file: str = "aircraft_history.json") -> list[dict]:
     """
     Load the full history log from a finished run.
@@ -458,8 +460,8 @@ if __name__ == "__main__":
         history_file = "aircraft_history.json",
         convergence_params = [
             ConvergenceParam("weights.m_empty", 1.0),
-            ConvergenceParam("wing.area",         0.01),
-            ConvergenceParam("wing.ld",           0.001),
+            ConvergenceParam("wing.area", 0.01),
+            ConvergenceParam("wing.ld", 0.01),
         ],
     )
 
