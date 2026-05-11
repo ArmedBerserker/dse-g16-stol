@@ -118,3 +118,5 @@ plt.show()
 print(f" Root Vertical Bending: {res['Mx'][0]:.2f} Nm")
 print(f" Root Weak Bending: {res['Mz'][0]:.2f} Nm")
 print(f" Root Torsion: {res['Ty'][0]:.2f} Nm")
+
+
