@@ -6,13 +6,13 @@ estimate the induced drag factor, k. These are combined to estimate the maximum
 lift-to-drag ratio, (L/D)_max, for early aircraft sizing.
 """
 
-from classes.aircraft_2 import Aircraft
+import classes.aircraft_2 as ac
 from lookups.consts import *
 import pandas as pd
 import numpy as np
 
 
-def cd0(ac : Aircraft,
+def cd0(ac : ac.Aircraft,
         type_to_use : str = "Single Engine Propeller Driven",
         friction_source : str = 'lookups/skin_fric.csv',
         s_wet_source : str = 'lookups/s_wets.csv') -> float:
@@ -94,7 +94,7 @@ def cd0(ac : Aircraft,
     
     return cd0
 
-def k(ac : Aircraft) -> tuple[float, float]:
+def k(ac : ac.Aircraft) -> tuple[float, float]:
     """
     Estimate the induced drag factor, k, using the Vos method.
 
@@ -134,7 +134,7 @@ def k(ac : Aircraft) -> tuple[float, float]:
     return k, e
 
     
-def prelim_drag(ac : Aircraft,
+def prelim_drag(ac : ac.Aircraft,
                 type_to_use : str = "Single Engine Propeller Driven",
                 friction_source : str = 'lookups/skin_fric.csv',
                 s_wet_source : str = 'lookups/s_wets.csv') -> float:
@@ -161,3 +161,6 @@ def prelim_drag(ac : Aircraft,
     """
 
     return 0.5 * np.sqrt(1 / k(ac)[0] / cd0(ac, type_to_use, friction_source, s_wet_source))
+
+
+

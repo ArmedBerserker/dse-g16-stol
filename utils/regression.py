@@ -145,4 +145,5 @@ print(f"m_oe = {a_tricycle:.6f} m_to + {b_tricycle:.6f}")
 print()
 
 plt.tight_layout()
+plt.savefig('outputs/regression.svg')
 plt.show()

@@ -1,4 +1,5 @@
 engine_type : bat     # prop, bat or hyb
+alpha_p_id : turboprop  # turboprop or hydrogen or piston
 count : null          # number of engines aboard
 #       null
 eta_1 : null

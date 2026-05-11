@@ -459,7 +459,8 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
     if requirement_to_meet == 'all':
         datasets_design_point = datasets
     elif requirement_to_meet == 'cruise':
-        datasets_design_point = [d for d in datasets if d["label"] == "cruise speed" or "landing field length" or "maximum wing loading" or "stall speed"]
+        datasets_design_point = [d for d in datasets if d["label"] in ["cruise speed", "landing field length","maximum wing loading","stall speed"]]
+        #print(data)
     elif requirement_to_meet == 'to':
         datasets_design_point = [d for d in datasets if d["label"] != "cruise speed"]
     result = find_design_point(datasets_design_point, max_wingloading=ac.requirements.general["max_wing_loading"]*g,
