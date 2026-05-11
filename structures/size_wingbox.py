@@ -16,7 +16,7 @@ def calculate_section_inertia(tskin, tspar, Astr, xfs, xrs, hfs, hrs):
     # 1. Enclosed Area (Trapezoid)
     Ae = 0.5 * (hfs + hrs) * w
 
-    # 2. Length of the sloping skins (Pyhtagoras)
+    # 2. Length of the sloping skins (Pythagoras)
     slope_length = np.sqrt(w ** 2 + (0.5 * (hfs - hrs)) ** 2)
 
     # 3. Perimeter Integral (sum of length/thickness for each wall)
