@@ -33,6 +33,15 @@ BASE_DIR = Path(__file__).resolve().parent
 # def Range(ac: Aircraft):
 #     max_L_D_cr = 
 #     R_lost = 1 / 0.7 * max_L_D_cr * (ac.requirements.cruise['cr_altitude'] * FT_TO_M + (ac.requirements.cruise['cr_speed'] * KTS_TO_MS) ** 2 / (2 * g))
+#     R_des = ac.mission.range*1000
+#     f_con = 0.05
+#     R_div = 
+#     t_e = 
+#     V_cr = ac.requirements.cruise['cr_speed'] * KTS_TO_MS
+#     R_eq_res = 1.2 * R_div + t_e * V_cr
+#     R_eq = (R_des + R_lost) * (1 + f_con) + R_eq_res
+#     return R_eq
+
 
 def stall_speed_matching(ac: Aircraft,  # Change units
                          W_P: np.ndarray = np.arange(1,10000)
