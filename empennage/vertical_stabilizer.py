@@ -1,12 +1,12 @@
 import math
 
 # --- Constants / Design Choices (TODO: link these to yaml files) ---
-    X_v_factor = 0.9
-    V_v = 0.06275      # Roskam volume coefficient
-    AR_v = 1.5         # ADSEE average aspect ratio
-    Sweep_v = 25       # degrees
-    lambda_v = 0.4     # ADSEE taper ratio
-    T_over_C_v = 0.15  # Roskam thickness-to-chord
+X_v_factor = 0.9
+V_v = 0.06275      # Roskam volume coefficient
+AR_v = 1.5         # ADSEE average aspect ratio
+Sweep_v = 25       # degrees
+lambda_v = 0.4     # ADSEE taper ratio
+T_over_C_v = 0.15  # Roskam thickness-to-chord
 
 def calculate_vertical_stabilizer_geometry(l_f, MAC, S, X_aft_cg=1.0):
    
