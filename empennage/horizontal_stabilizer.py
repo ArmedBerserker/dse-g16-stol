@@ -1,98 +1,36 @@
 import numpy as np
 
+# Input parameters
+## Main (get these from YAML file)
+X_aftcg = 1
+l_fuselage = 8.8
+MAC = 1.5
+S_w = 23
+c = 1.5
+AR = 11
 
-class HorizontalTail:
+## Horizontal stabilizer parameters
+X_h = 3
+V_h = 0.786 # Average Roskam (see Excel)
+AR_h = 4 
+Sweep_h_LE = 25 #deg
+Taper_h = 0.4
+t_c_h = 0.12 # Thickness to chord ratio # AIRFOIL = 
 
-    def __init__(self, config):
+# Calculations
 
-        self.config = config
+def horizontal_stabilizer(X_aftcg, l_fuselage, MAC, S_w, c, AR, X_h, V_h, AR_h, Sweep_h_LE, Taper_h, t_c_h):
+    # Calculate the area of the horizontal stabilizer
+    S_h = (V_h * S_w * MAC) / (X_h - X_aftcg)
 
-        # Wing data
-        self.S_w = config["wing"]["geometry"]["area"]
-        self.MAC = config["wing"]["geometry"]["mac"]
+    # Calculate the span of the horizontal stabilizer
+    b_h = np.sqrt(AR_h * S_h)
 
-        # CG
-        self.x_cg_aft = config["cg"]["x_cg_aft"]
+    # Calculate the chord lengths at the root and tip of the horizontal stabilizer
+    c_root = (2 * S_h) / (b_h * (1 + Taper_h))
+    c_tip = Taper_h * c_root
 
-        # HT inputs
-        ht = config["empennage"]["horizontal_tail"]
+    # Calculate the sweep angle at the quarter chord point
+    Sweep_h_qc = Sweep_h_LE - np.arctan((c_root - c_tip) / b_h) * (180 / np.pi)
 
-        self.V_h = ht["volume_coefficient"]
-
-        self.AR_h = ht["geometry"]["aspect_ratio"]
-        self.taper_h = ht["geometry"]["taper_ratio"]
-        self.sweep_h = ht["geometry"]["sweep_deg"]
-
-        self.x_ac_h = ht["position"]["x_ac"]
-
-    # --------------------------------------------------
-    # Tail arm
-    # --------------------------------------------------
-
-    def tail_arm(self):
-
-        return self.x_ac_h - self.x_cg_aft
-
-    # --------------------------------------------------
-    # Tail area
-    # --------------------------------------------------
-
-    def area(self):
-
-        l_h = self.tail_arm()
-
-        S_h = (
-            self.V_h
-            * self.S_w
-            * self.MAC
-            / l_h
-        )
-
-        return S_h
-
-    # --------------------------------------------------
-    # Geometry
-    # --------------------------------------------------
-
-    def geometry(self):
-
-        S_h = self.area()
-
-        b_h = np.sqrt(self.AR_h * S_h)
-
-        c_root = (
-            2 * S_h
-            / ((1 + self.taper_h) * b_h)
-        )
-
-        c_tip = self.taper_h * c_root
-
-        MAC_h = (
-            (2/3)
-            * c_root
-            * (
-                (1 + self.taper_h + self.taper_h**2)
-                / (1 + self.taper_h)
-            )
-        )
-
-        return {
-            "S_h": S_h,
-            "b_h": b_h,
-            "c_root_h": c_root,
-            "c_tip_h": c_tip,
-            "MAC_h": MAC_h
-        }
-
-    # --------------------------------------------------
-    # Summary
-    # --------------------------------------------------
-
-    def summary(self):
-
-        geom = self.geometry()
-
-        print("\n--- Horizontal Tail ---")
-
-        for key, value in geom.items():
-            print(f"{key}: {value:.3f}")
+    return S_h, b_h, c_root, c_tip, Sweep_h_qc
