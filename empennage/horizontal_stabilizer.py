@@ -19,9 +19,11 @@ t_c_h = 0.12 # Thickness to chord ratio # AIRFOIL =
 
 # Calculations
 
+## Planform geometry of the horizontal stabilizer
+
 def horizontal_stabilizer(X_aftcg, l_fuselage, MAC, S_w, c, AR, X_h, V_h, AR_h, Sweep_h_LE, Taper_h, t_c_h):
     # Calculate the area of the horizontal stabilizer
-    S_h = (V_h * S_w * MAC) / (X_h - X_aftcg)
+    S_h = (V_h * S_w * c) / (X_h - X_aftcg)
 
     # Calculate the span of the horizontal stabilizer
     b_h = np.sqrt(AR_h * S_h)
@@ -34,3 +36,22 @@ def horizontal_stabilizer(X_aftcg, l_fuselage, MAC, S_w, c, AR, X_h, V_h, AR_h, 
     Sweep_h_qc = Sweep_h_LE - np.arctan((c_root - c_tip) / b_h) * (180 / np.pi)
 
     return S_h, b_h, c_root, c_tip, Sweep_h_qc
+
+def plot_horizontal_stabilizer(S_h, b_h, c_root, c_tip, Sweep_h_qc):
+    # Create a simple plot of the horizontal stabilizer planform
+    import matplotlib.pyplot as plt
+
+    # Define the coordinates of the corners of the horizontal stabilizer
+    x = [0, c_root, c_root + b_h * np.tan(np.radians(Sweep_h_qc)), b_h * np.tan(np.radians(Sweep_h_qc))]
+    y = [0, 0, b_h, 0]
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(x, y, 'b-')
+    plt.fill(x, y, 'lightblue', alpha=0.5)
+    plt.title('Horizontal Stabilizer Planform')
+    plt.xlabel('Chordwise Distance (m)')
+    plt.ylabel('Spanwise Distance (m)')
+    plt.axis('equal')
+    plt.grid()
+    plt.show()
+
