@@ -1,8 +1,8 @@
 wing:
 
   geometry:
-    area: 17.10
-    aspect_ratio: 12.4
+    area: 23
+    aspect_ratio: 11
     taper_ratio: 0.5
     sweep_c4_deg: 0
 
