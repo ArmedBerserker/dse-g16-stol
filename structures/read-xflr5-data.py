@@ -1,146 +1,167 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.integrate import trapezoid
+from scipy.interpolate import CubicSpline, interp1d
 
 
-def parse_xflr5(filepath, rho=1.225, wingbox_x_pc=0.40):
-    q_dyn = 0.0
-    strips = []
-    current_strip = None
+def get_xflr5_loads(filepath, rho=1.225, wingbox_x_pc=0.25, engines=None, struct_weight=None):
 
+    # Wing load calculator handling aero, distributed wing weight,
+    # and 3D engine point loads (Thrust/Mass with offsets).
+
+    # --- 1. DATA EXTRACTION ---
     with open(filepath, 'r') as f:
         lines = f.readlines()
 
-    for line in lines:
-        if "QInf" in line:
-            v_inf = float(line.split('=')[1].split('m/s')[0].strip())
-            q_dyn = 0.5 * rho * v_inf ** 2
-            break
+    v_inf = next(float(line.split('=')[1].split('m/s')[0]) for line in lines if "QInf" in line)
+    q_dyn = 0.5 * rho * v_inf ** 2
+    strips_raw = "".join(lines).split("Strip")[1:]
 
-    parsing_cp = False
-    for line in lines:
-        clean = line.strip()
-        if "Main Wing Cp Coefficients" in line:
-            parsing_cp = True
-            continue
-        if not parsing_cp: continue
+    y_raw, fz_raw, fx_raw, ty_raw = [], [], [], []
 
-        if clean.startswith("Strip"):
-            if current_strip: strips.append(current_strip)
-            current_strip = {k: [] for k in ['x', 'y', 'z', 'nx', 'ny', 'nz', 'area', 'cp']}
-        elif current_strip is not None:
-            parts = clean.split()
-            if len(parts) == 9:
-                try:
-                    for i, k in enumerate(['x', 'y', 'z', 'nx', 'ny', 'nz', 'area', 'cp'], 1):
-                        current_strip[k].append(float(parts[i]))
-                except ValueError:
-                    continue
-    if current_strip: strips.append(current_strip)
+    for block in strips_raw:
+        data = np.array([line.split() for line in block.strip().split('\n') if len(line.split()) == 9], dtype=float)
+        if not data.size: continue
 
-    y_stations = []
-    # Force/Moment densities per unit span
-    fz_p, fx_p, ty_p = [], [], []
+        y_avg = np.mean(data[:, 2])
+        if y_avg < 0: continue
 
-    for s in strips:
-        cp, area = np.array(s['cp']), np.array(s['area'])
-        pts = np.vstack((s['x'], s['y'], s['z']))
-        n = np.vstack((s['nx'], s['ny'], s['nz']))
+        area, cp = data[:, 7], data[:, 8]
+        normals, coords = data[:, 4:7], data[:, 1:4]
 
-        # 3D Force per panel (N)
-        f_vecs = -cp * q_dyn * area * n
+        # Aerodynamic Force (N)
+        f_vecs = (-cp * q_dyn * area)[:, None] * normals
 
-        # Calculate local Elastic Axis X-position
-        x_le, x_te = np.min(s['x']), np.max(s['x'])
-        ea_x = x_le + (wingbox_x_pc * (x_te - x_le))
+        # Moment relative to Elastic Axis
+        x_le, x_te = np.min(coords[:, 0]), np.max(coords[:, 0])
+        ea_x = x_le + wingbox_x_pc * (x_te - x_le)
+        arms = coords.copy()
+        arms[:, 0] -= ea_x
+        m_vecs = np.cross(arms, f_vecs)
 
-        # 3D Moment about local EA [Mx, My, Mz]
-        # Arm relative to EA (x) and Root (y=0, z=0)
-        arms = np.vstack((pts[0, :] - ea_x, pts[1, :], pts[2, :]))
-        m_vecs = np.cross(arms, f_vecs, axis=0)
+        y_raw.append(y_avg)
+        fz_raw.append(np.sum(f_vecs[:, 2]))  # Lift
+        fx_raw.append(np.sum(f_vecs[:, 0]))  # Drag
+        ty_raw.append(np.sum(m_vecs[:, 1]))  # Aero Torsion
 
-        y_stations.append(np.mean(s['y']))
-        fz_p.append(np.sum(f_vecs[2, :]))  # Vertical force
-        fx_p.append(np.sum(f_vecs[0, :]))  # Drag/Backwards force
-        ty_p.append(np.sum(m_vecs[1, :]))  # Torsion around Y-axis
+    # Establish Span
+    sort_idx = np.argsort(y_raw)
+    y_c = np.array(y_raw)[sort_idx]
+    y_tip = y_c[-1] + (y_c[-1] - y_c[-2]) / 2 if len(y_c) > 1 else y_c[0] * 1.05
 
-    # Vectorization and sorting
-    y_f = np.array(y_stations)
-    idx = np.argsort(y_f)
-    mask = y_f[idx] >= -1e-3
+    # --- 2. CONTINUOUS DISTRIBUTIONS (N/m or Nm/m) ---
+    # noinspection PyTypeChecker
+    def get_spline_dist(y_centers, forces, tip_val=0.0):
+        midpoints = 0.5 * (y_centers[:-1] + y_centers[1:])
+        boundaries = np.concatenate(([0], midpoints, [y_tip]))
+        widths = np.diff(boundaries)
+        w_vals = np.array(forces) / widths
+        y_fit = np.concatenate(([0], y_centers, [y_tip]))
+        w_fit = np.concatenate(([w_vals[0]], w_vals, [tip_val]))
+        return CubicSpline(y_fit, w_fit, bc_type=(((1, 0.0)), 'natural'))
 
-    y = y_f[idx][mask]
-    fz = np.array(fz_p)[idx][mask]
-    fx = np.array(fx_p)[idx][mask]
-    ty = np.array(ty_p)[idx][mask]
+    w_fz_aero = get_spline_dist(y_c, fz_raw)
+    w_fx_aero = get_spline_dist(y_c, fx_raw)
+    w_ty_aero = get_spline_dist(y_c, ty_raw)
 
-    # Root interpolation (y=0) from nearest panel
-    if y[0] > 1e-4:
-        y = np.insert(y, 0, 0.0)
-        fz = np.insert(fz, 0, fz[0])
-        fx = np.insert(fx, 0, fx[0])
-        ty = np.insert(ty, 0, ty[0])
+    # Distributed Structural Weight (Linear Interpolation)
+    if struct_weight:
+        # Interpolate provided mass/weight grid to the wing span
+        w_struct_func = interp1d(struct_weight['y'], struct_weight['w'],
+                                 kind='linear', fill_value="extrapolate")
+    else:
+        w_struct_func = lambda y: 0
 
-    # Pre-allocate NVM arrays
-    vz, vx = np.zeros_like(y), np.zeros_like(y)
-    mx, mz, ty_int = np.zeros_like(y), np.zeros_like(y), np.zeros_like(y)
+    # --- 3. NUMERICAL INTEGRATION (Tip-to-Root) ---
+    y_fine = np.linspace(0, y_tip, 1000)
+    Vz, Vx, Mx, Mz, Ty = [np.zeros_like(y_fine) for _ in range(5)]
 
-    for i in range(len(y)):
-        y_ob = y[i:]
-        if len(y_ob) > 1:
-            # Shear Forces
-            vz[i] = trapezoid(fz[i:], y_ob)
-            vx[i] = trapezoid(fx[i:], y_ob)
-            # Moments (Integral of Force * Arm)
-            mx[i] = trapezoid(fz[i:] * (y_ob - y[i]), y_ob)
-            mz[i] = trapezoid(fx[i:] * (y_ob - y[i]), y_ob)
-            # Torsion (Direct integral of torsional density)
-            ty_int[i] = trapezoid(ty[i:], y_ob)
+    for i in range(len(y_fine) - 2, -1, -1):
+        dy = y_fine[i + 1] - y_fine[i]
+        ym = 0.5 * (y_fine[i] + y_fine[i + 1])
 
-    return {"y": y, "Vz": vz, "Vx": vx, "Mx": mx, "Mz": mz, "Ty": ty_int}
+        # Distributed Force Summation (Aero + Structural)
+        # Note: Structural weight is negative (acting down)
+        w_z = w_fz_aero(ym) + w_struct_func(ym)
+        w_x = w_fx_aero(ym)
+        w_t = w_ty_aero(ym)
+
+        # Shear Integration (Trapezoidal)
+        Vz[i] = Vz[i + 1] + w_z * dy
+        Vx[i] = Vx[i + 1] + w_x * dy
+        Ty[i] = Ty[i + 1] + w_t * dy
+
+        # Bending Moment Integration
+        # M = integral of Shear
+        Mx[i] = Mx[i + 1] + 0.5 * (Vz[i] + Vz[i + 1]) * dy
+        Mz[i] = Mz[i + 1] - 0.5 * (Vx[i] + Vx[i + 1]) * dy
+
+    # --- 4. SUPERIMPOSE ENGINE POINT LOADS & MOMENTS ---
+    if engines:
+        for eng in engines:
+            mask = y_fine <= eng['y']
+
+            f_weight = -eng['mass'] * 9.81
+            f_thrust = eng['thrust']
+
+            # Distance from engine station to current station
+            lever_y = eng['y'] - y_fine[mask]
+
+            # A. Point Forces -> Jumps in Shear, Kinks in Bending
+            Vz[mask] += f_weight
+            Mx[mask] += f_weight * lever_y
+
+            Vx[mask] += f_thrust
+            Mz[mask] -= f_thrust * lever_y  # Thrust produces -Mz bending
+
+            # B. Point Moments -> Jumps in Bending/Torsion
+            # Torsion jump from X-offset (Weight) and Z-offset (Thrust)
+            # Ty = Fz * x_offset + Fx * z_offset
+            t_jump = (f_weight * eng.get('x_offset', 0)) + (f_thrust * eng.get('z_offset', 0))
+            Ty[mask] += t_jump
+
+            # Optional: If the pylon produces a pitching moment (My)
+            # that doesn't exist in this 1D Ty-only torsion model,
+            # you could add jumps to Mx or Mz here if needed.
+
+    return {"y": y_fine, "Vz": Vz, "Vx": Vx, "Mx": Mx, "Mz": Mz, "Ty": Ty}
 
 
-# Execution
-res = parse_xflr5("MainWing_a=5.00_v=75.00ms.txt")
+# --- 5. EXECUTION ---
+# x_offset: pos = forward of EA | z_offset: pos = above EA
+engine_list = [{
+    'y': 2.5,
+    'mass': 700,
+    'thrust': 5000,
+    'x_offset': 0.8,  # Engine is forward
+    'z_offset': -0.4  # Engine is underslung
+}]
 
-fig, ax = plt.subplots(5, 1, figsize=(10, 15), sharex=True)
-ax[0].plot(res['y'], res['Vz'], 'r', label='Vertical Shear (Vz)')
-ax[1].plot(res['y'], res['Mx'], 'g', label='Vertical Bending (Mx)')
-ax[2].plot(res['y'], res['Vx'], 'orange', label='Backwards Shear (Vx)')
-ax[3].plot(res['y'], res['Mz'], 'm', label='Backwards Bending (Mz)')
-ax[4].plot(res['y'], res['Ty'], 'b', label='Torsion (Ty)')
+# Wing weight in N/m (Trapezoidal distribution example)
+wingweight = {'y': [0, 4, 8], 'w': [-800, -400, -100]}
 
-for a in ax: a.grid(True); a.legend(loc='upper right')
-ax[-1].set_xlabel('Spanwise Position y [m]')
+res = get_xflr5_loads("MainWing_a=5.00_v=75.00ms.txt", engines=None, struct_weight=None)
+
+# --- PLOTTING ---
+fig, axes = plt.subplots(5, 1, figsize=(10, 15), sharex=True)
+plots = [
+    ('Vz', 'crimson', 'Vert. Shear Vz [N]'),
+    ('Mx', 'forestgreen', 'Bending Mx [Nm]'),
+    ('Vx', 'darkorange', 'Lat. Shear Vx [N]'),
+    ('Mz', 'darkmagenta', 'Bending Mz [Nm]'),
+    ('Ty', 'dodgerblue', 'Torsion Ty [Nm]')
+]
+
+for ax, (key, color, label) in zip(axes, plots):
+    ax.plot(res['y'], res[key], color=color, lw=2)
+    ax.set_ylabel(label, fontsize=10, fontweight='bold')
+    ax.grid(True, alpha=0.3)
+
+print(res['Vz'][0])
+print(res['Mx'][0])
+print(res['Vx'][0])
+print(res['Mz'][0])
+print(res['Ty'][0])
+
+axes[-1].set_xlabel('Spanwise Position y [m]')
 plt.tight_layout()
 plt.show()
-
-print(f" Root Vertical Bending: {res['Mx'][0]:.2f} Nm")
-print(f" Root Weak Bending: {res['Mz'][0]:.2f} Nm")
-print(f" Root Torsion: {res['Ty'][0]:.2f} Nm")
-
-# Exporting into separate NumPy arrays
-y_coords = res['y'] # Spanwise positions
-shear_v_z = res['Vz'] # Vertical Shear
-shear_v_x = res['Vx'] # Backwards Shear (Drag-induced)
-moment_m_x = res['Mx'] # Vertical Bending Moment
-moment_m_z = res['Mz'] # Weak-axis Bending Moment
-torsion_t_y = res['Ty'] # Torsional Moment
-
-internal_loads_df = pd.DataFrame(
-    {'y_m': y_coords, 'Vz_N': shear_v_z, 'Mx_Nm': moment_m_x, 'Vx_N': shear_v_x, 'Mz_Nm': moment_m_z, 'Ty_Nm': torsion_t_y})
-
-# Save to CSV
-internal_loads_df.to_csv('internal_loads.csv', index=False)
-
-
-
-
-#import numpy as np
-
-# Load the data, skipping the first row (the header)
-#data = np.genfromtxt("Internal_Loads_Output.csv", delimiter=',', skip_header=1)
-
-# Extract columns by index (0=y, 1=Vz, 2=Mx, etc.)
-#y_coords = data[:, 0]
-#bending_mx = data[:, 2]
