@@ -119,4 +119,28 @@ print(f" Root Vertical Bending: {res['Mx'][0]:.2f} Nm")
 print(f" Root Weak Bending: {res['Mz'][0]:.2f} Nm")
 print(f" Root Torsion: {res['Ty'][0]:.2f} Nm")
 
+# Exporting into separate NumPy arrays
+y_coords = res['y'] # Spanwise positions
+shear_v_z = res['Vz'] # Vertical Shear
+shear_v_x = res['Vx'] # Backwards Shear (Drag-induced)
+moment_m_x = res['Mx'] # Vertical Bending Moment
+moment_m_z = res['Mz'] # Weak-axis Bending Moment
+torsion_t_y = res['Ty'] # Torsional Moment
 
+internal_loads_df = pd.DataFrame(
+    {'y_m': y_coords, 'Vz_N': shear_v_z, 'Mx_Nm': moment_m_x, 'Vx_N': shear_v_x, 'Mz_Nm': moment_m_z, 'Ty_Nm': torsion_t_y})
+
+# Save to CSV
+internal_loads_df.to_csv('internal_loads.csv', index=False)
+
+
+
+
+#import numpy as np
+
+# Load the data, skipping the first row (the header)
+#data = np.genfromtxt("Internal_Loads_Output.csv", delimiter=',', skip_header=1)
+
+# Extract columns by index (0=y, 1=Vz, 2=Mx, etc.)
+#y_coords = data[:, 0]
+#bending_mx = data[:, 2]
