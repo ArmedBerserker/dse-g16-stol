@@ -72,9 +72,11 @@ window_mac_front.insert(0, both_cg_mac)
 window_mac_back.insert(0, both_cg_mac)
 window_mass_front.insert(0, both_mass_val)
 window_mass_back.insert(0, both_mass_val)
-aisle_mac_front.insert(0, window_mac_back[-1])
+
+# THESE LINES should align each aisle progression to the correct final window CG:
+aisle_mac_front.insert(0, window_mac_front[-1])
 aisle_mac_back.insert(0, window_mac_back[-1])
-aisle_mass_front.insert(0, window_mass_back[-1])
+aisle_mass_front.insert(0, window_mass_front[-1])
 aisle_mass_back.insert(0, window_mass_back[-1])
 
 # Fuel loading parameters and progression
@@ -98,13 +100,25 @@ all_cg = window_mac_front + window_mac_back + aisle_mac_front + aisle_mac_back +
 min_cg = min(all_cg)
 max_cg = max(all_cg)
 # Define safety margin lines: add 2% at the forward (minimum) side and subtract 2% at the aft (maximum) side
-safety_forward = max(0, min_cg - 2)
-safety_aft = min(70, max_cg + 2)
+safety_forward = min_cg - 2
+safety_aft = max_cg + 2
+
 
 # Plotting
 plt.figure(figsize=(12, 7))
 
-# Seat and fuel loading progressions
+# Cargo connection lines
+cargo_colors = ['green', 'magenta', 'orange', 'blue']
+plt.plot([oew_mac, fcg_mac], [initial_mass, fmass],
+         color=cargo_colors[0], linestyle='--', lw=1.5, label='Cargo Loading Paths')
+plt.plot([oew_mac, bcg_mac], [initial_mass, bmass],
+         color=cargo_colors[1], linestyle='--', lw=1.5)
+plt.plot([fcg_mac, both_cg_mac], [fmass, both_mass_val],
+         color=cargo_colors[2], linestyle='--', lw=1.5)
+plt.plot([bcg_mac, both_cg_mac], [bmass, both_mass_val],
+         color=cargo_colors[3], linestyle='--', lw=1.5)
+
+# Seat and fuel loading progressions with distinct colors and markers
 plt.plot(window_mac_front, window_mass_front, 'b-o', label='Front to Back Loading Window')
 plt.plot(window_mac_back, window_mass_back, 'r--s', label='Back to Front Loading Window')
 plt.plot(aisle_mac_front, aisle_mass_front, 'g-o', label='Front to Back Loading Aisle')
@@ -116,17 +130,28 @@ plt.scatter(fcg_mac, fmass, c='orange', marker='X', s=150, zorder=5, label='Fron
 plt.scatter(bcg_mac, bmass, c='purple', marker='X', s=150, zorder=5, label='Back Cargo')
 plt.scatter(both_cg_mac, both_mass_val, c='green', marker='X', s=150, zorder=5, label='Both Cargo')
 
-# Safety margin lines
+# Reference markers and lines
+plt.axvline(25, color='g', linestyle='-.', label='25% MAC (OEW)')
+# Safety margin lines (2% margin from the envelope extremes)
 plt.axvline(safety_forward, color='black', linestyle='-', lw=1, label='Safety Margin 2%')
-plt.axvline(safety_aft, color='black', linestyle='-', lw=1)
+plt.axvline(safety_aft, color='black', linestyle='-', lw=1)  # No label here
+plt.axvline(max_cg, color='black', linestyle='-', lw=1)
+plt.axvline(min_cg, color='black', linestyle='-', lw=1)
+
 
 plt.scatter(oew_mac, initial_mass, c='black', marker='*', s=200, label='OEW Position', zorder=5)
+plt.scatter(aisle_mac_back[-1], max_zero_fuel_weight, c='blue', marker='*', s=200, 
+            label='Max Zero Fuel Weight', zorder=5)
+plt.scatter(fuel_mac[-1], max_takeoff_weight, c='red', marker='*', s=200, 
+            label='Max Take-off Weight', zorder=5)
+
+
 
 plt.title("Loading Diagram ATR72-600")
 plt.xlabel("CG Position (% MAC)")
 plt.ylabel("Total Mass (kg)")
 plt.grid(True)
 plt.legend(ncol=1, loc='upper left')
-plt.xlim(0, 70)
+plt.xlim(-20, 70)
 plt.tight_layout()
 plt.show()
