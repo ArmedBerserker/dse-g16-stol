@@ -6,8 +6,9 @@ def plot_empennage(emp_data: dict):
     Renders precise 2D planform top-views of the horizontal stabilizer
     and side-views of the vertical stabilizer using dictionary inputs.
     """
-    h = emp_data["horizontal_tail"]
-    v = emp_data["vertical_tail"]
+    # Fixed keys to align with the dictionary output from tail_sizing.py
+    h = emp_data["h_tail"]
+    v = emp_data["v_tail"]
     
     # Create a unified figure with two subplots
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
@@ -90,9 +91,9 @@ def plot_empennage(emp_data: dict):
 
 # Test execution stub if run directly
 if __name__ == "__main__":
-    # Mock output matching the pipeline data schema
+    # Updated mock output matching the pipeline data schema keys
     dummy_emp_data = {
-        "horizontal_tail": {"b_h": 3.43, "c_root": 1.70, "c_tip": 0.68, "sweep_qc": 21.6},
-        "vertical_tail": {"b_v": 2.53, "c_root": 2.40, "c_tip": 0.96, "sweep_qc": 20.3}
+        "h_tail": {"b_h": 3.43, "c_root": 1.70, "c_tip": 0.68, "sweep_qc": 21.6},
+        "v_tail": {"b_v": 2.53, "c_root": 2.40, "c_tip": 0.96, "sweep_qc": 20.3}
     }
     plot_empennage(dummy_emp_data)
