@@ -30,6 +30,17 @@ import pandas as pd
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 BASE_DIR = Path(__file__).resolve().parent
 
+# def Range(ac: Aircraft):
+#     max_L_D_cr = 
+#     R_lost = 1 / 0.7 * max_L_D_cr * (ac.requirements.cruise['cr_altitude'] * FT_TO_M + (ac.requirements.cruise['cr_speed'] * KTS_TO_MS) ** 2 / (2 * g))
+#     R_des = ac.mission.range*1000
+#     f_con = 0.05
+#     R_div = 
+#     t_e = 
+#     V_cr = ac.requirements.cruise['cr_speed'] * KTS_TO_MS
+#     R_eq_res = 1.2 * R_div + t_e * V_cr
+#     R_eq = (R_des + R_lost) * (1 + f_con) + R_eq_res
+#     return R_eq
 
 
 def stall_speed_matching(ac: Aircraft,  # Change units
@@ -457,7 +468,7 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         ax.plot(ds["x"], ds["y"], color=color, label=ds["label"], linewidth=2)
 
     if requirement_to_meet == 'all':
-        datasets_design_point = datasets
+        datasets_design_point = datasets  # [d for d in datasets if d["label"] not in ["oei roc/climb gradient I (turbine)", "oei roc/climb gradient II (turbine)", "aeo climb gradient (turbine)", "balked landing (turbine)"]]
     elif requirement_to_meet == 'cruise':
         datasets_design_point = [d for d in datasets if d["label"] in ["cruise speed", "landing field length","maximum wing loading","stall speed"]]
         #print(data)
@@ -497,7 +508,9 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
     ax.grid(True, linestyle="--", alpha=0.5)
 
     plt.tight_layout()
-    plt.savefig(output_filepath, dpi=300)
+    # plt.savefig(output_filepath, dpi=300)
+    if output_filepath is not None:
+        plt.savefig(output_filepath, dpi=300)
     if show_plot:
         plt.show()
 
@@ -517,4 +530,4 @@ if __name__ == '__main__':
     target_class = Aircraft
     ac = loader.load(file_path, target_class)
 
-    plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=True)
+    plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=True, requirement_to_meet='cruise')

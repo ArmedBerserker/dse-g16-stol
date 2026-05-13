@@ -2,7 +2,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from classes.aircraft_2 import loader, Aircraft
+from classes.aircraft_2 import *
 from lookups.consts import *
 from class1.prelim_drag import *
 import pandas as pd
@@ -22,7 +22,14 @@ from pathlib import Path
 
 def Resize_A(limit_W_P):
     resize = False
-    if limit_W_P == "cruise speed" or "aeo roc" or "aeo climb gradient" or "aeo climb gradient (turbine)" or "balked landing" or "balked landing (turbine)" or "oei roc/climb gradient I (turbine)" or "oei roc/climb gradient II (turbine)":
+    if limit_W_P in ["cruise speed",
+                     "aeo roc",
+                     "aeo climb gradient",
+                     "aeo climb gradient (turbine)",
+                     "balked landing",
+                     "balked landing (turbine)",
+                     "oei roc/climb gradient I (turbine)",
+                     "oei roc/climb gradient II (turbine)"]:
         resize = True
     return resize
     # elif limit_W_P == :  # NOTE: fill in names of lines and check it runs
@@ -31,7 +38,7 @@ def Resize_A(limit_W_P):
 
 def Resize_CL_max_LD(limit_W_S):
     resize = False
-    if limit_W_S == "stall speed" or "landing field length":
+    if limit_W_S in ["stall speed", "landing field length"]:
         resize = True
     return resize
 
@@ -145,6 +152,143 @@ def sensitivity_study(
         "limiting_wp_constraint":  limiting_wp_constraint_history,
         "limiting_ws_constraint":  limiting_ws_constraint_history,
     }
+
+def sensitivity_mesh(
+        ac: Aircraft,
+        type_to_use: str,
+        W_S_plot: np.ndarray,
+        W_P_or_T_W_plot: np.ndarray,
+        output_filepath_base: str,
+        A_values: np.ndarray,
+        CL_values: np.ndarray,
+):
+    """
+    Computes a full 2D sensitivity mesh over:
+        - aspect ratio A
+        - CL_max_LD
+
+    Returns a dataframe with:
+        A, CL_max_LD, W/S, W/P
+    """
+
+    initial_A = ac.wing.aspect_ratio
+    initial_CL = ac.requirements.landing['as_CL_max_la']
+
+    rows = []
+
+    try:
+
+        for A in A_values:
+
+            ac.wing.aspect_ratio = A
+
+            for CL in CL_values:
+
+                ac.requirements.landing['as_CL_max_la'] = CL
+
+                data = plot_matching_and_select_design_point(
+                    ac,
+                    type_to_use,
+                    W_S_plot,
+                    W_P_or_T_W_plot,
+                    output_filepath=None,
+                    show_plot=False
+                )
+
+                rows.append({
+                    'A': A,
+                    'CL_max_LD': CL,
+                    'W/S': data['W/S'],
+                    'W/P': data['W/P'],
+                    'limiting_wp_constraint': data['limiting_wp_constraint'],
+                    'limiting_ws_constraint': data['limiting_ws_constraint'],
+                })
+
+                plt.close('all')
+
+    finally:
+        # restore original values
+        ac.wing.aspect_ratio = initial_A
+        ac.requirements.landing['as_CL_max_la'] = initial_CL
+
+    return pd.DataFrame(rows)
+
+def plot_sensitivity_mesh(df, output_filepath):
+
+    fig, ax = plt.subplots(figsize=(10,8))
+
+    # -------------------------------------------------
+    # CONSTANT A CURVES
+    # -------------------------------------------------
+
+    unique_A = sorted(df['A'].unique())
+
+    for A in unique_A:
+
+        sub = df[df['A'] == A]
+
+        sub = sub.sort_values('CL_max_LD')
+
+        ax.plot(
+            sub['W/S'],
+            sub['W/P'],
+            '--o',
+            linewidth=1.5,
+            markersize=4,
+            label=f'A={A:.1f}'
+        )
+
+        # label at end
+        last = sub.iloc[-6]
+
+        ax.text(
+            last['W/S']-10,
+            last['W/P'],
+            f'A={A:.1f}',
+            fontsize=8
+        )
+
+    # -------------------------------------------------
+    # CONSTANT CL CURVES
+    # -------------------------------------------------
+
+    unique_CL = sorted(df['CL_max_LD'].unique())
+
+    for CL in unique_CL:
+
+        sub = df[df['CL_max_LD'] == CL]
+
+        sub = sub.sort_values('A')
+
+        ax.plot(
+            sub['W/S'],
+            sub['W/P'],
+            '--',
+            linewidth=1.2,
+            alpha=0.8
+        )
+
+        last = sub.iloc[1]
+
+        ax.text(
+            last['W/S'],
+            last['W/P'],
+            f'$C_{{max_{{LD}}}}$={CL:.2f}',
+            fontsize=8
+        )
+
+    ax.set_xlabel('W/S')
+    ax.set_ylabel('W/P')
+
+    ax.set_title('Matching Diagram Sensitivity Mesh')
+
+    ax.grid(True)
+
+    plt.tight_layout()
+
+    plt.savefig(output_filepath, dpi=200)
+
+    plt.show()
 
 def Weight_est_and_match_concept(ac : Aircraft,  # Change units
         type_to_use : str = "Single Engine Propeller Driven",
@@ -630,21 +774,46 @@ def plot_sensitivity_study(
     plt.show()
 
 if __name__ == '__main__':
-    file_path = "yamls/aircraft.yaml"
-    target_class = Aircraft
-    ac = loader.load(file_path, target_class)
+    # file_path = "yamls/aircraft.yaml"
+    # target_class = Aircraft
+    # ac = loader.load(file_path, target_class)
 
+    aircraft = Aircraft('thing',
+                        loader.load('concepts/reqs_nturb.yaml', Requirements),
+                        loader.load('yamls/mission.yaml', Mission),
+                        loader.load('yamls/weights.yaml', Weights),
+                        loader.load('concepts/wing_courier.yaml', Wing),
+                        loader.load('yamls/fuselage.yaml', Fuselage),
+                        loader.load('concepts/engine_piston_b.yaml', Engine))
+    
     # Sensitivity study matching plot output path:
     output_dir = Path("outputs")
     folder = output_dir / 'Matching_concepts'
     folder.mkdir(parents=True, exist_ok=True)
     output_path1 = folder / "Sensitivity_study_graph_A.png"
     output_path2 = folder / "Sensitivity_study_graph_CL.png"
+    output_path3 = folder / "Mesh_sensitivity_study_graph.png"
 
     folder1 = folder / 'Sensitivity_study_graphs'
     folder1.mkdir(parents=True, exist_ok=True)
 
-    file_paths_A, file_paths_CL = run_sensitivity_study_save_results()
-    plot_sensitivity_study(file_paths_A, file_paths_CL, output_path1, param='A')
-    plot_sensitivity_study(file_paths_A, file_paths_CL, output_path2, param='CL_max_LD')
+    A_values = np.arange(8, 14, 1)
+    CL_values = np.arange(1.8, 3.3, 0.1)
+
+    df_mesh = sensitivity_mesh(
+        aircraft,
+        type_to_use='Twin Engine Propeller Driven',
+        W_S_plot=np.arange(1,1250),
+        W_P_or_T_W_plot=np.arange(0.00000001,0.15,0.0001),
+        output_filepath_base="outputs/test",
+        A_values=A_values,
+        CL_values=CL_values
+    )
+
+    df_mesh.to_csv("outputs/sensitivity_mesh.csv", index=False)
+    plot_sensitivity_mesh(df_mesh, output_path3)
+
+    # file_paths_A, file_paths_CL = run_sensitivity_study_save_results()
+    # plot_sensitivity_study(file_paths_A, file_paths_CL, output_path1, param='A')
+    # plot_sensitivity_study(file_paths_A, file_paths_CL, output_path2, param='CL_max_LD')
     # plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250))
