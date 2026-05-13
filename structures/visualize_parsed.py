@@ -27,11 +27,11 @@ def visualize_comparison(csv_path):
             f_total = np.array([row['Fx'], row['Fy'], row['Fz']])
 
             # --- LOCAL COMPONENTS (BLUE) ---
-            # Normal force (Lift relative to wing surface)
+            # Normal force
             fn_mag = np.dot(f_total, norm_u)
             fn_vec = fn_mag * norm_u
 
-            # Tangential force (Drag relative to chord line)
+            # Tangential force
             ft_mag = np.dot(f_total, chord_u)
             ft_vec = ft_mag * chord_u
 

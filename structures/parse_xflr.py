@@ -2,6 +2,25 @@ import numpy as np
 import pandas as pd
 import os
 
+###############################################################################
+# COORDINATE SYSTEM & SIGN CONVENTION DEFINITIONS
+# -----------------------------------------------------------------------------
+# GLOBAL FRAME (XFLR5):
+#   X+ : Aft (Trailing Edge)
+#   Y+ : Right (Outboard)
+#   Z+ : Up (Global Lift)
+#
+# LOCAL STATION FRAME (Right-Handed System):
+#   c_u (Chord)  : Points AFT       [Similar with Global X+]
+#   s_u (Span)   : Points OUTBOARD  [Similar with Global Y+]
+#   n_u (Normal) : Points DOWN      [Opposite to Global Z+] -> (s_u x c_u)
+#
+# OUTPUT SIGN CONVENTIONS:
+#   Fn (Normal Force) : Positive (+) is DOWN, Negative (-) is UP (Lift).
+#   Torsion           : Positive (+) is NOSE-UP.
+#   Fx, Fy, Fz        : Preserved in Global orientation.
+###############################################################################
+
 class XFLR5Parser:
     def __init__(self, filepath, air_density=1.225):
         self.filepath = filepath
@@ -93,9 +112,14 @@ class XFLR5Parser:
                 s_vec = station['p_le'] - pre_data[i - 1]['p_le']
 
             s_u_raw = s_vec / np.linalg.norm(s_vec)
-            n_u = np.cross(c_u, s_u_raw)
+
+            # Define Normal as Span cross Chord (Points UP)
+            n_u = np.cross(s_u_raw, c_u)
             n_u /= np.linalg.norm(n_u)
-            s_u = np.cross(n_u, c_u)
+
+            # Redefine Span as Chord cross Normal (Points OUTBOARD)
+            s_u = np.cross(c_u, n_u)
+            s_u /= np.linalg.norm(s_u)
 
             closest_y_geom = min(self.station_chords.keys(), key=lambda k: abs(k - station['y']))
             chord_len = self.station_chords[closest_y_geom]
