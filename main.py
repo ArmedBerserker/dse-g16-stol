@@ -6,6 +6,9 @@ from geometry.wing_planform import (
 )
 
 from visualization.wing_plot import plot_wing_planform
+from visualization.plot_horizontal_tail import (
+    plot_horizontal_tail
+)
 
 
 # ==========================================================
@@ -34,6 +37,11 @@ def main():
 
     print_wing_geometry(wing)
     plot_wing_planform(wing)
+    # ------------------------------------------------------
+    # PLOT HORIZONTAL TAIL
+    # ------------------------------------------------------
+
+    plot_horizontal_tail()
 
 
 # ==========================================================
