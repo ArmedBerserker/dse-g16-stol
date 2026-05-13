@@ -149,10 +149,31 @@ class Wing:
 
 @dataclass
 class Fuselage:
-    length : float | None
-    span : float
-    height : float
-    wetted_area : float
+    length: null
+    span: null
+    height: null
+    wetted_area: null
+
+    seat_width: float
+    aisle_width: float
+    ailse_height: float
+    clearance: float
+    seat_pitch: float
+    wall_thickness: float
+    compartment_width: float 
+    compartment_height: float
+    back_storage_width: float
+    back_storage_heigt: float
+    num_seats: int
+    floor_thickness: float
+    under_compartment_storage_height: float 
+
+    cockpit_length: float
+    divider: float
+
+    tail_cone_fuselage_ratio: float
+    approach_angle: float
+
 
     def __str__(self):
         text = "The fuselage is:\n"

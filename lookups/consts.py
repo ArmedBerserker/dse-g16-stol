@@ -12,3 +12,4 @@ LBSpHP_TO_NpW    = 0.00596
 MIL_TO_KM        = 1.60934
 NMIL_TO_KM       = 1.852
 g                = 9.80665
+INCH_TO_M        = 0.0254
