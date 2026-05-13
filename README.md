@@ -8,10 +8,10 @@ The goal of this repository is to keep all project work organized, reproducible,
 
 ## Getting Started
 
-Clone the repository:
+Navigate to the folder where you want to the repository to be. Then clone the repository:
 
-```bash
-git clone <repository-url>
+```powershell
+git clone https://github.com/ArmedBerserker/dse-g16-stol.git
 cd dse-g16-stol
 ```
 
