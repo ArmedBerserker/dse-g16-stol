@@ -1,16 +1,21 @@
 import numpy as np
-from scipy.interpolate import interp1d
 from scipy.integrate import simpson, cumulative_trapezoid
+from geom_wingbox import *
 
 # --- Constants & Geometry Settings ---
-xfs_pct = 0.15
-xrs_pct = 0.65
+xfs_pct = 0.15 # 15-20
+xrs_pct = 0.65 # 55-65
 
-tskin_m = 0.001
+tskin_m = 0.002
 tspar_m = 0.003
-Astr_m = 0.001
+Astr_one_m = 0.0005 # Cross-sectional area of ONE stringer (m^2)
+n_str = 16  # Total number of stringers (MUST be even)
 
-# --- Wing Geometry Inputs ---
+# Material Properties
+E_modulus = 70e9  # Young's Modulus in Pa
+G_modulus = 26e9  # Shear Modulus in Pa
+
+# Wing Geometry
 S = 23.0  # Surface Area (m^2)
 AR = 9.0  # Aspect Ratio
 taper = 0.4  # Taper Ratio (tip_chord / root_chord)
@@ -21,122 +26,119 @@ y_tip = b / 2  # Semi-span (m)
 c_root = (2 * S) / (b * (1 + taper))
 c_tip = taper * c_root
 
-# --- Load Internal Loads Data ---
-# CSV columns: y, Vz, Mx, Vy, Mz, T
-# skiprows=1 handles the "y_m" header error
-data = np.loadtxt("internal_loads.csv", delimiter=",", skiprows=1)
+# --- Load and Transform CSV Data ---
+data = np.genfromtxt("xflr5_parsed.csv", delimiter=",", names=True)
 
-y_stations = data[:, 0]      # Column 0: Spanwise position (y)
-M_stations = data[:, 2]      # Column 2: Bending Moment (Mx)
-T_stations = data[:, 5]      # Column 5: Torsion (T)
+# 1. Enforce Root-to-Tip Sorting
+# This is required for integration starting at the root (y=0)
+sort_idx = np.argsort(data['y'])
 
-# Calculate chords at the specific CSV stations
-chords = c_root - (c_root - c_tip) * (y_stations / y_tip)
+y_stations = data['y'][sort_idx]
+chords = data['chord'][sort_idx]
 
-# --- Your Functions (Untouched) ---
-def get_airfoil_heights(dat_file_path, xfs_pct, xrs_pct):
-    # Load coordinates, skipping the header line
-    coords = np.loadtxt(dat_file_path, skiprows=1)
-    x, y = coords[:, 0], coords[:, 1]
+# Global Forces (Discrete Panel Point Loads in N)
+Fx = data['Fx'][sort_idx]
+Fy = data['Fy'][sort_idx]
+Fz = data['Fz'][sort_idx]
 
-    # Split into Upper and Lower surfaces
-    le_idx = np.argmin(x)
+# Local Normal Unit Vectors
+nx = data['nx'][sort_idx]
+ny = data['ny'][sort_idx]
+nz = data['nz'][sort_idx]
 
-    # Ensure x is strictly increasing for interpolation
-    x_upper, y_upper = x[:le_idx + 1][::-1], y[:le_idx + 1][::-1]
-    x_lower, y_lower = x[le_idx:], y[le_idx:]
+# Local Tangential Unit Vectors
+cx = data['cx'][sort_idx]
+cy = data['cy'][sort_idx]
+cz = data['cz'][sort_idx]
 
-    f_upper = interp1d(x_upper, y_upper, kind='linear', bounds_error=False, fill_value="extrapolate")
-    f_lower = interp1d(x_lower, y_lower, kind='linear', bounds_error=False, fill_value="extrapolate")
+# Total Panel Torsion at Quarter Chord (Discrete Panel Moment in N*m)
+T_c4 = data['Torsion'][sort_idx]
 
-    # Normalized heights (thickness/chord)
-    hfs_norm = float(f_upper(xfs_pct) - f_lower(xfs_pct))
-    hrs_norm = float(f_upper(xrs_pct) - f_lower(xrs_pct))
+# Transform Forces to Wingbox Local Frame
+Fn_stations = (Fx * nx) + (Fy * ny) + (Fz * nz)  # Positive DOWN
+Ft_stations = (Fx * cx) + (Fy * cy) + (Fz * cz)  # Positive AFT
 
-    return hfs_norm, hrs_norm
 
-def calculate_section_inertia(tskin, tspar, Astr, xfs, xrs, hfs, hrs):
-    # Width of the box
-    w = xrs - xfs
+# --- Airfoil & Section Mechanics ---
 
-    # Ixx Calculation
-    I_spars = (1 / 12) * tspar * (hfs ** 3 + hrs ** 3)
 
-    # Consider the sloped skins on top and bottom and take integral of y^2
-    int_factor = (w / 12) * (hfs ** 2 + hfs * hrs + hrs ** 2)
 
-    I_skins = 2 * tskin * int_factor
-    I_stringers = 2 * (Astr / w) * int_factor
-
-    Ixx = I_spars + I_skins + I_stringers
-
-    # J Calculation
-    # Enclosed Area (Trapezoid)
-    Ae = 0.5 * (hfs + hrs) * w
-
-    # Length of the sloping skins (Pythagoras)
-    slope_length = np.sqrt(w ** 2 + (0.5 * (hfs - hrs)) ** 2)
-
-    # Perimeter Integral (sum of length/thickness for each wall)
-    integral = (hfs / tspar) + (hrs / tspar) + (2 * slope_length / tskin)
-
-    J = (4 * Ae ** 2) / integral  # Bredt-Batho
-
-    return Ixx, J
 
 def calculate_torsional_deflection(y, T, G, J):
-    # Twist rate (d_theta/dy)
     twist_rate = T / (G * J)
-
-    # Integrate twist rate along the span using Simpson's rule
-    total_twist_rad = simpson(twist_rate, y)
-
+    total_twist_rad = simpson(twist_rate, x=y)
     return np.rad2deg(total_twist_rad)
 
-def calculate_bending_deflection(y, M, E, Ixx):
-    # Curvature (d2v/dy2)
-    curvature = M / (E * Ixx)
 
-    # First integration: Slope (phi)
-    slope = cumulative_trapezoid(curvature, y, initial=0)
-
-    # Second integration: Deflection (v)
-    tip_deflection_m = simpson(y=slope, x=y)
-
+def calculate_bending_deflection(y, M, E, I_inertia):
+    curvature = M / (E * I_inertia)
+    # Starts integration at index 0 (Root, y=0) so boundary condition slope=0 is respected
+    slope = cumulative_trapezoid(curvature, x=y, initial=0)
+    tip_deflection_m = simpson(slope, x=y)
     return tip_deflection_m * 1000  # Return in mm
 
 
-
-# --- Calculations ---
+# --- Main Calculations ---
 
 hfs_norm, hrs_norm = get_airfoil_heights("onze_airfoil.dat", xfs_pct, xrs_pct)
 
 Ixx_stations = []
+Izz_stations = []
 J_stations = []
+x_sc_stations = []
 
 for c in chords:
-    # Scale geometry for the local chord
     local_hfs = hfs_norm * c
     local_hrs = hrs_norm * c
     local_xfs = xfs_pct * c
     local_xrs = xrs_pct * c
 
-    # Calculate inertia for this specific station
-    I_val, J_val = calculate_section_inertia(
-        tskin_m, tspar_m, Astr_m,
+    section_props = calculate_section_inertia(
+        tskin_m, tspar_m, Astr_one_m, n_str,
         local_xfs, local_xrs, local_hfs, local_hrs
     )
 
-    Ixx_stations.append(I_val)
-    J_stations.append(J_val)
+    Ixx_stations.append(section_props["Ixx"])
+    Izz_stations.append(section_props["Izz"])
+    J_stations.append(section_props["J"])
+    x_sc_stations.append(section_props["x_sc_midpoint"])
 
 Ixx_stations = np.array(Ixx_stations)
+Izz_stations = np.array(Izz_stations)
 J_stations = np.array(J_stations)
+x_sc_stations = np.array(x_sc_stations)
 
-# Final Deflection Results
-# Aluminum Properties: E = 70 GPa, G = 26 GPa
-twist = calculate_torsional_deflection(y_stations, T_stations, 26e9, J_stations)
-bending = calculate_bending_deflection(y_stations, M_stations, 70e9, Ixx_stations)
+# Move Torsion to Shear Center
+dx_sc = x_sc_stations - (0.25 * chords)
+T_sc_panel = T_c4 - (dx_sc * Fn_stations)
 
-print(f"Total Tip Twist: {twist:.4f} deg")
-print(f"Total Tip Bending: {bending:.4f} mm")
+# Summation for Internal Loads (Tip to Root)
+V_stations = np.zeros_like(y_stations)
+Mx_stations = np.zeros_like(y_stations)
+Mz_stations = np.zeros_like(y_stations)
+T_stations = np.zeros_like(y_stations)
+
+for i in range(len(y_stations)):
+    # Find all panels strictly outboard (or at) the current station
+    outboard_mask = y_stations >= y_stations[i]
+    lever_arms = y_stations[outboard_mask] - y_stations[i]
+
+    V_stations[i] = np.sum(Fn_stations[outboard_mask])
+    Mx_stations[i] = np.sum(Fn_stations[outboard_mask] * lever_arms)
+    Mz_stations[i] = np.sum(Ft_stations[outboard_mask] * lever_arms)
+    T_stations[i] = np.sum(T_sc_panel[outboard_mask])
+
+# Deflection Integration
+twist_val = calculate_torsional_deflection(y_stations, T_stations, G_modulus, J_stations)
+bending_n_val = calculate_bending_deflection(y_stations, Mx_stations, E_modulus, Ixx_stations)
+bending_t_val = calculate_bending_deflection(y_stations, Mz_stations, E_modulus, Izz_stations)
+
+# Transform integral signs to physical directions
+display_bending_normal = -1 * bending_n_val  # Up = Positive
+display_bending_tangential = -1 * bending_t_val  # Forward = Positive
+display_twist = twist_val  # Nose-Up = Positive
+
+print("--- DEFLECTIONS (Positive = Up / Forward / Nose-Up) ---")
+print(f"Total Tip Twist: {display_twist:.4f} deg")
+print(f"Total Tip Vertical Deflection: {display_bending_normal:.4f} mm")
+print(f"Total Tip Chordwise Deflection: {display_bending_tangential:.4f} mm")

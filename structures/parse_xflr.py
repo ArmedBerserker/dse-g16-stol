@@ -129,16 +129,26 @@ class XFLR5Parser:
             m_total_vec = np.sum(np.cross(r_rel, station['p_forces']), axis=0)
             torsion = np.dot(m_total_vec, s_u)
             f_normal = np.dot(station['f_total_vec'], n_u)
+            f_tangential = np.dot(station['f_total_vec'], c_u)
+            f_spanwise =np.dot(station['f_total_vec'], s_u)
 
             final_data.append({
-                'y': station['y'], 'chord': chord_len,
-                'Fx': station['f_total_vec'][0], 'Fy': station['f_total_vec'][1], 'Fz': station['f_total_vec'][2],
+                'y': station['y'],
+                'chord': chord_len,
+                'Fx': station['f_total_vec'][0],
+                'Fy': station['f_total_vec'][1],
+                'Fz': station['f_total_vec'][2],
                 'Fn': f_normal,
+                'Ft': f_tangential,
+                'Fs': f_spanwise,
                 'Torsion': torsion,
                 'cx': c_u[0], 'cy': c_u[1], 'cz': c_u[2],
                 'sx': s_u[0], 'sy': s_u[1], 'sz': s_u[2],
                 'nx': n_u[0], 'ny': n_u[1], 'nz': n_u[2],
-                'p_le_x': station['p_le'][0], 'p_le_y': station['p_le'][1], 'p_le_z': station['p_le'][2]
+                'p_le_x': station['p_le'][0], 'p_le_y': station['p_le'][1], 'p_le_z': station['p_le'][2],
+                'r_c4_x': r_c4[0],
+                'r_c4_y': r_c4[1],
+                'r_c4_z': r_c4[2]
             })
 
         return pd.DataFrame(final_data)

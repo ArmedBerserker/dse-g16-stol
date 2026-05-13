@@ -61,7 +61,7 @@ def visualize_comparison(csv_path):
                       color='red', linewidth=1.5, linestyle='--', label='Global Lift (Z)' if i == 0 else "")
             ax.quiver(p_c4[0], p_c4[1], p_c4[2], fx_global[0] * force_scale, fx_global[1] * force_scale,
                       fx_global[2] * force_scale,
-                      color='crimson', linewidth=1.5, linestyle='--', label='Global Drag (X)' if i == 0 else "")
+                      color='crimson', linewidth=1.5, linestyle='--', label='Global Axial (X)' if i == 0 else "")
 
     draw_wing()
 
