@@ -6,22 +6,6 @@ The goal of this repository is to keep all project work organized, reproducible,
 
 ---
 
-## Repository Overview
-
-The repository may contain:
-
-- Aircraft sizing and performance code
-- Aerodynamic, propulsion, structural, and stability analysis tools
-- Class definitions for aircraft components and configurations
-- Input files and generated results
-- Project documentation
-- Trade studies and design notebooks
-- Verification and validation material
-
-Each subfolder should include its own short explanation if the contents are not immediately obvious.
-
----
-
 ## Getting Started
 
 Clone the repository:
@@ -44,9 +28,6 @@ Install the required packages:
 ```bash
 pip install -r requirements.txt
 ```
-
-If `requirements.txt` does not yet exist, install the packages needed for the specific script or notebook you are running.
-
 ---
 
 ## Loading Aircraft Classes
@@ -59,11 +40,66 @@ from classes.aircraft_2 import loader
 target = loader.load(file_path, target_class)
 ```
 
-This approach should be preferred where possible, as it follows the existing structure of the repository.
-
+This approach works on any class, as long as the .yaml files comply with the structure. Possible classes are
+```python
+Aircraft, Wing, Engine, Fuselage, Requirements, Mission
+```
 ---
 
-## Coding Guidelines
+## General Example
+
+The idea of the pre-existing code is that `.yaml` files are treated as a ground truth and are not changed by code. **Please do no overwrite a file once iterations start**. While building code, you may add any parameters you need to any file, but try to fit them properly into the existing category. Think: Is this a requirement or a parameter? for example. Any time a top-level heading is addded to a yaml, you must update the corresponding class in `aircraft_2.py` to contain that field. A yaml can be formatted in many ways. An example is shown below:
+
+```yaml
+field1 : thing1
+field2 : thing2
+field3 : 2
+list1 : [0.8,    0.8,    0.8]
+field4 :
+    subfield1 : 0.1
+    subfield2 : 0.2
+```
+
+The respective class then needs fields as:
+
+_Note that subfields are interpreted as dictionaries under the corresponding field heading_
+
+
+```python
+field1 : str
+field2 : str
+field3 : int
+list1 : list
+field4 : dict
+```
+
+Suppose you want to print the lift/drag ratio of an aircraft/wing. How can you do this?
+
+### Method 1: Load an aircraft and then access its wing
+```python
+from classes.aircraft_2 import loader, Aircraft
+
+aircraft = loader.load('aircraft.yaml', Aircraft)
+
+print(aircraft.wing.ld)
+```
+The benefit of this method is that you can access other parameters of the aircraft if required, for example to get the propulsive efficiency you can run `ac.engine.eta_prop`. The downside however is that you need to have a defined `aircraft.yaml` file and corresponding input files. 
+
+### Method 2: Load the wing only 
+```python
+from classes.aircraft_@ import loader, Wing
+
+wing = loader.load('wing.yaml', Wing)
+
+print(wing.ld)
+```
+
+
+The benefit of this method is that you do not need the whole aircraft defined, just the wing. This may be easier when you are working on a particular system. On the other hand, this does mean other aircraft values cannot be accessed (unless you define a seperate instance of that class as needed).
+
+### Special case: 
+In some classes, you have subfields (see that yaml example before). To access the values in that case, you must run `object.field1['subfield1']` to get the same values.
+## Formatting Guidelines
 
 Please follow the style already used in the repository. Consistent formatting and naming make it easier for the whole team to work on the same codebase.
 
@@ -227,17 +263,6 @@ fixed
 final
 work
 ```
-
-Use present-tense verbs where possible, for example:
-
-```text
-Add
-Fix
-Update
-Remove
-Refactor
-```
-
 ---
 
 ## Pull Request Guidelines
@@ -264,29 +289,6 @@ Briefly describe the purpose of the change.
 ## Notes
 Mention assumptions, limitations, or things that still need work.
 ```
-
----
-
-## Project Structure
-
-A typical structure may look like:
-
-```text
-dse-g16-stol/
-│
-├── classes/             # Aircraft and component class definitions
-├── data/                # Input data and reference values
-├── docs/                # Documentation and reports
-├── notebooks/           # Jupyter notebooks for analysis
-├── scripts/             # Standalone scripts
-├── tests/               # Verification and test scripts
-├── results/             # Generated outputs and plots
-├── requirements.txt     # Python package requirements
-└── README.md
-```
-
-If a new folder is added, make sure its purpose is clear.
-
 ---
 
 ## Data and Results
@@ -309,19 +311,7 @@ Avoid committing:
 - Personal copies of scripts
 - Automatically generated files that can be recreated easily
 
----
-
-## Collaboration Rules
-
-To keep the repository manageable:
-
-- Work on a separate branch for each task.
-- Pull the latest changes before starting new work.
-- Avoid directly committing to the main branch.
-- Keep functions and files focused on one purpose.
-- Document assumptions in the code or in a nearby markdown file.
-- Do not delete or overwrite someone else’s work without checking first.
-- Use pull requests for changes that affect shared code.
+*Only commit generated images if they do no change (for eg. regression lines etc)*
 
 ---
 
