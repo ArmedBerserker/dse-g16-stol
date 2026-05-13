@@ -1,8 +1,5 @@
 engine_type : hyb # bat or hyb
-<<<<<<< HEAD
 alpha_p_id : turboprop  # turboprop or hydrogen or piston
-=======
->>>>>>> 28218e2 (inital commit)
 count : 1          # number of engines aboard
 #       [Comb, Gen]
 eta_1 : [0.25, 0.96]

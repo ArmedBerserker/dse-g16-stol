@@ -1,9 +1,4 @@
-<<<<<<< HEAD
-
-range: 500  # km
-=======
 range: 800
->>>>>>> d245eb4 (add all graphs and fractions)
 cruise_altitude: null
 cruise_speed: 150 # kts
-endurance: # s
+endurance: null # s

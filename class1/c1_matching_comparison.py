@@ -2,7 +2,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from classes.aircraft_2 import loader, Aircraft
+from classes.aircraft_2 import *
 from lookups.consts import *
 from class1.prelim_drag import *
 import pandas as pd
@@ -774,10 +774,18 @@ def plot_sensitivity_study(
     plt.show()
 
 if __name__ == '__main__':
-    file_path = "yamls/aircraft.yaml"
-    target_class = Aircraft
-    ac = loader.load(file_path, target_class)
+    # file_path = "yamls/aircraft.yaml"
+    # target_class = Aircraft
+    # ac = loader.load(file_path, target_class)
 
+    aircraft = Aircraft('thing',
+                        loader.load('concepts/reqs_nturb.yaml', Requirements),
+                        loader.load('yamls/mission.yaml', Mission),
+                        loader.load('yamls/weights.yaml', Weights),
+                        loader.load('concepts/wing_courier.yaml', Wing),
+                        loader.load('yamls/fuselage.yaml', Fuselage),
+                        loader.load('concepts/engine_piston_b.yaml', Engine))
+    
     # Sensitivity study matching plot output path:
     output_dir = Path("outputs")
     folder = output_dir / 'Matching_concepts'
@@ -793,8 +801,8 @@ if __name__ == '__main__':
     CL_values = np.arange(1.8, 3.3, 0.1)
 
     df_mesh = sensitivity_mesh(
-        ac,
-        type_to_use=ac.requirements.general['standard_type'],
+        aircraft,
+        type_to_use='Twin Engine Propeller Driven',
         W_S_plot=np.arange(1,1250),
         W_P_or_T_W_plot=np.arange(0.00000001,0.15,0.0001),
         output_filepath_base="outputs/test",

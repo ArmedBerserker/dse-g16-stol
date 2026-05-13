@@ -1,8 +1,5 @@
 engine_type : bat     # prop, bat or hyb
-<<<<<<< HEAD
 alpha_p_id : turboprop  # turboprop or hydrogen or piston
-=======
->>>>>>> 28218e2 (inital commit)
 count : null          # number of engines aboard
 #       null
 eta_1 : null

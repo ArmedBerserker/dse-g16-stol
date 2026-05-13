@@ -1,9 +1,5 @@
-<<<<<<< HEAD
 engine_type : prop
 alpha_p_id : turboprop  # turboprop or hydrogen or piston
-=======
-engine_type : prop 
->>>>>>> 28218e2 (inital commit)
 count : 1          # number of engines aboard
 #       [combustion]
 eta_1 : [0.25]

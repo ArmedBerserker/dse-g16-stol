@@ -109,6 +109,7 @@ def main(masses = True, powers = True, sensitivity = True, plots = False):
         fuse_path,
         mission_path,
         weights_path,
+        False,
         False)[0]
 
 
@@ -156,6 +157,21 @@ def main(masses = True, powers = True, sensitivity = True, plots = False):
             alpha=0.4,
         )
 
+        ax.axhline(
+            y=0.65,
+            color="gray",
+            linestyle=":",
+            linewidth=1.5,
+            alpha=0.8,
+        )
+
+        ax.axhline(
+            y=1.0,
+            color="red",
+            linestyle=":",
+            linewidth=1.5,
+            alpha=0.8,
+        )
         ax.legend(
             title="Component",
             frameon=True,
@@ -177,7 +193,7 @@ def main(masses = True, powers = True, sensitivity = True, plots = False):
             )
 
         plt.tight_layout()
-        plt.savefig('outputs/class_1configs.svg')
+        plt.savefig('outputs/class_1configs1.jpg')
 
         eng = ac.loader.load(eng_paths[2][0], ac.Engine)
         fuse = ac.loader.load(fuse_path, ac.Fuselage)
@@ -258,7 +274,8 @@ def main(masses = True, powers = True, sensitivity = True, plots = False):
                                                      fuse_path, 
                                                      mission_path, 
                                                      weights_path,
-                                                     True)
+                                                     True,
+                                                     False)
 
         wp_difference = cr_results["W/P"] - to_results["W/P"]
         print(wp_difference)
@@ -333,4 +350,4 @@ def main(masses = True, powers = True, sensitivity = True, plots = False):
         print(thing)
         
 if __name__ == '__main__':
-    main(False, False, True, False)
+    main(True, False, False)
