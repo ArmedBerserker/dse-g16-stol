@@ -153,7 +153,7 @@ class Fuselage:
     span : float
     height : float
     wetted_area : float
-
+    gear : dict
     def __str__(self):
         text = "The fuselage is:\n"
         for field_info in fields(self):
