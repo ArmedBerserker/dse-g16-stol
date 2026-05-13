@@ -15,16 +15,16 @@ back_storage_width:
 back_storage_heigt: 
 num_seats: 2
 floor_thickness: 0.1 #meters
-under_compartment_storage_height: 0.4 #metres
+under_compartment_storage_height: 0.0 #metres
 
 
 cockpit_length: 60
 divider: 2
 
-tail_cone_fuselage_ratio: 0.47
+tail_cone_fuselage_ratio: 0.6
 tail_upsweep_taildragger: 6.3
 tail_upsweep_tricycle: 13.3 
 approach_angle: 6
-nose_cone_length: 0.75 #metres
+nose_cone_length: 1 #metres
 window_angle: 45
 emergency_exit_width: 1 #metres

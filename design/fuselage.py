@@ -10,12 +10,15 @@ def fuselage_cross_section(ac: Aircraft):
 
     return fuselage_width,fuselage_height, fuselage_diameter
 
+
 def fuselage_length_components(ac: Aircraft, fuselage_diameter):
-    fuselage_tot_length = 0.86 * ac.weights.m_takeoff**0.42
-    fuselage_cone_length = ac.fuselage.tail_cone_fuselage_ratio*fuselage_tot_length
+    fuselage_tot_length = 0.86 * (ac.weights.m_takeoff / LBS_TO_KG) ** 0.42
+    fuselage_tot_length *= FT_TO_M
+    fuselage_cone_length = ac.fuselage.tail_cone_fuselage_ratio * fuselage_tot_length
     tail_cone_fineness = fuselage_cone_length/fuselage_diameter
-    V_50 = 1.3*ac.requirements.general['stall_speed']
+    V_50 = 1.3 * ac.requirements.general['stall_speed']
     over_nose_angle = ac.fuselage.approach_angle + 0.07 * V_50
+    return fuselage_tot_length, tail_cone_fineness, over_nose_angle
 
 
 if __name__ == '__main__':
@@ -25,6 +28,9 @@ if __name__ == '__main__':
 
     w, h, d = fuselage_cross_section(aircraft)
 
+    l, fr, na = fuselage_length_components(aircraft, d)
+
     print(w, h, d)
+    print(l, fr, na)
 
 
