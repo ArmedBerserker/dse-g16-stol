@@ -87,7 +87,7 @@ The benefit of this method is that you can access other parameters of the aircra
 
 ### Method 2: Load the wing only 
 ```python
-from classes.aircraft_@ import loader, Wing
+from classes.aircraft_2 import loader, Wing
 
 wing = loader.load('wing.yaml', Wing)
 
