@@ -73,7 +73,8 @@ list1 : list
 field4 : dict
 ```
 
-Suppose you want to print the lift/drag ratio of an aircraft/wing. How can you do this?
+
+## Example: printing the L/D of a wing
 
 ### Method 1: Load an aircraft and then access its wing
 ```python
