@@ -1,7 +1,7 @@
-length: null
-span: null
-height: null
-wetted_area: null
+length: 0
+span: 0
+height: 0
+wetted_area: 0
 
 seat_width: 18
 aisle_width: 17

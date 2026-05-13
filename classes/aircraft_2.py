@@ -35,6 +35,7 @@ class loader:
     
     def _read_file(self) -> dict:
         '''reads a yaml file and returns a dictionary'''
+        print(self.filepath)
         with open(self.filepath, 'r') as f:
             d = yaml.safe_load(f)
 
@@ -149,10 +150,10 @@ class Wing:
 
 @dataclass
 class Fuselage:
-    length: null
-    span: null
-    height: null
-    wetted_area: null
+    length: float
+    span: float
+    height: float
+    wetted_area: float
 
     seat_width: float
     aisle_width: float
@@ -172,7 +173,12 @@ class Fuselage:
     divider: float
 
     tail_cone_fuselage_ratio: float
+    tail_upsweep_taildragger: float
+    tail_upsweep_tricycle: float
     approach_angle: float
+    nose_cone_length: float
+    window_angle: float
+    emergency_exit_width: float
 
 
     def __str__(self):

@@ -1,10 +1,13 @@
 from classes.aircraft_2 import Aircraft, loader
-
+from lookups.consts import *
 
 def fuselage_cross_section(ac: Aircraft):
-    fuselage_width= ac.fuselage.seat_width*ac.fuselage.num_seats + ac.fuselage.aisle_width + ac.fuselage.clearance + 2*ac.fuselage.wall_thickness
-    fuselage_height = ac.fuselage.ailse_height + 2*ac.fuselage.wall_thickness + ac.fuselage.under_compartment_storage_height + ac.fuselage.floor_thickness
-    fuselage_diameter = (fuselage_width + fuselage_height)/2
+    fuselage_width= ac.fuselage.seat_width * ac.fuselage.num_seats + ac.fuselage.aisle_width + ac.fuselage.clearance + 2 * ac.fuselage.wall_thickness
+    fuselage_height = ac.fuselage.ailse_height + 2 * ac.fuselage.wall_thickness + ac.fuselage.under_compartment_storage_height * M_TO_INCH + ac.fuselage.floor_thickness * M_TO_INCH
+    fuselage_width *= INCH_TO_M
+    fuselage_height *= INCH_TO_M
+    fuselage_diameter = (fuselage_width + fuselage_height) / 2
+
     return fuselage_width,fuselage_height, fuselage_diameter
 
 def fuselage_length_components(ac: Aircraft, fuselage_diameter):
@@ -15,14 +18,13 @@ def fuselage_length_components(ac: Aircraft, fuselage_diameter):
     over_nose_angle = ac.fuselage.approach_angle + 0.07 * V_50
 
 
-
-
-
-
-
 if __name__ == '__main__':
-    file_path = 'yamls/aircraft.yaml'
+    file_path = '../yamls/aircraft.yaml'
     target_class = Aircraft
-    fuselage = loader.load(file_path, target_class)
+    aircraft = loader.load(file_path, target_class)
+
+    w, h, d = fuselage_cross_section(aircraft)
+
+    print(w, h, d)
 
 

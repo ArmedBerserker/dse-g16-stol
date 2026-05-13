@@ -13,3 +13,4 @@ MIL_TO_KM        = 1.60934
 NMIL_TO_KM       = 1.852
 g                = 9.80665
 INCH_TO_M        = 0.0254
+M_TO_INCH        = 39.3701
