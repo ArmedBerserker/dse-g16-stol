@@ -9,6 +9,20 @@ from visualization.wing_plot import plot_wing_planform
 from visualization.plot_horizontal_tail import (
     plot_horizontal_tail
 )
+from empennage.horizontal_stabilizer import (
+    X_aftcg,
+    l_fuselage,
+    MAC,
+    S_w,
+    c,
+    AR,
+    X_h,
+    V_h,
+    AR_h,
+    Sweep_h_LE,
+    Taper_h,
+    t_c_h
+)
 
 
 # ==========================================================
@@ -41,7 +55,22 @@ def main():
     # PLOT HORIZONTAL TAIL
     # ------------------------------------------------------
 
-    plot_horizontal_tail()
+    plot_horizontal_tail(
+
+    X_aftcg,
+    l_fuselage,
+    MAC,
+    S_w,
+    c,
+    AR,
+    X_h,
+    V_h,
+    AR_h,
+    Sweep_h_LE,
+    Taper_h,
+    t_c_h
+
+)
 
 
 # ==========================================================
