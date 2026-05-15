@@ -114,6 +114,9 @@ class Weights:
     m_energy : float | dict[float]
     m_fuel: float | None
     m_battery: float | None
+    cg_fwd: float | None
+    cg_aft: float | None
+    cg_height: float | None
 
     def __str__(self):
         text = "The weights are:\n"
@@ -154,6 +157,8 @@ class Fuselage:
     height : float
     wetted_area : float
     gear : dict
+    x_tcone : float | None
+
     def __str__(self):
         text = "The fuselage is:\n"
         for field_info in fields(self):
@@ -174,6 +179,8 @@ class Engine:
     e_1 : float | None
     e_2 : float | None
     Phi : float | None
+    y_prop : float | None
+    z_prop : float | None
 
     def __post_init__(self):
         self.eta_1 = m.prod(self.eta_1) if self.eta_1 is not None else None
@@ -190,6 +197,38 @@ class Engine:
         return text
 
 @dataclass
+class Landing_gear:
+    gear_type : str | None
+    n_struts_mlg : float | None
+    n_struts_mlg : float | None
+    n_wheels_mlg : float | None
+    n_wheels_nlg : float | None
+    pt : float | None
+    n_nlg_min_as : float | None
+    n_nlg_max_as : float | None
+    tipover : float | None
+    scrape : float | None
+    prop_clear : float | None
+    fus_pitch : float | None
+    turnover : float | None
+    bank : float | None
+    a : float | None
+    s : float | None
+    fus_ground_clear : float | None
+    selected_mlg_tire : dict | None
+    selected_nlg_tire : dict | None
+
+    def __str__(self):
+        text = "The landing gear is:\n"
+        for field_info in fields(self):
+            field_name = field_info.name
+            field_value = getattr(self, field_name)
+
+            text += f'{field_name}: {field_value} \n'
+        return text
+
+
+@dataclass
 class Aircraft:
     name : str
     requirements : Requirements
@@ -198,6 +237,7 @@ class Aircraft:
     wing : Wing
     fuselage : Fuselage
     engine : Engine
+    landing_gear: Landing_gear
 
     @classmethod
     def from_dict(cls, data : dict):
@@ -207,7 +247,8 @@ class Aircraft:
                    weights = Weights(**data['weights']),
                    wing = Wing(**data['wing']),
                    fuselage = Fuselage(**data['fuselage']),
-                   engine = Engine(**data['engine']))
+                   engine = Engine(**data['engine']),
+                   landing_gear = Landing_gear(**data['landing_gear']))
     
     def __str__(self):
         text = "The aircraft is:\n"
@@ -217,3 +258,4 @@ class Aircraft:
             stripped_f_val = str(field_value).split('\n', 1)[1]
             text += f'{field_name}: {stripped_f_val} \n'
         return text
+

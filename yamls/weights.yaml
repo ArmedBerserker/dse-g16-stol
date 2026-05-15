@@ -5,3 +5,6 @@ m_payload: 704  # kg CHANGE VALUE (assumed 6 pax * 84 kg + 200 kg)
 m_energy: null
 m_fuel: null
 m_battery: null
+cg_fwd: null  # Most fwd c.g. location. Measured from the nose of the aircraft
+cg_aft: null  # Most aft c.g. location. Measured from the nose of the aircraft
+cg_height: null # Vertical c.g. position. Measured from the bottom of the fuselage

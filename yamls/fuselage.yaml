@@ -2,19 +2,6 @@ length: null
 span: null
 height: null
 wetted_area: null
-gear :
-  n_struts_mlg: 2 # Number of main landing gear struts
-  n_wheels_mlg: 2 # Number of main landing gear wheels
-  n_wheels_nlg: 1 # Number of nose(tail) landing gear wheels
-  pt: 0.31        # Tire pressure [MPa]. Value for landing on hard grass/sand from Vos
-  n_nlg_min: 0.08 # Minimum nose(tail) landing gear load fraction. Value from Vos
-  n_nlg_max: 0.15 # Maximum nose(tail) landing gear load fraction. Value from Vos
-  tipover: 15     # Tip-over angle requirement [degrees]. Value from Vos
-  scrape: 15      # Scrape angle requirement  [degrees]. Not applicable for taildragger. Value from Roskam
-  prop_clear_nose: 0.23 # propeller clearance requirement with nose wheel [m]. From CS25.925
-  prop_clear_tail: 0.18 # propeller clearance requirement with tail wheel [m]. From CS25.925
-  fus_pitch: 0          # Fuselage inclination relative to ground plane [degrees]
-  turnover: 50          # Turnover angle requirement [degrees]. Value from Roskam for rough field
-  bank: 8               # Bank angle clearance requirement [degrees]. Valye from Vos
-  a: 1/3                # Fraction of total stroke between 1-g compression and full compression. Value from Vos
-  s: null               # Total stroke of the suspension system [m]
+
+x_tcone: null # Longitudinal location of the start of tailcone. Measured from the nose
+
