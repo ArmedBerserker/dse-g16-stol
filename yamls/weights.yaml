@@ -2,6 +2,8 @@
 m_takeoff: 2000
 m_empty: null
 m_payload: 704  # kg CHANGE VALUE (assumed 6 pax * 84 kg + 200 kg)
+m_pax: 504
+m_cargo: 200
 m_energy: null
 m_fuel: null
 m_battery: null

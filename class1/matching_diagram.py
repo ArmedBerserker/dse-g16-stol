@@ -421,8 +421,13 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         W_P_plot: np.ndarray = np.arange(1,10000),
         output_filepath: str = 'outputs/Matching_Diagram.png', 
         show_plot: bool = False,
-        requirement_to_meet: str = 'all'  # options: 'all', 'cruise', 'to'
+        requirement_to_meet: str = 'all',  # options: 'all', 'cruise', 'to'
+        other_design_points_x: np.ndarray = None,
+        other_design_points_y: np.ndarray = None,
+        other_design_points_labels: list[str] = None
         ) -> dict:
+    
+    type_to_use = ac.requirements.general['type_to_use']
 
     # Compute plots
     stall_W_P, stall_W_S = stall_speed_matching(ac, W_P_plot)
@@ -458,7 +463,7 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         datasets.append({"x": BL_W_S, "y":BL_turb_W_P, "label": "balked landing (turbine)"})
         # print(f'Balked landing data: \n W/S: {BL_W_S} \t W/P: {BL_turb_W_P}')
 
-    if ac.requirements.climb['turbine_condition'] and ac.requirements.climb['n_eng']:
+    if ac.requirements.climb['turbine_condition'] and ac.requirements.climb['n_eng']>1:
         datasets.append({"x": OEI_W_S, "y": OEI1_W_P, "label": "oei roc/climb gradient I (turbine)"}),
         datasets.append({"x": OEI_W_S, "y": OEI2_W_P, "label": "oei roc/climb gradient II (turbine)"}),
 
@@ -498,6 +503,22 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         arrowprops=dict(arrowstyle="->", color="blue"),
         color="blue",
     )
+    W_P_ref = [0.054147611,0.075714426,0.060130048,0.059649008,0.067577078,0.057702788,0.068512198,0.079514477,0.071580563,0.070699017,0.063456392]
+    W_S_ref = [1969.879518,972.8764492,1426.223077,1341.383441,1073.87574,1467.486818,1099.141935,921.0838509,982.8055215,1369.249615,722.3727273]
+
+    ax.scatter(W_S_ref, W_P_ref, label='Reference aircraft datapoints', color='black')
+    if other_design_points_x is not None:
+        ax.scatter(other_design_points_x, other_design_points_y, color='blue', marker='x')
+        labels = other_design_points_labels
+        for i, label in enumerate(labels):
+            ax.annotate(
+                label,
+                xy=(other_design_points_x[i], other_design_points_y[i]),
+                xytext=(15, 15),
+                textcoords='offset points',
+                arrowprops=dict(arrowstyle='->', color='blue'),
+                fontsize=9
+            )
 
     # Labels and shit
     ax.set_xlabel(f"Wing loading $\\frac{{W}}{{S}}_{{TO}}$ [N/m$^2$]")

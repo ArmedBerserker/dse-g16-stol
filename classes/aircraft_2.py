@@ -111,6 +111,8 @@ class Weights:
     m_takeoff : float | None
     m_empty : float | None
     m_payload : float | None
+    m_cargo : float | None
+    m_pax : float | None
     m_energy : float | dict[float]
     m_fuel: float | None
     m_battery: float | None
@@ -153,6 +155,7 @@ class Fuselage:
     span : float
     height : float
     wetted_area : float
+    width : float
 
     def __str__(self):
         text = "The fuselage is:\n"

@@ -112,7 +112,11 @@ def breguet_prop(ac : Aircraft, frac_source : str) -> float | tuple[float]:
 
 
     data = pd.read_csv(frac_source)
-    rel_data = data[data['Airplane Type'] == ac_type].iloc[0]
+    # rel_data = data[data['Airplane Type'] == ac_type].iloc[0]
+    filtered = data[data['Airplane Type'] == ac_type]
+    if filtered.empty:
+        raise ValueError(f"No data found for {ac_type}")
+    rel_data = filtered.iloc[0]
 
     eta_fuel = ac.engine.eta_1
     eta_prop = ac.engine.eta_2

@@ -2,7 +2,7 @@
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from classes.aircraft_2 import loader, Aircraft
+from classes.aircraft_2 import loader, Aircraft, Requirements, Mission, Weights, Wing, Fuselage, Engine
 from lookups.consts import *
 from class1.prelim_drag import *
 import pandas as pd
@@ -277,8 +277,13 @@ def plot_sensitivity_mesh(df, output_filepath):
             fontsize=8
         )
 
+    # W_P_ref = [0.054147611,0.075714426,0.060130048,0.059649008,0.067577078,0.057702788,0.068512198,0.079514477,0.071580563,0.070699017,0.063456392]
+    # W_S_ref = [1969.879518,972.8764492,1426.223077,1341.383441,1073.87574,1467.486818,1099.141935,921.0838509,982.8055215,1369.249615,722.3727273]
+
+    # ax.scatter(W_S_ref, W_P_ref, label='Reference aircraft datapoints', color='black')
     ax.set_xlabel('W/S')
     ax.set_ylabel('W/P')
+    # ax.legend(True)
 
     ax.set_title('Matching Diagram Sensitivity Mesh')
 
@@ -340,6 +345,30 @@ def Weight_est_and_match_concept(ac : Aircraft,  # Change units
         initial_W_P=W_P,
         initial_W_S=W_S,
     )
+
+    # Climb grad stuff
+    RC, CG = max_RC_and_Climb_grad(W_S,
+                                    W_P,
+                                    k=k(ac)[0],
+                                    rho=Atmosphere(ac.requirements.take_off['to_altitude'], ac.requirements.take_off['to_temp_shift']).density,
+                                    eta_p=ac.engine.eta_prop,
+                                    CD0=cd0(ac, type_to_use))
+
+    # WEIGHT EST
+    m_to: float = ac.weights.m_takeoff
+    m_pl: float = ac.weights.m_payload
+    # m_f_frac: float = sum(c1_m.energy_frac_needed(ac))  # Tuple with fuel_frac, battery_frac
+    result = c1_m.energy_frac_needed(ac)
+    if isinstance(result, tuple) and len(result) == 2:
+        fuel_frac, bat_frac = result
+        energy_frac = fuel_frac + bat_frac
+    else:
+        energy_frac = result
+        fuel_frac = None
+        bat_frac = result
+    m_oe_frac = c1_m.operating_empty_frac(ac)
+    # pl_mtow = m_pl/m_to
+    mass_row = {'Fuel frac': fuel_frac, 'Battery frac': bat_frac, 'Energy frac': energy_frac, 'OEW/MTOW': m_oe_frac, 'PL/MTOW': m_pl/m_to, 'MTOW': m_to, 'Energy source mass': energy_frac*m_to, 'OEW': m_oe_frac*m_to, 'PL mass': m_pl, 'Sum mass fracs': m_oe_frac+energy_frac+m_pl/m_to, 'Max RoC [m/s]': RC, 'Max climb angle [deg at TO]': CG, 'S [m2]': m_to/W_S, 'P [kW]': m_to/W_P/1000}
 
     
 
@@ -462,10 +491,10 @@ def Weight_est_and_match_concept(ac : Aircraft,  # Change units
     #     "limiting_wp_constraint": limiting_wp_constraint_history,
     # }
 
-    return results_CL, results_A
+    return results_CL, results_A, mass_row, W_S, W_P
 
 
-def run_sensitivity_study_save_results(aircraft_files: list[str] = ['yamls/aircraft.yaml','yamls/aircraft.yaml','yamls/aircraft.yaml'],
+def run_sensitivity_study_save_results(aircraft_obj: list[object],
                                        concept_IDs: list[str] = ['CP_1', 'CP_2', 'CP_3'],
                                        W_S_plot: np.ndarray = np.arange(1,1250),
                                        W_P_or_T_W_plot: np.ndarray = np.arange(0.00000001,0.15,0.0001),
@@ -489,12 +518,12 @@ def run_sensitivity_study_save_results(aircraft_files: list[str] = ['yamls/aircr
     file_paths_CL = []
 
     ''' Start looping over concepts'''
-    for i, file in enumerate(aircraft_files):
+    for i, ac in enumerate(aircraft_obj):
         Concept_ID: str = concept_IDs[i]
-        ac = loader.load(file, Aircraft)
+        # ac = loader.load(file, Aircraft)
         type_to_use = ac.requirements.general['standard_type']
         img_filepath_base = f"outputs/Matching_concepts/Sensitivity_study_graphs/{Concept_ID}_MD"
-        output_CL, output_A = Weight_est_and_match_concept(ac, type_to_use, W_S_plot, W_P_or_T_W_plot, img_filepath_base, CL_max_step, A_step, n_steps)
+        output_CL, output_A, mass_row, W_S, W_P = Weight_est_and_match_concept(ac, type_to_use, W_S_plot, W_P_or_T_W_plot, img_filepath_base, CL_max_step, A_step, n_steps)
 
         # Add og results to main df and save its own df
         rows_main.append({'Concept_ID': i+1, 'W/S': output_CL['W/S'][0], 'W/P': output_CL['W/P'][0]})
@@ -532,6 +561,72 @@ def run_sensitivity_study_save_results(aircraft_files: list[str] = ['yamls/aircr
 
     return file_paths_A, file_paths_CL
 
+def run_sensitivity_study_save_results1(aircraft_files: list[str] = ['yamls/aircraft.yaml','yamls/aircraft.yaml','yamls/aircraft.yaml'],
+                                       concept_IDs: list[str] = ['CP_1', 'CP_2', 'CP_3'],
+                                       W_S_plot: np.ndarray = np.arange(1,1250),
+                                       W_P_or_T_W_plot: np.ndarray = np.arange(0.00000001,0.15,0.0001),
+                                       CL_max_step: float = 0.1,
+                                       A_step: float = 0.5,
+                                       n_steps: int = 6,
+                                       ) -> None:
+
+    # Filepaths:
+    output_dir = Path("outputs")
+    folder = output_dir / 'Matching_concepts'
+    folder.mkdir(parents=True, exist_ok=True)
+
+    output_csv_path = folder / 'All_concepts_og_params_results.csv'
+    output_csv_path1 = folder / 'All_concepts_mass_results.csv'
+
+    # Original points dataframe for concepts
+    rows_main = []
+    rows_mass = []
+    file_paths_A = []
+    file_paths_CL = []
+
+    ''' Start looping over concepts'''
+    for i, file in enumerate(aircraft_files):
+        Concept_ID: str = concept_IDs[i]
+        ac = loader.load(file, Aircraft)
+        type_to_use = ac.requirements.general['standard_type']
+        img_filepath_base = f"outputs/Matching_concepts/Sensitivity_study_graphs/{Concept_ID}_MD"
+        output_CL, output_A, mass_row, W_S, W_P = Weight_est_and_match_concept(ac, type_to_use, W_S_plot, W_P_or_T_W_plot, img_filepath_base, CL_max_step, A_step, n_steps)
+
+        # Add og results to main df and save its own df
+        rows_main.append({'Concept_ID': i+1, 'W/S': output_CL['W/S'][0], 'W/P': output_CL['W/P'][0]})
+        df1 = pd.DataFrame(output_CL)
+        df2 = pd.DataFrame(output_A)
+        filepath1 = folder / f'{Concept_ID}_CL_results.csv'
+        filepath2 = folder / f'{Concept_ID}_A_results.csv'
+        df1.to_csv(filepath1, index=False)
+        df2.to_csv(filepath2, index=False)
+        file_paths_CL.append(filepath1)
+        file_paths_A.append(filepath2)
+
+        # Climb grad stuff
+        RC, CG = max_RC_and_Climb_grad(output_CL['W/S'][0],
+                                       output_CL['W/P'][0],
+                                       k=k(ac)[0],
+                                       rho=Atmosphere(ac.requirements.take_off['to_altitude'], ac.requirements.take_off['to_temp_shift']).density,
+                                       eta_p=ac.engine.eta_prop,
+                                       CD0=cd0(ac, type_to_use))
+
+        # WEIGHT EST
+        m_to: float = ac.weights.m_takeoff
+        m_pl: float = ac.weights.m_payload
+        m_f_frac: float = sum(c1_m.energy_frac_needed(ac))  # Tuple with fuel_frac, battery_frac
+        m_oe_frac = c1_m.operating_empty_frac(ac)
+        # pl_mtow = m_pl/m_to
+        rows_mass.append({'Concept_ID': i+1, 'Fuel/energy frac': m_f_frac, 'OEW/MTOW': m_oe_frac, 'PL/MTOW': m_pl/m_to, 'MTOW': m_to, 'Fuel/energy source mass': m_f_frac*m_to, 'OEW': m_oe_frac*m_to, 'PL mass': m_pl, 'Sum mass fracs': m_oe_frac+m_f_frac+m_pl/m_to, 'Max RoC [m/s]': RC, 'Max climb angle [deg at TO]': CG})
+
+
+    # Save main df to csv
+    df = pd.DataFrame(rows_main)
+    df.to_csv(output_csv_path, index=False)
+    df = pd.DataFrame(rows_mass)
+    df.to_csv(output_csv_path1, index=False)
+
+    return file_paths_A, file_paths_CL
 
 def plot_sensitivity_study1(
         A_csv_paths: list[str],
@@ -771,39 +866,144 @@ def plot_sensitivity_study(
     plt.savefig(output_filepath, dpi=150)
     plt.show()
 
+def run_concepts_c1(ac_lst: list[object],
+                     output_filepath: str)->None:
+    rows_lst = []
+    ids_lst = []
+    x_plot = []
+    y_plot = []
+    for i, ac in enumerate(ac_lst):
+        Concept_ID = f'Final_CP_{i}'
+        # type_to_use = ac.requirements.general['standard_type']
+        type_to_use = ac.requirements.general['type_to_use']
+        img_filepath_base = f"outputs/Matching_concepts/Sensitivity_study_graphs/{Concept_ID}_MD"
+        output_CL, output_A, mass_row, W_S, W_P = Weight_est_and_match_concept(ac, type_to_use, W_S_plot=np.arange(1,1500), W_P_or_T_W_plot=np.arange(0.00000001,0.15,0.0001), output_filepath_base=img_filepath_base,CL_max_step=0.1, A_step=1, n_steps=1)
+        rows_lst.append(mass_row)
+        ids_lst.append(ac.name)
+        x_plot.append(W_S)
+        y_plot.append(W_P)
+        print(f'ac name: {ac.name}')
+
+    # Build the DataFrame
+    df = pd.DataFrame(rows_lst)
+    df.insert(0, 'ID', ids_lst)  # insert ID as first column
+
+    df.to_csv(output_filepath, index=False)
+    print(f' \n Done! \n Saved results to {output_filepath}')
+
+    sample_ac = ac_lst[0]
+    plot_matching_and_select_design_point(sample_ac, type_to_use=sample_ac.requirements.general['type_to_use'],  W_S_plot=np.arange(750,850), W_P_plot=np.arange(0.08,0.1,0.0001), output_filepath=f'concepts/Matching_diagram_summary.png', show_plot=True, requirement_to_meet='all', other_design_points_x=x_plot, other_design_points_y=y_plot, other_design_points_labels=ids_lst)
+
+
 if __name__ == '__main__':
     file_path = "yamls/aircraft.yaml"
     target_class = Aircraft
     ac = loader.load(file_path, target_class)
 
-    # Sensitivity study matching plot output path:
-    output_dir = Path("outputs")
-    folder = output_dir / 'Matching_concepts'
-    folder.mkdir(parents=True, exist_ok=True)
-    output_path1 = folder / "Sensitivity_study_graph_A.png"
-    output_path2 = folder / "Sensitivity_study_graph_CL.png"
-    output_path3 = folder / "Mesh_sensitivity_study_graph.png"
+    ac1 = Aircraft('Boosted_piston_taildragger',
+                  loader.load('concepts/reqs_nturb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_courier.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_piston_b.yaml', Engine))
+    ac2 = Aircraft('Piston_hybrid_taildragger',
+                  loader.load('concepts/reqs_nturb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_courier.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_piston_e.yaml', Engine))
+    ac3 = Aircraft('Boosted_turboprop_taildragger',
+                  loader.load('concepts/reqs_turb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_courier.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_tprop_b.yaml', Engine))
+    ac4 = Aircraft('Turbine_hybrid_taildragger',
+                  loader.load('concepts/reqs_turb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_courier.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_turb_e.yaml', Engine))
+    ac5 = Aircraft('H2_taildragger',
+                  loader.load('concepts/reqs_nturb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_courier.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_h2.yaml', Engine))
+    ac6 = Aircraft('Boosted_piston_tricycle',
+                  loader.load('concepts/reqs_nturb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_electra.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_piston_b.yaml', Engine))
+    ac7 = Aircraft('Piston_hybrid_tricycle',
+                  loader.load('concepts/reqs_nturb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_electra.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_piston_e.yaml', Engine))
+    ac8 = Aircraft('Boosted_turboprop_tricycle',
+                  loader.load('concepts/reqs_turb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_electra.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_tprop_b.yaml', Engine))
+    ac9 = Aircraft('Turbine_hybrid_tricycle',
+                  loader.load('concepts/reqs_turb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_electra.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_turb_e.yaml', Engine))
+    ac10 = Aircraft('H2_tricycle',
+                  loader.load('concepts/reqs_nturb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_electra.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_h2.yaml', Engine))
+    
 
-    folder1 = folder / 'Sensitivity_study_graphs'
-    folder1.mkdir(parents=True, exist_ok=True)
+    # ac_lst = [ac1, ac2, ac3, ac4, ac5, ac6, ac7, ac8, ac9, ac10]
+    ac_lst = [ac1, ac2, ac3, ac4, ac6, ac7, ac8, ac9]
 
-    A_values = np.arange(8, 14, 1)
-    CL_values = np.arange(1.8, 3.3, 0.1)
+    run_concepts_c1(ac_lst, output_filepath=f'concepts/test_c1_results.csv')
+    # # Sensitivity study matching plot output path:
+    # output_dir = Path("outputs")
+    # folder = output_dir / 'Matching_concepts'
+    # folder.mkdir(parents=True, exist_ok=True)
+    # output_path1 = folder / "Sensitivity_study_graph_A.png"
+    # output_path2 = folder / "Sensitivity_study_graph_CL.png"
+    # output_path3 = folder / "Mesh_sensitivity_study_graph.png"
 
-    df_mesh = sensitivity_mesh(
-        ac,
-        type_to_use=ac.requirements.general['standard_type'],
-        W_S_plot=np.arange(1,1250),
-        W_P_or_T_W_plot=np.arange(0.00000001,0.15,0.0001),
-        output_filepath_base="outputs/test",
-        A_values=A_values,
-        CL_values=CL_values
-    )
+    # folder1 = folder / 'Sensitivity_study_graphs'
+    # folder1.mkdir(parents=True, exist_ok=True)
 
-    df_mesh.to_csv("outputs/sensitivity_mesh.csv", index=False)
-    plot_sensitivity_mesh(df_mesh, output_path3)
+    # A_values = np.arange(6, 9, 1)
+    # CL_values = np.arange(1.8, 3.3, 0.1)
 
-    # file_paths_A, file_paths_CL = run_sensitivity_study_save_results()
+    # df_mesh = sensitivity_mesh(
+    #     ac,
+    #     type_to_use=ac.requirements.general['standard_type'],
+    #     W_S_plot=np.arange(1,1500),
+    #     W_P_or_T_W_plot=np.arange(0.00000001,0.15,0.0001),
+    #     output_filepath_base="outputs/test",
+    #     A_values=A_values,
+    #     CL_values=CL_values
+    # )
+
+    # df_mesh.to_csv("outputs/sensitivity_mesh.csv", index=False)
+    # plot_sensitivity_mesh(df_mesh, output_path3)
+
+    # file_paths_A, file_paths_CL = run_sensitivity_study_save_results(aircraft_obj=[ac], concept_IDs=['CP_test'], n_steps=2)
     # plot_sensitivity_study(file_paths_A, file_paths_CL, output_path1, param='A')
     # plot_sensitivity_study(file_paths_A, file_paths_CL, output_path2, param='CL_max_LD')
-    # plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250))
+    # plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=True)
