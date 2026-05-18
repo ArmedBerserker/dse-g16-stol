@@ -110,8 +110,7 @@ def scissor_plot_intersection_points(x1, x2, y1, y2):
         print("No intersections found")
         return None
 
-def closest_value(x):
-    values = [2, 4, 6, 8, 10]
+def closest_value(x, values = [2, 4, 6, 8, 10]):
     return int(min(values, key=lambda v: abs(v - x)))
 
 def LE_sweep_deg(sweep_c_4: float, # degrees
@@ -177,10 +176,10 @@ def W_oe_and_cg_from_nose(ac: Aircraft, x_le_w, x_le_ht, x_le_vt, update_ac: boo
     w_structure = sum(wwing, w_ht, w_vt, wfus, wnac, w_mlg, w_nlg)
     w_fxeq, x_cg_fxeq = W_feq_and_cg_from_nose(ac)
     W_oe = w_structure + w_power + w_fxeq
+    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, x_le_w, x_le_vt, x_le_ht, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr_from_nose(ac))
     if update_ac:
         ac.weights.m_empty = W_oe
-    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, x_le_w, x_le_vt, x_le_ht)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr_from_nose(ac))
-
+        ac.weights.x_cg_oew = x_cg_oe
     if pie_chart_output_path is not None:
         categories = ['Structural', 'Power', 'Fixed equipment']
         values = [w_structure, w_power, w_fxeq] / W_oe * 100
@@ -231,7 +230,7 @@ def W_oe_and_cg_from_nose(ac: Aircraft, x_le_w, x_le_ht, x_le_vt, update_ac: boo
         plt.savefig(struc_pie_chart_output_path)
         if struc_show_pie_chart:
             plt.show()
-    return W_oe, x_cg_oe
+    return W_oe, x_cg_oe, ac
 
 def W_to_new(ac: Aircraft, x_le_w, x_le_ht, x_le_vt,
              m_ff, # from class I
@@ -246,10 +245,12 @@ def W_to_new(ac: Aircraft, x_le_w, x_le_ht, x_le_vt,
     W_e = W_oe_and_cg_from_nose(ac, x_le_w, x_le_ht, x_le_vt)[0]
     m_ff = ... # Insert class I method called
     m_res = ... # Assume value NOTE: check if Shubhankar used the whole range + diversion for fuel mass est, else add here
-    m_tfo = ac.weights.m_takeoff
+    m_tfo = ... 
     W_to = (W_e + W_PL + W_crew) / (m_ff * (1 + m_res) - m_res - m_tfo)
+    W_F = W_to-W_e-m_tfo-W_PL
     if update_ac:
         ac.weights.m_takeoff = W_to
+        ac.weights.m_fuel = W_F
 
     if pie_chart_output_path is not None:
         categories = ['Empty weight', 'Payload', 'Trapped fuel and oil', 'Fuel']
@@ -276,10 +277,10 @@ def W_to_new(ac: Aircraft, x_le_w, x_le_ht, x_le_vt,
         plt.savefig(pie_chart_output_path)
         if show_pie_chart:
             plt.show()
-    return W_to
+    return W_to, W_F, ac
 
 def W_pwr(ac: Aircraft):
-    P_to = ... / HP_TO_W
+    P_to = ac.engine.power_to / HP_TO_W
     W_eng = ... / LBS_TO_KG  # Weight of one engine in lbs (from manufacturer)
     N_e = ac.engine.count
     alpha_p_id = ac.engine.alpha_p_id
@@ -322,13 +323,8 @@ def W_feq_and_cg_from_nose(ac: Aircraft):
     # W_hps_els = 0.0078 * W_to**1.2
     W_iae = 40 + 0.008 * W_to
     W_api = (0.265 * W_to**0.52 * N_pax**0.68 * W_iae**0.17 * M_D**0.08) * no_pressurization_const
-    W_ox = 0
-    W_apu = 0
     W_fur = 0.5 * (0.412 * N_pax**1.145 * W_to**0.489 + 15 * N_pax + V_pax_cargo)
-    W_bc = 0
-    W_ops = ...  # NOTE: add later
-    W_arm = 0
-    W_glw = 0
+    W_ops = 0
     W_fti = 0.5 * (155 / 9980 * W_to + 708 / 24912 * W_to)
     W_aux = 0.01 * W_e
     W_bal = 0
@@ -382,9 +378,9 @@ def W_wing(ac: Aircraft, update_ac: bool = False):
     A = ac.wing.aspect_ratio
     t_c_max = ...
     sweep_c_4_deg = ...
-    taper = ...
+    taper = ac.wing.taper_ratio
     V_h = ...  # NOTE: add later: maximum level speed at sealevel in kts
-    wing_type = ...
+    wing_type = ...  # 'cantilever' or not
     b = ac.wing.span / FT_TO_M
     c_r = ... / FT_TO_M
     t_r = t_c_max * c_r  # max thickness of wing root chord in ft
@@ -442,9 +438,10 @@ def W_emp(ac: Aircraft, update_ac: bool = False):
     return W_ht, W_vt
 
 def W_fus(ac: Aircraft, update_ac: bool = False):
-    l_f = ... / FT_TO_M  # Fuselage length in ft
-    w_f = ... / FT_TO_M  # Max fuselage width in ft
-    h_f = ... / FT_TO_M  # Max fuselage height in ft
+    fus = ac.fuselage
+    l_f = fus.length / FT_TO_M  # Fuselage length in ft
+    w_f = fus.width/ FT_TO_M  # Max fuselage width in ft
+    h_f = fus.height / FT_TO_M  # Max fuselage height in ft
     n_ult = ...
     alt_c = ac.requirements.cruise['cr_altitude'] * FT_TO_M  # m
     rho_c = Atmosphere(height=alt_c) # kg/m3
@@ -464,7 +461,7 @@ def W_fus(ac: Aircraft, update_ac: bool = False):
 def W_nac(ac: Aircraft, update_ac: bool = False):
     alpha_p_id = ac.engine.alpha_p_id  # turboprop or hydrogen or piston
     engine_over_wing: bool = ...
-    P_to = ... / HP_TO_W  # HP
+    P_to = ac.engine.power_to / HP_TO_W  # HP
 
     # Cessna NOTE: fill in methods
     if alpha_p_id == 'piston':
@@ -518,18 +515,19 @@ def W_gear(ac: Aircraft, update_ac: bool = False):
 def x_cg_structural_from_nose(ac: Aircraft,
                             x_le_w: float,
                             x_le_vt: float,
-                            x_le_ht: float):
+                            x_le_ht: float,
+                            update_ac=False):
     l_fus = ac.fuselage.length
-    w_sweep_c_4_deg = ...
+    w_sweep_c_4_deg = ac.wing.sweep
     ht_sweep_c_4_deg = ...
     vt_sweep_c_4_deg = ...
     w_c_r = ...
     ht_c_r = ...
     vt_c_r = ...
-    w_taper = ...
+    w_taper = ac.wing.taper_ratio
     ht_taper = ...
     vt_taper = ...
-    b_w = ...
+    b_w = ac.wing.span
     b_ht = ...
     b_vt = ...
     x_c_front_spar = ...
@@ -596,7 +594,9 @@ def x_cg_structural_from_nose(ac: Aircraft,
     Weights = np.array([W_wing(ac), W_ht, W_vt, W_fus(ac), W_mlg, W_nlg, W_nac(ac)])
     cgs = np.array([x_cg_w, x_cg_ht, x_cg_vt, x_cg_fus, x_cg_mlg, x_cg_nlg, x_cg_nac])
     x_cg_struc = (Weights @ cgs) / np.sum(Weights)
-    return x_cg_struc, x_cg_data
+    if update_ac:
+        ac.weights.x_cg_structural = x_cg_data
+    return x_cg_struc, x_cg_data, ac
 
 def x_cg_pwr_from_nose(ac: Aircraft):
     ...
@@ -618,7 +618,7 @@ def update_m_and_cg(m_current, cg_current, added_m, added_cg):
     new_m  =(m_current + added_cg)
     return new_m, new_cg
 
-def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath=None):
+def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath=None, update_ac_cgs = False):
     m_cargo = ac.weights.m_cargo
     x_le_ht = ...
     x_le_vt = ...
@@ -731,9 +731,12 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
             plt.show()
         print(f'Loading diagram saved to {output_filepath}')
     
-    fwd_cg = min_x
-    aft_cg = max_x
-    return fwd_cg, aft_cg
+    fwd_cg = min_x - 0.05 * range_x
+    aft_cg = max_x + 0.05 * range_x
+    if update_ac_cgs:
+        ac.weights.x_cg_fwd = fwd_cg
+        ac.weights.x_cg_aft = aft_cg
+    return fwd_cg, aft_cg, ac
 
 def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, output_filepath=None, show_plot: bool = False)->np.ndarray:
     n_eng = ac.engine.count
@@ -882,13 +885,13 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     return Sh_S_cont, Sh_S_n_stab, Sh_S_stab
 
 def overlay_wing_pos_and_scissor_plot(ac: Aircraft, 
-                                      x_le_w_arr: np.ndarray,
+                                      x_le_w_fus_length_arr: np.ndarray,
                                       output_filepath: str = None,
                                       show_plot: bool = False):
-    x_cg_lemac_mac_plot = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_arr, ac)
+    x_cg_lemac_mac_plot = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length_arr * ac.fuselage.length, ac)
 
-    fwd_cg, aft_cg = loading_diagram(x_le_w_arr, ac)
-    x_le_w_l_fus = x_le_w_arr / ac.fuselage.length
+    fwd_cg, aft_cg, ac = loading_diagram(x_le_w_fus_length_arr * ac.fuselage.length, ac)
+    x_le_w_l_fus = x_le_w_fus_length_arr
     Sh_S_cont, Sh_S_n_stab, Sh_S_stab = scissor_plot(ac, x_cg_lemac_mac_plot)
 
     # Plotting

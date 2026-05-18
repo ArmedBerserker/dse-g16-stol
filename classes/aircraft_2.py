@@ -177,6 +177,8 @@ class Engine:
     e_1 : float | None
     e_2 : float | None
     Phi : float | None
+    eng_vdist_from_wing : float | None
+    eng_above_wing : bool
 
     def __post_init__(self):
         self.eta_1 = m.prod(self.eta_1)
