@@ -91,8 +91,8 @@ def compute_propulsion(ac: Aircraft) -> Aircraft:
     return ac
 
 def compute_landing_gear_positions(ac: Aircraft) -> Aircraft:
-    ac = c1_landing_gear.size_tires(ac)
-    ac = c1_landing_gear.tire_location(ac)
+    ac = c1_landing_gear.size_tires(ac, update_ac=True)
+    ac = c1_landing_gear.tire_location(ac, update_ac=True)
     return ac
 
 

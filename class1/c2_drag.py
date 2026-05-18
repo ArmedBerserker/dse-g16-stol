@@ -242,10 +242,10 @@ def C_D0(ac: Aircraft,
         flaps = 0
 
     # Landing gear
-    w_tire =  # tire width
-    d_tire =  # tire diameter
-    l_strut = 
+    w_tire =  # tire width NOTE: check all lg dictionary names
+    d_tire = ac.landing_gear.selected_mlg_tire['Tire Radius (In)'] * 2.54 / 100  # tire diameter
     w_strut = 
+    l_strut = np.abs(ac.landing_gear.height_mlg) - ac.landing_gear.selected_mlg_tire['Tire Radius (In)'] * 2.54 / 100
     m = (w_tire * d_tire + l_strut * w_strut) / ((w_tire + w_strut) * (l_strut + 0.5 * d_tire))
     landing_gear = ((w_tire + w_strut) * (l_strut + 0.5 * d_tire)) * 0.04955 * np.exp(5.615 * m)
 

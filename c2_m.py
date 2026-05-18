@@ -499,8 +499,9 @@ def W_nac(ac: Aircraft, update_ac: bool = False):
 def W_gear(ac: Aircraft, update_ac: bool = False):
     W_to = ac.weights.m_takeoff / LBS_TO_KG
     W_L = ac.requirements.landing['la_mass_frac'] * W_to
-    l_s_m = ... / FT_TO_M # Shock strut length main gear [ft]
-    l_s_n = ... / FT_TO_M # Shock strut length nose gear [ft]
+    shock_strut_frac_whole = 
+    l_s_m = shock_strut_frac_whole * (np.abs(ac.landing_gear.height_mlg) - ac.landing_gear.selected_mlg_tire['Tire Radius (In)'] * 2.54 / 100) / FT_TO_M # Shock strut length main gear [ft]
+    l_s_n = shock_strut_frac_whole * (np.abs(ac.landing_gear.height_nlg) - ac.landing_gear.selected_nlg_tire['Tire Radius (In)'] * 2.54 / 100) / FT_TO_M # Shock strut length nose gear [ft]
     n_ult = ...
 
     # Cessna
