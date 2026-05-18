@@ -55,6 +55,7 @@ def size_tires(ac: Aircraft):
 
     ac.landing_gear.selected_mlg_tire = best_mlg_tire.to_dict()
     ac.landing_gear.selected_nlg_tire = best_nlg_tire.to_dict()
+    return ac
 
 
 def tire_location(ac: Aircraft):
@@ -184,3 +185,5 @@ def tire_location(ac: Aircraft):
     ac.landing_gear.longitudinal_mlg = X_mlg
     ac.landing_gear.lateral_mlg = Y_mlg
     ac.landing_gear.height_mlg = abs(Z_mlg)
+
+    return ac
