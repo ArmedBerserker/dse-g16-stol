@@ -70,7 +70,7 @@ def tire_location(ac: Aircraft):
     bank = ac.landing_gear.bank * np.pi/180                   # [rad]
     prop_clear = ac.landing_gear.prop_clear  # [m]
 
-    # The coordinate frame assumes [0,0] = [aircraft nose, fuselage bottom]
+    # The coordinate frame assumes [0,0] = [aircraft nose, fuselage bottom]. Z upwards
     X_cg_fwd = ac.weights.cg_fwd   # [m]
     X_cg_aft = ac.weights.cg_aft   # [m]
     Z_fus = 0                      # [m]
