@@ -23,6 +23,7 @@ def get_airfoil_heights(dat_file_path, xfs_pct, xrs_pct):
 
     return hfs_norm, hrs_norm
 
+#print(get_airfoil_heights("onze_airfoil.dat", 0.15, 0.65))
 
 def calculate_section_inertia(tskin, tspar, A_str, n_str, xfs, xrs, hfs, hrs):
     if n_str % 2 != 0:
@@ -49,24 +50,22 @@ def calculate_section_inertia(tskin, tspar, A_str, n_str, xfs, xrs, hfs, hrs):
     Total_Area = A_webs + A_skins + Astr_total
 
     # Centroid (x_bar)
-    mom_x_webs = (xfs * hfs * tspar) + (xrs * hrs * tspar)
-    mom_x_skins = 2 * (tskin * slope_len * (xfs + xrs) / 2)
-    mom_x_str = 2 * np.sum(x_str * A_str)
-    x_bar = (mom_x_webs + mom_x_skins + mom_x_str) / Total_Area
+    mx_webs = (xfs * hfs * tspar) + (xrs * hrs * tspar)
+    mx_skins = 2 * (tskin * slope_len * (xfs + xrs) / 2)
+    mx_str = 2 * np.sum(x_str * A_str)
+    x_bar = (mx_webs + mx_skins + mx_str) / Total_Area
 
     # Ixx (Vertical Bending Stiffness)
     Ixx_webs = (1 / 12) * tspar * (hfs ** 3 + hrs ** 3)
     # Integral for skins at +/- h/2
-    Ixx_skins = 2 * (tskin * slope_len / 24) * (hfs ** 2 + hfs * hrs + hrs ** 2)
+    Ixx_skins = (tskin * slope_len / 12) * (hfs ** 2 + hfs * hrs + hrs ** 2)
     Ixx_str = np.sum(A_str * y_top_str ** 2) + np.sum(A_str * y_bot_str ** 2)
     Ixx = Ixx_webs + Ixx_skins + Ixx_str
 
     # Izz (Chordwise Bending Stiffness)
     Izz_webs = (hfs * tspar * (xfs - x_bar) ** 2) + (hrs * tspar * (xrs - x_bar) ** 2)
 
-    # Improved Izz skin term: Treat as thin plates along actual length
-    Izz_skin_local = (tskin * slope_len ** 2) / 12
-    Izz_skins = 2 * (Izz_skin_local + (tskin * slope_len * ((xfs + xrs) / 2 - x_bar) ** 2))
+    Izz_skins = 2 * tskin * slope_len * ((xfs ** 2 + xfs * xrs + xrs ** 2) / 3 - (xfs + xrs) * x_bar + x_bar ** 2)
 
     Izz_str = 2 * np.sum(A_str * (x_str - x_bar) ** 2)
     Izz = Izz_webs + Izz_skins + Izz_str
@@ -76,7 +75,7 @@ def calculate_section_inertia(tskin, tspar, A_str, n_str, xfs, xrs, hfs, hrs):
     perimeter_integral = (hfs / tspar) + (hrs / tspar) + (2 * slope_len / tskin)
     J = (4 * Ae ** 2) / perimeter_integral
 
-    # Shear Center approx
+    # Shear Center Approx
     x_sc_approx = 0.5 * (xfs + xrs)
 
     return {

@@ -16,7 +16,7 @@ E_modulus = 70e9  # Young's Modulus in Pa
 G_modulus = 26e9  # Shear Modulus in Pa
 
 # Wing Geometry
-S = 23.0  # Surface Area (m^2)
+S = 26  # Surface Area (m^2)
 AR = 9.0  # Aspect Ratio
 taper = 0.4  # Taper Ratio (tip_chord / root_chord)
 
@@ -26,7 +26,9 @@ y_tip = b / 2  # Semi-span (m)
 c_root = (2 * S) / (b * (1 + taper))
 c_tip = taper * c_root
 
-# --- Load and Transform CSV Data ---
+
+
+
 data = np.genfromtxt("xflr5_parsed.csv", delimiter=",", names=True)
 
 # 1. Enforce Root-to-Tip Sorting
@@ -59,9 +61,6 @@ Fn_stations = (Fx * nx) + (Fy * ny) + (Fz * nz)  # Positive DOWN
 Ft_stations = (Fx * cx) + (Fy * cy) + (Fz * cz)  # Positive AFT
 
 
-# --- Airfoil & Section Mechanics ---
-
-
 
 
 def calculate_torsional_deflection(y, T, G, J):
@@ -76,6 +75,32 @@ def calculate_bending_deflection(y, M, E, I_inertia):
     slope = cumulative_trapezoid(curvature, x=y, initial=0)
     tip_deflection_m = simpson(slope, x=y)
     return tip_deflection_m * 1000  # Return in mm
+
+def wingbox_volume(
+    c_root,
+    c_tip,
+    y_tip,
+    xfs_pct,
+    xrs_pct,
+    hfs_norm,
+    hrs_norm,
+    n=500
+):
+
+    y = np.linspace(0.0, y_tip, n)
+
+    chord = c_root + (c_tip - c_root) * (y / y_tip)
+
+    width = (xrs_pct - xfs_pct) * chord
+
+    h_front = hfs_norm * chord
+    h_rear  = hrs_norm * chord
+
+    area = 0.5 * (h_front + h_rear) * width
+
+    volume = simpson(area, y)
+
+    return volume
 
 
 # --- Main Calculations ---
@@ -142,3 +167,16 @@ print("--- DEFLECTIONS (Positive = Up / Forward / Nose-Up) ---")
 print(f"Total Tip Twist: {display_twist:.4f} deg")
 print(f"Total Tip Vertical Deflection: {display_bending_normal:.4f} mm")
 print(f"Total Tip Chordwise Deflection: {display_bending_tangential:.4f} mm")
+
+
+V_wingbox = wingbox_volume(
+    c_root,
+    c_tip,
+    y_tip,
+    xfs_pct,
+    xrs_pct,
+    hfs_norm,
+    hrs_norm
+)
+
+print(V_wingbox)
