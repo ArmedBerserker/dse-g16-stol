@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 
-def size_tires(ac: Aircraft):
+def size_tires(ac: Aircraft, update_ac = False):
     W_to = ac.weights.m_takeoff * g
     n_min_nlg = ac.landing_gear.n_nlg_min_as
     n_max_nlg = ac.landing_gear.n_nlg_max_as
@@ -53,12 +53,15 @@ def size_tires(ac: Aircraft):
     best_mlg_tire = pick_smallest_tire(tire_options_mlg)
     best_nlg_tire = pick_smallest_tire(tire_options_nlg)
 
-    ac.landing_gear.selected_mlg_tire = best_mlg_tire.to_dict()
-    ac.landing_gear.selected_nlg_tire = best_nlg_tire.to_dict()
-    return ac
+    if update_ac:
+        ac.landing_gear.selected_mlg_tire = best_mlg_tire.to_dict()
+        ac.landing_gear.selected_nlg_tire = best_nlg_tire.to_dict()
+        return ac
+    else:
+        return best_mlg_tire.to_dict(), best_nlg_tire.to_dict()
 
 
-def tire_location(ac: Aircraft):
+def tire_location(ac: Aircraft, update_ac = False):
     # For taildragger nlg = tail landing gear
 
     gear_type = ac.landing_gear.gear_type
@@ -176,14 +179,16 @@ def tire_location(ac: Aircraft):
         Y_nlg = 0
 
     # ALL DIMENSIONS WRT TO NOSE & BOTTOM OF FUSELAGE, [X, Y, Z] = CENTRE POINT OF WHEELS
-    # NOSE/TAIL LANDING GEAR LOCATION
-    ac.landing_gear.longitudinal_nlg = X_nlg
-    ac.landing_gear.lateral_nlg = 0
-    ac.landing_gear.height_nlg = abs(Z_nlg)
+    if update_ac:
+        # NOSE/TAIL LANDING GEAR LOCATION
+        ac.landing_gear.longitudinal_nlg = X_nlg
+        ac.landing_gear.lateral_nlg = 0
+        ac.landing_gear.height_nlg = -np.abs(Z_nlg)
 
-    # MAIN LANDING GEAR LOCATION
-    ac.landing_gear.longitudinal_mlg = X_mlg
-    ac.landing_gear.lateral_mlg = Y_mlg
-    ac.landing_gear.height_mlg = abs(Z_mlg)
-
-    return ac
+        # MAIN LANDING GEAR LOCATION
+        ac.landing_gear.longitudinal_mlg = X_mlg
+        ac.landing_gear.lateral_mlg = Y_mlg
+        ac.landing_gear.height_mlg = -np.abs(Z_mlg)
+        return ac
+    else:
+        return [X_nlg, Y_nlg, -np.abs(Z_nlg)], [X_mlg, Y_mlg, -np.abs(Z_mlg)]
