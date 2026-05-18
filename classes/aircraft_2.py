@@ -183,8 +183,8 @@ class Engine:
     z_prop : float | None
 
     def __post_init__(self):
-        self.eta_1 = m.prod(self.eta_1) if self.eta_1 is not None else None
-        self.eta_2 = m.prod(self.eta_2) if self.eta_2 is not None else None
+        self.eta_1 = m.prod(self.eta_1)
+        self.eta_2 = m.prod(self.eta_2)
         self.eta_prop = self.eta_3[-1]
         self.eta_3 = m.prod(self.eta_3)
     def __str__(self):
@@ -258,4 +258,3 @@ class Aircraft:
             stripped_f_val = str(field_value).split('\n', 1)[1]
             text += f'{field_name}: {stripped_f_val} \n'
         return text
-
