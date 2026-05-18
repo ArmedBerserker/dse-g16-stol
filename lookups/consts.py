@@ -13,3 +13,4 @@ MIL_TO_KM        = 1.60934
 NMIL_TO_KM       = 1.852
 g                = 9.80665
 HP_TO_W          = 746
+MpS_TO_FpS       = 3.28084
