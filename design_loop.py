@@ -26,7 +26,7 @@ from typing import Callable
 import numpy as np
 
 from classes.aircraft_2 import Aircraft, loader
-from class1 import c1_m, matching_diagram, c2_drag
+from class1 import c1_m, matching_diagram, c2_drag, c1_landing_gear
 from c2_m import W_oe_and_cg_from_nose, W_to_new, loading_diagram, x_cg_structural_from_nose, overlay_wing_pos_and_scissor_plot
 from lookups.consts import *
 
@@ -88,6 +88,11 @@ def compute_propulsion(ac: Aircraft) -> Aircraft:
     # e.g. ac.engine.Phi   = your_prop_module.hybridisation_ratio(ac)
     pass
     # ─────────────────────────────────────────────────────────────────────────
+    return ac
+
+def compute_landing_gear_positions(ac: Aircraft) -> Aircraft:
+    ac = c1_landing_gear.size_tires(ac)
+    ac = c1_landing_gear.tire_location(ac)
     return ac
 
 
@@ -227,6 +232,7 @@ ITERATION_STEPS: list[Callable[[Aircraft], Aircraft]] = [
     compute_wing_geometry,
     compute_fuselage,
     compute_propulsion,
+    compute_landing_gear_positions,
     compute_energy_weights
 ]
 
