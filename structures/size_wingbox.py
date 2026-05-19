@@ -1,9 +1,10 @@
 from geom_wingbox import *
 from wingbox_helpers import *
 import numpy as np
+import matplotlib.pyplot as plt
 
 # --- Constants & Geometry Settings ---
-load_factor = 3.8
+load_factor = 1.0
 g_accel = 9.81
 xfs_pct = 0.15  # 15-20
 xrs_pct = 0.65  # 55-65
@@ -115,9 +116,9 @@ def main():
     )
 
     # 5. Deflection Integration Using Reference Modulus
-    twist_val = calculate_torsional_deflection(y_stations, T_stations, G_ref, J_eq)[-1]
-    bending_n_val = calculate_bending_deflection(y_stations, Mx_stations, E_ref, Ixx_eq)[-1]
-    bending_t_val = calculate_bending_deflection(y_stations, Mz_stations, E_ref, Izz_eq)[-1]
+    twist_val = calculate_torsional_deflection(y_stations, T_stations, G_ref, J_eq)
+    bending_n_val = calculate_bending_deflection(y_stations, Mx_stations, E_ref, Ixx_eq)
+    bending_t_val = calculate_bending_deflection(y_stations, Mz_stations, E_ref, Izz_eq)
 
     # 6. Output Processing
     display_bending_normal = -1 * bending_n_val  # Up = Positive
@@ -132,9 +133,28 @@ def main():
     print(f"TOTAL AIRCRAFT WINGBOX MASS: {total_mass:.2f} kg\n")
 
     print("--- DEFLECTIONS (Positive = Up / Forward / Nose-Up) ---")
-    print(f"Total Tip Twist: {display_twist:.4f} deg")
-    print(f"Total Tip Vertical Deflection: {display_bending_normal:.4f} mm")
-    print(f"Total Tip Chordwise Deflection: {display_bending_tangential:.4f} mm")
+    print(f"Total Tip Twist: {display_twist[-1]:.4f} deg")
+    print(f"Total Tip Vertical Deflection: {display_bending_normal[-1]:.4f} mm")
+    print(f"Total Tip Chordwise Deflection: {display_bending_tangential[-1]:.4f} mm")
+
+    fig, axes = plt.subplots(2, 1, figsize=(8, 8))
+
+    # Vertical bending plot
+    axes[0].plot(y_stations, -bending_n_val, linewidth=2)
+    axes[0].set_title("Vertical Bending Deflection")
+    axes[0].set_xlabel("Spanwise Position y [m]")
+    axes[0].set_ylabel("Vertical Deflection [mm]")
+    axes[0].grid(True)
+
+    # Twist angle plot
+    axes[1].plot(y_stations, twist_val, linewidth=2, color='orange')
+    axes[1].set_title("Twist Angle Distribution")
+    axes[1].set_xlabel("Spanwise Position y [m]")
+    axes[1].set_ylabel("Twist Angle [deg]")
+    axes[1].grid(True)
+
+    plt.tight_layout()
+    plt.show()
 
     return (display_twist, display_bending_normal, display_bending_tangential, total_mass)
 
