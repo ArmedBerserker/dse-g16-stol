@@ -107,6 +107,8 @@ class Weights:
     m_empty : float | None
     m_payload : float | None
     m_energy : float | dict[float]
+    x_cg_aft : float | None
+    x_cg_fwd : float | None
 
     def __str__(self):
         text = "The weights are:\n"
@@ -171,6 +173,21 @@ class Engine:
 
             text += f'{field_name}: {field_value} \n'
         return text
+    
+@dataclass
+class Empennage:
+    cg_and_positioning: dict 
+    horizontal_tail: dict
+    vertical_tail: dict
+    def __str__(self):
+        text = "The requirements are:\n"
+        for field_info in fields(self):
+            field_name = field_info.name
+            field_value = getattr(self, field_name)
+
+            text += f'{field_name}: {field_value} \n'
+        return text
+
 
 @dataclass
 class Aircraft:
@@ -181,6 +198,7 @@ class Aircraft:
     wing : Wing
     fuselage : Fuselage
     engine : Engine
+    empennage : Empennage
 
     @classmethod
     def from_dict(cls, data : dict):

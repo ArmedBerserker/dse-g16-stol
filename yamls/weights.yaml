@@ -3,3 +3,5 @@ m_takeoff: 2300
 m_empty: null
 m_payload: null
 m_energy: null
+x_cg_aft: 3.23  # Most aft c.g. position [m] (Taildragger)
+x_cg_fwd: null 

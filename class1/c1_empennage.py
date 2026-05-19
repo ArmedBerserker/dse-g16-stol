@@ -9,7 +9,7 @@ from classes.aircraft_2 import loader, Aircraft, Requirements, Mission, Weights,
 from lookups.consts import *
 from class1.prelim_drag import *
 
-def size_empennage_planform(ac: Aircraft, config_path: str = 'empennage_config.yaml'):
+def size_empennage_planform(ac: Aircraft):
     """ 
     Empennage planform sizing:
     Inputs (from YAML config):
@@ -24,57 +24,70 @@ def size_empennage_planform(ac: Aircraft, config_path: str = 'empennage_config.y
         - Root and tip chords
         - MAC and its spanwise position
     """
-    
-    # Load parameters from the YAML file
-    with open(config_path, 'r') as file:
-        config = yaml.safe_load(file)
         
     w = ac.wing
-    ht = ac.htail
-    vt = ac.vtail
+    ht = ac.empennage.horizontal_tail
+    vt = ac.empennage.vertical_tail
+
+    S = w.area
+    b = w.span
     
     # Extract positions to calculate the moment arms
-    x_cgaft = config['cg_and_positioning']['x_cgaft']
-    x_h = config['cg_and_positioning']['x_h']
-    x_v = config['cg_and_positioning']['x_v']
+    l_f = ac.fuselage.length
+    x_cgaft = ac.weights.x_cg_aft
+    x_h = ht['x_h_frac_lf'] * l_f
+    x_v = vt['x_v_frac_lf'] * l_f
     
     # Calculate moment arms dynamically
-    ht.moment_arm = x_h - x_cgaft
-    vt.moment_arm = x_v - x_cgaft
+    ht_moment_arm = x_h - x_cgaft
+    vt_moment_arm = x_v - x_cgaft
     
     # Extract fixed constants from YAML
-    ht.volume_coefficient = config['horizontal_tail']['volume_coefficient']
-    ht.aspect_ratio = config['horizontal_tail']['aspect_ratio']
-    ht.taper_ratio = config['horizontal_tail']['taper_ratio']
-    
-    vt.volume_coefficient = config['vertical_tail']['volume_coefficient']
-    vt.aspect_ratio = config['vertical_tail']['aspect_ratio']
-    vt.taper_ratio = config['vertical_tail']['taper_ratio']
+    V_h = ht['volume_coefficient']
+    A_h = ht['aspect_ratio']
+    taper_h = ht['taper_ratio']
+    V_v = vt['volume_coefficient']
+    A_v = vt['aspect_ratio']
+    taper_v = vt['taper_ratio']
 
     # ---------------------------------------------------------
     # HORIZONTAL STABILIZER SIZING
     # ---------------------------------------------------------
     # 1. Calculate new area based on volume coefficient and calculated moment arm
-    ht.area = (ht.volume_coefficient * w.area * w.MAC) / ht.moment_arm
-    
+    S_h = (V_h * S * w.MAC) / ht_moment_arm
+
     # 2. Update geometry dependent on the new area
-    ht.span = np.sqrt(ht.aspect_ratio * ht.area)
-    ht.c_root = 2 * ht.area / (ht.span * (1 + ht.taper_ratio))
-    ht.c_tip = ht.c_root * ht.taper_ratio
+    b_h = np.sqrt(A_h * S_h)
+    c_r_h = 2 * ht.area / (ht.span * (1 + taper_h))
+    c_t_h = c_r_t * taper_h
     
-    ht.MAC = (2 / 3) * ht.c_root * (1 + ht.taper_ratio + ht.taper_ratio**2) / (1 + ht.taper_ratio)
-    ht.y_MAC = (ht.c_root - ht.MAC) / (ht.c_root * (1 - ht.taper_ratio)) * (ht.span / 2)
+    MAC_h = (2 / 3) * c_r_h * (1 + taper_h + taper_h**2) / (1 + taper_h)
+    y_MAC_h = (c_r_h - MAC_h) / (c_r_h * (1 - taper_h)) * (b_h / 2)
+
+    ht['area'] = S_h
+    ht['b_h'] = b_h
+    ht['c_r_h'] = c_r_h
+    ht['c_t_h'] = c_t_h
+    ht['MAC_h'] = MAC_h
+    ht['y_MAC_h'] = y_MAC_h
 
     # ---------------------------------------------------------
     # VERTICAL STABILIZER SIZING
     # ---------------------------------------------------------
     # 1. Calculate new area based on volume coefficient and calculated moment arm
-    vt.area = (vt.volume_coefficient * w.area * w.span) / vt.moment_arm
+    S_v = (V_v * S * b) / vt_moment_arm
     
     # 2. Update geometry dependent on the new area
-    vt.span = np.sqrt(vt.aspect_ratio * vt.area)
-    vt.c_root = 2 * vt.area / (vt.span * (1 + vt.taper_ratio))
-    vt.c_tip = vt.c_root * vt.taper_ratio
+    b_v = np.sqrt(A_v * S_v)
+    c_r_v = 2 * S_v / (b_v * (1 + taper_v))
+    c_t_v = c_r_v * taper_v
     
-    vt.MAC = (2 / 3) * vt.c_root * (1 + vt.taper_ratio + vt.taper_ratio**2) / (1 + vt.taper_ratio)
-    vt.y_MAC = (vt.c_root - vt.MAC) / (vt.c_root * (1 - vt.taper_ratio)) * vt.span
+    MAC_v = (2 / 3) * c_r_v * (1 + taper_v + taper_v**2) / (1 + taper_v)
+    y_MAC_v = (c_r_v - MAC_v) / (c_r_v * (1 - taper_v)) * b_v
+
+    vt['area'] = S_v
+    vt['b_v'] = b_v
+    vt['c_r_v'] = c_r_v
+    vt['c_t_v'] = c_t_v
+    vt['MAC_v'] = MAC_v
+    vt['y_MAC_v'] = y_MAC_v

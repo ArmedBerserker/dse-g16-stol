@@ -8,8 +8,10 @@ horizontal_tail:
   volume_coefficient: 0.786
   aspect_ratio: 4.5
   taper_ratio: 0.7
+  x_h_frac_lf: 0.9
 
 vertical_tail:
   volume_coefficient: 0.06275
   aspect_ratio: 1.4
   taper_ratio: 0.5
+  x_v_frac_lf: 0.9
