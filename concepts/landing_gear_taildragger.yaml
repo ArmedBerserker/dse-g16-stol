@@ -10,9 +10,9 @@ prop_clear: 0.18 # propeller clearance requirement with tail wheel [m]. From CS2
 fus_pitch: null         # Fuselage inclination relative to ground plane [degrees]
 turnover: 50          # Turnover angle requirement [degrees]. Value from Roskam for rough field
 bank: 8               # Bank angle clearance requirement [degrees]. Valye from Vos
-a: null             # Fraction of total stroke between 1-g compression and full compression. Value from Vos
-s: null               # Total stroke of the suspension system [m]
-fus_ground_clear: 0.3 # Required distance from ground to tail cone (CHOSEN VALUE, NOT CS23)[m]
+a: 0.33333             # Fraction of total stroke between 1-g compression and full compression. Value from Vos
+s: 0.03              # Total stroke of the suspension system [m]
+fus_ground_clear: 0.3 # Required distance from ground to tail cone (CHOSEN VALUE, NOT CS23 f)[m]
 
 selected_mlg_tire: null
 selected_nlg_tire: null
