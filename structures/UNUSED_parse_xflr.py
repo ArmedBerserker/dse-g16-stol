@@ -101,6 +101,9 @@ class XFLR5Parser:
         final_data = []
         num_stations = len(pre_data)
 
+        geom_y = np.array(sorted(self.station_chords.keys()))
+        geom_c = np.array([self.station_chords[y] for y in geom_y])
+
         for i in range(num_stations):
             station = pre_data[i]
             c_vec = station['p_te'] - station['p_le']
@@ -121,8 +124,10 @@ class XFLR5Parser:
             s_u = np.cross(c_u, n_u)
             s_u /= np.linalg.norm(s_u)
 
-            closest_y_geom = min(self.station_chords.keys(), key=lambda k: abs(k - station['y']))
-            chord_len = self.station_chords[closest_y_geom]
+            # closest_y_geom = min(self.station_chords.keys(), key=lambda k: abs(k - station['y']))
+            # chord_len = self.station_chords[closest_y_geom]
+
+            chord_len = np.interp(station['y'], geom_y, geom_c)
 
             r_c4 = station['p_le'] + 0.25 * chord_len * c_u
             r_rel = station['p_coords'] - r_c4
@@ -134,7 +139,7 @@ class XFLR5Parser:
 
             final_data.append({
                 'y': station['y'],
-                'chord': chord_len,
+                #'chord': chord_len,
                 'Fx': station['f_total_vec'][0],
                 'Fy': station['f_total_vec'][1],
                 'Fz': station['f_total_vec'][2],

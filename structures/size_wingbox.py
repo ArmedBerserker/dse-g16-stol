@@ -1,228 +1,143 @@
-import numpy as np
-from scipy.integrate import simpson, cumulative_trapezoid
 from geom_wingbox import *
+from wingbox_helpers import *
+import numpy as np
 
 # --- Constants & Geometry Settings ---
-xfs_pct = 0.15 # 15-20
-xrs_pct = 0.65 # 55-65
-
-tskin_m = 0.002
+load_factor = 3.8
+g_accel = 9.81
+xfs_pct = 0.15  # 15-20
+xrs_pct = 0.65  # 55-65
+tskin_m = 0.001
 tspar_m = 0.003
-Astr_one_m = 0.0005 # Cross-sectional area of ONE stringer (m^2)
+Astr_one_m = 0.0001  # Cross-sectional area of ONE stringer (m^2)
 n_str = 16  # Total number of stringers (MUST be even)
 
-# Material Properties
-E_modulus = 70e9  # Young's Modulus in Pa
-G_modulus = 26e9  # Shear Modulus in Pa
+# --- Material Properties ---
+# E = Young's Modulus (Pa), G = Shear Modulus (Pa), rho = Density (kg/m^3)
+materials = {
+    'skin': {'E': 73.1e9, 'G': 28.0e9, 'rho': 2780},
+    'spar': {'E': 71.7e9, 'G': 26.9e9, 'rho': 2810},
+    'str':  {'E': 71.7e9, 'G': 26.9e9, 'rho': 2810}
+}
+
+# Define the "Reference Material" to normalize the cross-section
+E_ref = materials['spar']['E']
+G_ref = materials['spar']['G']
 
 # Wing Geometry
-S = 26  # Surface Area (m^2)
+S = 25.675  # Surface Area (m^2)
 AR = 9.0  # Aspect Ratio
-taper = 0.4  # Taper Ratio (tip_chord / root_chord)
+taper = 0.4  # Taper Ratio
 
-# Calculate semi-span and chords
-b = np.sqrt(S * AR)  # Total span (m)
-y_tip = b / 2  # Semi-span (m)
-c_root = (2 * S) / (b * (1 + taper))
-c_tip = taper * c_root
-
-
-
-
-data = np.genfromtxt("xflr5_parsed.csv", delimiter=",", names=True)
-
-# 1. Enforce Root-to-Tip Sorting
-# This is required for integration starting at the root (y=0)
-sort_idx = np.argsort(data['y'])
-
-y_stations = data['y'][sort_idx]
-chords = data['chord'][sort_idx]
-
-# Global Forces (Discrete Panel Point Loads in N)
-Fx = data['Fx'][sort_idx]
-Fy = data['Fy'][sort_idx]
-Fz = data['Fz'][sort_idx]
-
-# Local Normal Unit Vectors
-nx = data['nx'][sort_idx]
-ny = data['ny'][sort_idx]
-nz = data['nz'][sort_idx]
-
-# Local Tangential Unit Vectors
-cx = data['cx'][sort_idx]
-cy = data['cy'][sort_idx]
-cz = data['cz'][sort_idx]
-
-# Total Panel Torsion at Quarter Chord (Discrete Panel Moment in N*m)
-T_c4 = data['Torsion'][sort_idx]
-
-# Transform Forces to Wingbox Local Frame
-Fn_stations = (Fx * nx) + (Fy * ny) + (Fz * nz)  # Positive DOWN
-Ft_stations = (Fx * cx) + (Fy * cy) + (Fz * cz)  # Positive AFT
+# Engine parameters
+y_eng = 2.19 # Spanwise position of engine from root (m)
+m_eng = 120  # Mass of the engine (kg)
+thrust_eng = 1890  # Forward engine thrust force (N)
+dx_eng = 1.0  # Forward coordinate relative to shear center/centroid (m, positive forward)
+dz_eng = -0.375  # Vertical coordinate relative to shear center/centroid (m, positive up)
+Fn_eng = m_eng * g_accel  # Weight force acting DOWN (Positive in local frame)
+Ft_eng = -thrust_eng  # Thrust force acting FORWARD (Negative in local frame)
 
 
+def compute_internal_loads(y_stations, chords, T_c4, Fn_aero, Ft_aero, m_prime, x_sc_stations, n):
+    # 1. Calculate span (dy) for mass to point load conversion
+    dy = np.zeros_like(y_stations)
+    if len(y_stations) > 1:
+        dy[1:-1] = (y_stations[2:] - y_stations[:-2]) / 2
+        dy[0] = (y_stations[1] - y_stations[0]) / 2
+        dy[-1] = (y_stations[-1] - y_stations[-2]) / 2
+    Fn_weight = m_prime * g_accel * dy
+
+    # 2. Aerodynamic Torsion Shift
+    dx_sc = x_sc_stations - (0.25 * chords)
+    T_sc_panel = T_c4 - (dx_sc * Fn_aero)
+
+    # 3. Combine Forces for Vertical Shear and Bending
+    Fn_total = Fn_aero + Fn_weight
+
+    # 4. Shear and Torsion
+    V_stations = np.cumsum(Fn_total[::-1])[::-1]
+    T_stations = np.cumsum(T_sc_panel[::-1])[::-1]
+
+    # 5. Bending Moments
+    dy_matrix = y_stations[None, :] - y_stations[:, None]
+    dy_matrix[dy_matrix < 0] = 0  # Zero out inboard contributions
+
+    Mx_stations = np.sum(Fn_total * dy_matrix, axis=1)
+    Mz_stations = np.sum(Ft_aero * dy_matrix, axis=1)
+
+    # 6. Add Engine Point Load to All Inboard Stations
+    inboard_mask = y_stations <= y_eng
+    lever_arm_eng = y_eng - y_stations[inboard_mask]
+
+    V_stations[inboard_mask] += Fn_eng
+    Mx_stations[inboard_mask] += Fn_eng * lever_arm_eng
+    Mz_stations[inboard_mask] += Ft_eng * lever_arm_eng
+    T_stations[inboard_mask] += -(Fn_eng * dx_eng) + (Ft_eng * dz_eng)
+
+    V_stations, Mx_stations, Mz_stations, T_stations = (V_stations * n,
+    Mx_stations * n, Mz_stations *n , T_stations * n)
+
+    return V_stations, Mx_stations, Mz_stations, T_stations
 
 
-def calculate_torsional_deflection(y, T, G, J):
-    twist_rate = T / (G * J)
-    total_twist_rad = simpson(twist_rate, x=y)
-    return np.rad2deg(total_twist_rad)
+def main():
+    # 1. Inputs
+    b, y_tip, c_root, c_tip, C_mac = calculate_wing_geometry(S, AR, taper)
 
+    # Rename variables to clarify they are aerodynamic-only
+    y_stations, T_c4, Fn_aero, Ft_aero, xflr5_chords = load_aerodynamic_data("MainWing_a=3.50_v=72.00ms.txt")
 
-def calculate_bending_deflection(y, M, E, I_inertia):
-    curvature = M / (E * I_inertia)
-    # Starts integration at index 0 (Root, y=0) so boundary condition slope=0 is respected
-    slope = cumulative_trapezoid(curvature, x=y, initial=0)
-    tip_deflection_m = simpson(slope, x=y)
-    return tip_deflection_m * 1000  # Return in mm
+    analytical_chords = c_root - (c_root - c_tip) * (y_stations / y_tip)
 
-def wingbox_volume(
-    c_root,
-    c_tip,
-    y_tip,
-    xfs_pct,
-    xrs_pct,
-    hfs_norm,
-    hrs_norm,
-    n=500
-):
+    # Chord length check
+    max_error = np.max(np.abs(xflr5_chords - analytical_chords))
+    if max_error > 0.01:
+        print(f"WARNING: XFLR5 geometry deviates from analytical by max {max_error:.4f} m!")
 
-    y = np.linspace(0.0, y_tip, n)
+    chords = analytical_chords
 
-    chord = c_root + (c_tip - c_root) * (y / y_tip)
-
-    width = (xrs_pct - xfs_pct) * chord
-
-    h_front = hfs_norm * chord
-    h_rear  = hrs_norm * chord
-
-    area = 0.5 * (h_front + h_rear) * width
-
-    volume = simpson(area, y)
-
-    return volume
-
-def wingbox_volume_location(
-    target_volume,
-    c_root,
-    c_tip,
-    y_tip,
-    xfs_pct,
-    xrs_pct,
-    hfs_norm,
-    hrs_norm,
-    y_fuel_start=0.0,
-    n=2000
-):
-
-    # full geometric span
-    y = np.linspace(0.0, y_tip, n)
-
-    # chord from aerodynamic root (UNCHANGED)
-    chord = c_root + (c_tip - c_root) * (y / y_tip)
-
-    width = (xrs_pct - xfs_pct) * chord
-    h_front = hfs_norm * chord
-    h_rear  = hrs_norm * chord
-
-    area = 0.5 * (h_front + h_rear) * width
-
-    # cumulative volume from aerodynamic root
-    cumulative_volume = cumulative_trapezoid(area, y, initial=0)
-
-    # volume at fuel start station
-    v0 = np.interp(y_fuel_start, y, cumulative_volume)
-
-    # slice arrays from fuel start onward
-    mask = y >= y_fuel_start
-    y_f = y[mask]
-    v_f = cumulative_volume[mask] - v0
-
-    total_fuel_volume = v_f[-1]
-
-    if target_volume > total_fuel_volume:
-        raise ValueError("Target exceeds available wingbox volume in fuel region")
-
-    y_at_target = interp1d(v_f, y_f)(target_volume)
-
-    return float(y_at_target)
-
-
-# --- Main Calculations ---
-
-hfs_norm, hrs_norm = get_airfoil_heights("onze_airfoil.dat", xfs_pct, xrs_pct)
-
-Ixx_stations = []
-Izz_stations = []
-J_stations = []
-x_sc_stations = []
-
-for c in chords:
-    local_hfs = hfs_norm * c
-    local_hrs = hrs_norm * c
-    local_xfs = xfs_pct * c
-    local_xrs = xrs_pct * c
-
-    section_props = calculate_section_inertia(
-        tskin_m, tspar_m, Astr_one_m, n_str,
-        local_xfs, local_xrs, local_hfs, local_hrs
+    # 2. Structural Properties
+    Ixx_eq, Izz_eq, J_eq, x_sc_stations = compute_wingbox_properties(
+        chords, "onze_airfoil.dat", xfs_pct, xrs_pct, tskin_m, tspar_m, Astr_one_m, n_str,
+        materials, E_ref, G_ref
     )
 
-    Ixx_stations.append(section_props["Ixx"])
-    Izz_stations.append(section_props["Izz"])
-    J_stations.append(section_props["J"])
-    x_sc_stations.append(section_props["x_sc_midpoint"])
+    # 3. Mass Calculation (Must happen before internal loads to get m_prime)
+    half_wing_mass, mass_webs, mass_skins, mass_str, m_prime = compute_wingbox_mass(
+        y_stations, chords, "onze_airfoil.dat", xfs_pct, xrs_pct,
+        tskin_m, tspar_m, Astr_one_m, n_str, materials
+    )
 
-Ixx_stations = np.array(Ixx_stations)
-Izz_stations = np.array(Izz_stations)
-J_stations = np.array(J_stations)
-x_sc_stations = np.array(x_sc_stations)
+    # 4. Internal Load Distribution
+    V_stations, Mx_stations, Mz_stations, T_stations = compute_internal_loads(
+        y_stations, chords, T_c4, Fn_aero, Ft_aero, m_prime, x_sc_stations, load_factor
+    )
 
-# Move Torsion to Shear Center
-dx_sc = x_sc_stations - (0.25 * chords)
-T_sc_panel = T_c4 - (dx_sc * Fn_stations)
+    # 5. Deflection Integration Using Reference Modulus
+    twist_val = calculate_torsional_deflection(y_stations, T_stations, G_ref, J_eq)[-1]
+    bending_n_val = calculate_bending_deflection(y_stations, Mx_stations, E_ref, Ixx_eq)[-1]
+    bending_t_val = calculate_bending_deflection(y_stations, Mz_stations, E_ref, Izz_eq)[-1]
 
-# Summation for Internal Loads (Tip to Root)
-V_stations = np.zeros_like(y_stations)
-Mx_stations = np.zeros_like(y_stations)
-Mz_stations = np.zeros_like(y_stations)
-T_stations = np.zeros_like(y_stations)
+    # 6. Output Processing
+    display_bending_normal = -1 * bending_n_val  # Up = Positive
+    display_bending_tangential = -1 * bending_t_val  # Forward = Positive
+    display_twist = twist_val  # Nose-Up = Positive
+    total_mass = half_wing_mass * 2
 
-for i in range(len(y_stations)):
-    # Find all panels strictly outboard (or at) the current station
-    outboard_mask = y_stations >= y_stations[i]
-    lever_arms = y_stations[outboard_mask] - y_stations[i]
+    print("--- STRUCTURAL MASS ---")
+    print(f"Skin Mass:      {mass_skins:.2f} kg")
+    print(f"Spars Mass:     {mass_webs:.2f} kg")
+    print(f"Stringers Mass: {mass_str:.2f} kg")
+    print(f"TOTAL AIRCRAFT WINGBOX MASS: {total_mass:.2f} kg\n")
 
-    V_stations[i] = np.sum(Fn_stations[outboard_mask])
-    Mx_stations[i] = np.sum(Fn_stations[outboard_mask] * lever_arms)
-    Mz_stations[i] = np.sum(Ft_stations[outboard_mask] * lever_arms)
-    T_stations[i] = np.sum(T_sc_panel[outboard_mask])
+    print("--- DEFLECTIONS (Positive = Up / Forward / Nose-Up) ---")
+    print(f"Total Tip Twist: {display_twist:.4f} deg")
+    print(f"Total Tip Vertical Deflection: {display_bending_normal:.4f} mm")
+    print(f"Total Tip Chordwise Deflection: {display_bending_tangential:.4f} mm")
 
-# Deflection Integration
-twist_val = calculate_torsional_deflection(y_stations, T_stations, G_modulus, J_stations)
-bending_n_val = calculate_bending_deflection(y_stations, Mx_stations, E_modulus, Ixx_stations)
-bending_t_val = calculate_bending_deflection(y_stations, Mz_stations, E_modulus, Izz_stations)
-
-# Transform integral signs to physical directions
-display_bending_normal = -1 * bending_n_val  # Up = Positive
-display_bending_tangential = -1 * bending_t_val  # Forward = Positive
-display_twist = twist_val  # Nose-Up = Positive
-
-print("--- DEFLECTIONS (Positive = Up / Forward / Nose-Up) ---")
-print(f"Total Tip Twist: {display_twist:.4f} deg")
-print(f"Total Tip Vertical Deflection: {display_bending_normal:.4f} mm")
-print(f"Total Tip Chordwise Deflection: {display_bending_tangential:.4f} mm")
+    return (display_twist, display_bending_normal, display_bending_tangential, total_mass)
 
 
-V_wingbox = wingbox_volume_location(0.13,
-    c_root,
-    c_tip,
-    y_tip,
-    xfs_pct,
-    xrs_pct,
-    hfs_norm,
-    hrs_norm,
-    y_fuel_start=0.93
-)
-
-print(V_wingbox)
+if __name__ == "__main__":
+    main()
