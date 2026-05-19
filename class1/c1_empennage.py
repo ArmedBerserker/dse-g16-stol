@@ -9,6 +9,8 @@ from classes.aircraft_2 import loader, Aircraft, Requirements, Mission, Weights,
 from lookups.consts import *
 from class1.prelim_drag import *
 
+def class_I_loading(ac: Aircraft):
+    
 def size_empennage_planform(ac: Aircraft):
     """ 
     Empennage planform sizing:
