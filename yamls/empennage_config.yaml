@@ -1,0 +1,15 @@
+# empennage_config.yaml
+cg_and_positioning:
+  x_cgaft: 3.23  # Most aft c.g. position [m] (Taildragger)
+  x_h: 8.01      # Aerodynamic center of horizontal tail [m]
+  x_v: 8.01      # Aerodynamic center of vertical tail [m]
+
+horizontal_tail:
+  volume_coefficient: 0.786
+  aspect_ratio: 4.5
+  taper_ratio: 0.7
+
+vertical_tail:
+  volume_coefficient: 0.06275
+  aspect_ratio: 1.4
+  taper_ratio: 0.5
