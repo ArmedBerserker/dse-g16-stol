@@ -101,3 +101,45 @@ def load_aerodynamic_data(filepath):
 
     return y_stations, T_c4, Fn_stations, Ft_stations, chords
 
+
+def compute_internal_loads(y_stations, chords, T_c4, Fn_aero, Ft_aero, m_prime, x_sc_stations,
+    n, y_eng, Fn_eng, Ft_eng, dz_eng, dx_eng):
+    # 1. Calculate span (dy) for mass to point load conversion
+    dy = np.zeros_like(y_stations)
+    if len(y_stations) > 1:
+        dy[1:-1] = (y_stations[2:] - y_stations[:-2]) / 2
+        dy[0] = (y_stations[1] - y_stations[0]) / 2
+        dy[-1] = (y_stations[-1] - y_stations[-2]) / 2
+    Fn_weight = m_prime * 9.81 * dy
+
+    # 2. Aerodynamic Torsion Shift
+    dx_sc = x_sc_stations - (0.25 * chords)
+    T_sc_panel = T_c4 - (dx_sc * Fn_aero)
+
+    # 3. Combine Forces for Vertical Shear and Bending
+    Fn_total = Fn_aero + Fn_weight
+
+    # 4. Shear and Torsion
+    V_stations = np.cumsum(Fn_total[::-1])[::-1]
+    T_stations = np.cumsum(T_sc_panel[::-1])[::-1]
+
+    # 5. Bending Moments
+    dy_matrix = y_stations[None, :] - y_stations[:, None]
+    dy_matrix[dy_matrix < 0] = 0  # Zero out inboard contributions
+
+    Mx_stations = np.sum(Fn_total * dy_matrix, axis=1)
+    Mz_stations = np.sum(Ft_aero * dy_matrix, axis=1)
+
+    # 6. Add Engine Point Load to All Inboard Stations
+    inboard_mask = y_stations <= y_eng
+    lever_arm_eng = y_eng - y_stations[inboard_mask]
+
+    V_stations[inboard_mask] += Fn_eng
+    Mx_stations[inboard_mask] += Fn_eng * lever_arm_eng
+    Mz_stations[inboard_mask] += Ft_eng * lever_arm_eng
+    T_stations[inboard_mask] += -(Fn_eng * dx_eng) + (Ft_eng * dz_eng)
+
+    V_stations, Mx_stations, Mz_stations, T_stations = (V_stations * n,
+    Mx_stations * n, Mz_stations *n , T_stations * n)
+
+    return V_stations, Mx_stations, Mz_stations, T_stations
