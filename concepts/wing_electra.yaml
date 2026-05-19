@@ -10,3 +10,4 @@ psi : 0.007
 airfoils:
   - null
 ld: 8
+wing_type: cantilever

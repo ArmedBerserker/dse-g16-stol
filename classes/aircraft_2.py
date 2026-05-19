@@ -116,6 +116,9 @@ class Weights:
     m_energy : float | dict[float]
     m_fuel: float | None
     m_battery: float | None
+    m_piston: float | None 
+    m_supercap: float | None 
+    m_turboprop: float | None
 
     def __str__(self):
         text = "The weights are:\n"
@@ -138,6 +141,7 @@ class Wing:
     psi : float | None = None
     airfoils : list[str] = None
     ld : float | None = None
+    wing_type: float | None = None
     # ADD WHATEVER IS NEEDED
 
     def __str__(self):
@@ -179,6 +183,11 @@ class Engine:
     Phi : float | None
     eng_vdist_from_wing : float | None
     eng_above_wing : bool
+    eng_y_pos_fuselage: float | None
+    eng_x_pos: str | None
+    n_fuel_tanks: int | None
+    x_cg_fuel_tanks_c_r: float | None
+    fuel_type: str | None
 
     def __post_init__(self):
         self.eta_1 = m.prod(self.eta_1)

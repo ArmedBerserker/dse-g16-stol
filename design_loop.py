@@ -26,7 +26,7 @@ from typing import Callable
 import numpy as np
 
 from classes.aircraft_2 import Aircraft, loader
-from class1 import c1_m, matching_diagram, c2_drag, c1_landing_gear
+from class1 import c1_m, matching_diagram, c2_drag, c1_landing_gear, c1_wing_planform
 from c2_m import W_oe_and_cg_from_nose, W_to_new, loading_diagram, x_cg_structural_from_nose, overlay_wing_pos_and_scissor_plot
 from lookups.consts import *
 
@@ -70,6 +70,12 @@ def compute_aerodynamics(ac: Aircraft) -> Aircraft:
     Step 1 — update aerodynamic coefficients and L/D from current geometry.
     Replace the body with your aero model.
     """
+    # Wing planform
+    c1_wing_planform.size_wing_planform(ac)
+    # HLD sizing
+
+    # Lift and drag params?
+
     # ── placeholder logic ────────────────────────────────────────────────────
     # e.g. ac.wing.ld = your_aero_module.compute_ld(ac.wing, ac.mission)
     # e.g. ac.wing.c_f = your_aero_module.compute_cf(ac.wing)

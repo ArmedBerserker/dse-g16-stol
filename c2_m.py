@@ -167,7 +167,7 @@ def W_to(ac: Aircraft, w_oe, w_f, w_pl, w_crew = 0, update_ac: bool = False):
 def W_oe_and_cg_from_nose(ac: Aircraft, x_le_w, x_le_ht, x_le_vt, update_ac: bool = False, 
                           pie_chart_output_path: str = None, show_pie_chart: bool = False, 
                           struc_pie_chart_output_path: str = None, struc_show_pie_chart: bool = False) -> tuple:
-    w_power = W_pwr(ac)
+    w_power, x_cg_pwr = W_pwr_and_x_cg_from_nose(ac)
     w_mlg, w_nlg = W_gear(ac)
     w_ht, w_vt = W_emp(ac)
     wwing = W_wing(ac)
@@ -176,7 +176,7 @@ def W_oe_and_cg_from_nose(ac: Aircraft, x_le_w, x_le_ht, x_le_vt, update_ac: boo
     w_structure = sum(wwing, w_ht, w_vt, wfus, wnac, w_mlg, w_nlg)
     w_fxeq, x_cg_fxeq = W_feq_and_cg_from_nose(ac)
     W_oe = w_structure + w_power + w_fxeq
-    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, x_le_w, x_le_vt, x_le_ht, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr_from_nose(ac))
+    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, x_le_w, x_le_vt, x_le_ht, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr)
     if update_ac:
         ac.weights.m_empty = W_oe
         ac.weights.x_cg_oew = x_cg_oe
@@ -279,15 +279,20 @@ def W_to_new(ac: Aircraft, x_le_w, x_le_ht, x_le_vt,
             plt.show()
     return W_to, W_F, ac
 
-def W_pwr(ac: Aircraft):
-    P_to = ac.engine.power_to / HP_TO_W
-    W_eng = ... / LBS_TO_KG  # Weight of one engine in lbs (from manufacturer)
-    N_e = ac.engine.count
+def W_pwr_and_x_cg_from_nose(ac: Aircraft):
+    x_le = ...
     alpha_p_id = ac.engine.alpha_p_id
+    P_to = ac.engine.power_to / HP_TO_W
+    W_piston = ac.weights.m_piston
+    W_supercap = ac.weights.m_supercap
+    W_eng = ac.weights.m_turboprop / LBS_TO_KG
+    if alpha_p_id == 'piston':
+        W_eng = W_piston / LBS_TO_KG
+    N_e = ac.engine.count
     W_fuel = ac.weights.m_fuel
-    Fuel_type = ...  # Check if avgas or Jet-A1 or other
-    N_t = ... # Number of separate fuel tanks
-    INT = ...  # Fraction of fuel tanks that are intergral
+    Fuel_type = ac.engine.fuel_type  # Check if avgas or Jet-A1 or other
+    N_t = ac.engine.n_fuel_tanks # Number of separate fuel tanks
+    INT = 1.0  # Fraction of fuel tanks that are intergral
     # W_pwr = W_eng + W_ai + W_prop + W_fs + W_p + W_batt = W_batt + W_pwr1 + W_fs (fuel system)
     
     # USAF - Roskam eqn 6.3
@@ -304,7 +309,12 @@ def W_pwr(ac: Aircraft):
     
     elif alpha_p_id == 'hydrogen':  # NOTE: insert method of fixed equipment weight
         W_fs = ...
-    return W_pwr1 + W_fs + ac.weights.m_battery
+    
+    if ac.engine.eng_x_pos == 'le':
+        nac_y = ac.fuselage.width / 2 + ac.engine.eng_y_pos_fuselage
+        x_cg_pwr1 = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, nac_y, x_le)
+    x_cg = (W_pwr1 * x_cg_pwr1 + W_fs * (x_le + ac.wing.c_root * ac.engine.x_cg_fuel_tanks_c_r) + W_supercap * x_le) / (W_pwr1 + W_supercap + W_fs)
+    return (W_pwr1 + W_supercap + W_fs), x_cg
 
 def W_feq_and_cg_from_nose(ac: Aircraft):
     W_to = ac.weights.m_takeoff / LBS_TO_KG
@@ -334,12 +344,12 @@ def W_feq_and_cg_from_nose(ac: Aircraft):
     W_feq = np.sum(Weights)
 
     # CG from nose - *indicated source = https://archive.aoe.vt.edu/mason/Mason_f/M96SC02.pdf 
-    c_r_w = ...
-    taper_w = ...
-    b_w = ...
+    c_r_w = ac.wing.c_root
+    taper_w = ac.wing.taper_ratio
+    b_w = ac.wing.span
     b_ht = ...
     b_vt = ...
-    w_sweep_c_4_deg = ...
+    w_sweep_c_4_deg = ac.wing.sweep
     x_le_w = ...  # Wing root chord LE distance from nose
     x_le_ht = ...  # HT root chord LE distance from nose
     x_le_vt = ...  # VT root chord LE distance from nose
@@ -371,21 +381,20 @@ def W_feq_and_cg_from_nose(ac: Aircraft):
     return W_feq, x_cg_feq
 
 def W_wing(ac: Aircraft, update_ac: bool = False):
-
+    w = ac.wing
     W_to = ac.weights.m_takeoff / LBS_TO_KG
-    S = ac.wing.area * M2_TO_F2
+    S = w.area * M2_TO_F2
     n_ult = ...  # NOTE: add later
-    A = ac.wing.aspect_ratio
-    t_c_max = ...
-    sweep_c_4_deg = ...
-    taper = ac.wing.taper_ratio
+    A = w.aspect_ratio
+    t_c_max = w.t_c_max
+    sweep_c_4_deg = w.sweep
+    taper = w.taper_ratio
     V_h = ...  # NOTE: add later: maximum level speed at sealevel in kts
-    wing_type = ...  # 'cantilever' or not
-    b = ac.wing.span / FT_TO_M
-    c_r = ... / FT_TO_M
+    wing_type = w.wing_type  # 'cantilever' or not
+    b = w.span / FT_TO_M
+    c_r = w.c_root / FT_TO_M
     t_r = t_c_max * c_r  # max thickness of wing root chord in ft
-    sweep_le_rad = np.arctan(np.tan(np.rad2deg(sweep_c_4_deg)) + c_r / 2 / b * (1 + taper))
-    sweep_c_2_rad = np.arctan(np.tan(sweep_le_rad) - c_r / b * (1 + taper))
+    sweep_c_2_deg = w.sweep_c_2_deg  # np.arctan(np.tan(sweep_le_rad) - c_r / b * (1 + taper))
 
     # Cessna
     if wing_type == 'cantilever':
@@ -395,10 +404,10 @@ def W_wing(ac: Aircraft, update_ac: bool = False):
         W_wing_c = 0.002933 * (S ** 1.018) * (A ** 2.473) * (n_ult ** 0.611)
 
     # USAF
-    W_wing_u = 96.948 * (((W_to * n_ult * 1e-5) ** 0.65) * ((A / np.cos(np.rad2deg(sweep_c_4_deg))) ** 0.57) * ((S / 100) ** 0.61) * (((1 + taper) / (2 * t_c_max)) ** 0.36) * ((1 + V_h / 500) ** 0.5)) ** 0.993
+    W_wing_u = 96.948 * (((W_to * n_ult * 1e-5) ** 0.65) * ((A / np.cos(np.deg2rad(sweep_c_4_deg))) ** 0.57) * ((S / 100) ** 0.61) * (((1 + taper) / (2 * t_c_max)) ** 0.36) * ((1 + V_h / 500) ** 0.5)) ** 0.993
 
     # Torenbeek
-    W_wing_t = 0.00125 * W_to * ((b / np.cos(sweep_c_2_rad)) ** 0.75) * (1 + (6.3 * np.cos(sweep_c_2_rad) / b) ** 0.5) * (n_ult ** 0.55) * (b * S / (t_r * W_to * np.cos(sweep_c_2_rad)))**0.3
+    W_wing_t = 0.00125 * W_to * ((b / np.cos(np.deg2rad(sweep_c_2_rad))) ** 0.75) * (1 + (6.3 * np.cos(np.deg2rad(sweep_c_2_rad)) / b) ** 0.5) * (n_ult ** 0.55) * (b * S / (t_r * W_to * np.cos(np.deg2rad(sweep_c_2_rad))))**0.3
 
     return (W_wing_c + W_wing_u + W_wing_t) / 3
 
@@ -518,11 +527,12 @@ def x_cg_structural_from_nose(ac: Aircraft,
                             x_le_vt: float,
                             x_le_ht: float,
                             update_ac=False):
+    w = ac.wing
     l_fus = ac.fuselage.length
     w_sweep_c_4_deg = ac.wing.sweep
     ht_sweep_c_4_deg = ...
     vt_sweep_c_4_deg = ...
-    w_c_r = ...
+    w_c_r = w.c_root
     ht_c_r = ...
     vt_c_r = ...
     w_taper = ac.wing.taper_ratio
@@ -535,7 +545,8 @@ def x_cg_structural_from_nose(ac: Aircraft,
     x_c_rear_spar = ...
     t_tail_condition: bool = ...  # is it a t-tail or not
     l_nacelle = ...
-    nac_mount_dist = ...  # distance nacelle is mounted behind le of wing (front of nacelle)
+    if ac.engine.eng_x_pos == 'le':
+        nac_mount_dist = 0  # distance nacelle is mounted behind le of wing (front of nacelle)
     x_nlg = ...
     x_mlg = ...
     
@@ -570,10 +581,10 @@ def x_cg_structural_from_nose(ac: Aircraft,
     if n_eng % 2 !=0:
         raise ValueError(f"Number of engines = {n_eng}, need an even number")
     if n_eng == 2:
-        y_pos_eng: float = ...
+        y_pos_eng: float = ac.engine.eng_y_pos_fuselage + ac.fuselage.width / 2
         x_cg_nac = 0.4 * l_nacelle + x_pos_le_along_span_from_nose(LE_sweep_deg(w_sweep_c_4_deg, w_c_r, b_w, w_taper), y_pos_eng, x_le_w) + nac_mount_dist
     elif n_eng > 2:
-        y_pos_eng: list = ...  # NOTE: get a list/array or someting with engine y-positions for one side
+        y_pos_eng: list = ac.engine.eng_y_pos_fuselage + ac.fuselage.width / 2  # NOTE: get a list/array or someting with engine y-positions for one side
         if len(y_pos_eng) != n_eng // 2:
             raise ValueError(
                 f"Error: len(y_pos_eng) = {len(y_pos_eng)}, "
@@ -599,19 +610,15 @@ def x_cg_structural_from_nose(ac: Aircraft,
         ac.weights.x_cg_structural = x_cg_data
     return x_cg_struc, x_cg_data, ac
 
-def x_cg_pwr_from_nose(ac: Aircraft):
-    ...
-
-def convert_x_cg_from_nose_to_lemac_frac_mac(x_cg_nose, ac: Aircraft):
-    c_r = ...
+def convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_nose, ac: Aircraft):
+    c_r = ac.wing.c_root
     taper = ac.wing.taper_ratio
     sweep_c_4 = ac.wing.sweep
-    x_le = ...
     b = ac.wing.span
     mac = 2 * c_r / 3 * (1 + taper + taper**2) / (1 + taper)
     le_sweep_deg = LE_sweep_deg(sweep_c_4, c_r, b, taper)
     y_span_mac = (c_r - mac) / (2 / b * c_r * (1 - taper))
-    x_lemac = x_pos_le_along_span_from_nose(le_sweep_deg, y_span_mac, x_le)
+    x_lemac = x_pos_le_along_span_from_nose(le_sweep_deg, y_span_mac, x_le_w)
     return (x_cg_nose - x_lemac) / mac
 
 def update_m_and_cg(m_current, cg_current, added_m, added_cg):
@@ -620,12 +627,13 @@ def update_m_and_cg(m_current, cg_current, added_m, added_cg):
     return new_m, new_cg
 
 def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath=None, update_ac_cgs = False):
+    c_r = ac.wing.c_root
     m_cargo = ac.weights.m_cargo
     x_le_ht = ...
     x_le_vt = ...
     x_cg_seats = ...  # Front to back cg positions of seats (length 3)
     assert len(x_cg_seats) == 3, f"There must be 3 seat cg positions, {len(x_cg_seats)} were given"
-    x_cg_seats = convert_x_cg_from_nose_to_lemac_frac_mac(x_cg_seats, ac)
+    x_cg_seats = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_seats, ac)
     n_pax = ...
     m_pax = ac.weights.m_pax
     n_rows = n_pax / len(x_cg_seats)
@@ -633,14 +641,14 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     n_aisle = ...
     n_middle = ...
     m_fuel = ac.weights.m_fuel
-    x_cg_fuel_tanks = ...
-    x_cg_fuel_tanks = convert_x_cg_from_nose_to_lemac_frac_mac(x_cg_fuel_tanks, ac)
+    x_cg_fuel_tanks = ac.engine.x_cg_fuel_tanks_c_r * c_r + x_le_w
+    x_cg_fuel_tanks = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_fuel_tanks, ac)
     fuel_tanks_mass_fracs = ...
     n_fuel_tanks = len(x_cg_fuel_tanks)
     m_fuel_tanks = fuel_tanks_mass_fracs * m_fuel
 
     x_cg_cargo_holds = ...
-    x_cg_cargo_holds = convert_x_cg_from_nose_to_lemac_frac_mac(x_cg_cargo_holds, ac)
+    x_cg_cargo_holds = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_cargo_holds, ac)
     cargo_mass_frac = ...  # list same length as x_cg_cargo_holds with corresponding fractions of cargo mass held at specific cg. point
 
 
@@ -653,9 +661,9 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     # OEW
     W_oe, x_cg_oe = W_oe_and_cg_from_nose(ac, x_le_w, x_le_ht, x_le_vt)
     W_plot_ftb.append(W_oe)
-    x_cg_lemac_plot_ftb.append(convert_x_cg_from_nose_to_lemac_frac_mac(x_cg_oe, ac))
+    x_cg_lemac_plot_ftb.append(convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_oe, ac))
     W_plot_btf.append(W_oe)
-    x_cg_lemac_plot_btf.append(convert_x_cg_from_nose_to_lemac_frac_mac(x_cg_oe, ac))
+    x_cg_lemac_plot_btf.append(convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_oe, ac))
 
     # Cargo/PL
     cargo_masses = cargo_mass_frac * m_cargo
@@ -761,17 +769,17 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     A = ac.wing.aspect_ratio
     b = ac.wing.span
     S = ac.wing.area
-    c_r = 
+    c_r = ac.wing.c_root
     taper = ac.wing.taper_ratio
     S_net = Snet(S, b_f, taper, b, c_r)
     sweep_c_4_deg = ac.wing.sweep
-    sweep_c_2_deg = sweep_at_x_c_deg(LE_sweep_deg(sweep_c_4_deg, c_r, b, taper), c_r, b, taper, x_c=0.5)
-    sweep_LE_deg = LE_sweep_deg(sweep_c_4_deg, c_r, b, taper)
-    C_m0_airfoil = 
+    sweep_c_2_deg = ac.wing.sweep_c_2_deg  # sweep_at_x_c_deg(LE_sweep_deg(sweep_c_4_deg, c_r, b, taper), c_r, b, taper, x_c=0.5)
+    sweep_LE_deg = ac.wing.sweep_LE_deg  # LE_sweep_deg(sweep_c_4_deg, c_r, b, taper)
+    C_m0_airfoil = ac.wing.cm_c4
     C_L_0 =  # CL of flapped wing at alpha = 0
     Delta_Cl_max =  # the airfoil lift coefficient increase due to flap extension at landing condition (estimated in the wing design module)
     C_L_LD = 
-    mac = 2 * c_r / 3 * (1 + taper + taper**2) / (1 + taper)
+    mac = ac.wing.MAC
     mgc = S/b
 
     # HLD
@@ -793,7 +801,9 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     m_tv = height_ht * 2 / b
 
     # Nacelle params
-    nac_mount_dist =  # Distance front of nacelle from nose
+    nac_y = b_f / 2 + ac.engine.eng_y_pos_fuselage
+    if ac.engine.eng_x_pos == 'le':
+        nac_mount_dist = x_pos_le_along_span_from_nose(sweep_LE_deg, nac_y, x_le)  # Distance front of nacelle from nose
     l_fn = x_pos_le_along_span_from_nose(sweep_LE_deg, b_f/2, x_le)
     b_n =  # nacelle diameter (max)
     x_mac_c_4 = x_pos_le_along_span_from_nose(sweep_LE_deg, y_pos_at_chord_length(c_r, taper, mac, b), x_le) + 0.25 * mac
@@ -889,7 +899,7 @@ def overlay_wing_pos_and_scissor_plot(ac: Aircraft,
                                       x_le_w_fus_length_arr: np.ndarray,
                                       output_filepath: str = None,
                                       show_plot: bool = False):
-    x_cg_lemac_mac_plot = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length_arr * ac.fuselage.length, ac)
+    x_cg_lemac_mac_plot = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length_arr * ac.fuselage.length, x_le_w_fus_length_arr * ac.fuselage.length, ac)
 
     fwd_cg, aft_cg, ac = loading_diagram(x_le_w_fus_length_arr * ac.fuselage.length, ac)
     x_le_w_l_fus = x_le_w_fus_length_arr

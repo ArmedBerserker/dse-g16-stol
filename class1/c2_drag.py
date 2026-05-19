@@ -116,7 +116,7 @@ def C_D0(ac: Aircraft,
     b = ac.wing.span
     sweep_c_4_deg = ac.wing.sweep
     taper = ac.wing.taper_ratio
-    c_r = 
+    c_r = ac.wing.c_root
     b_f = ac.fuselage.width
     l_f = ac.fuselage.length
     c_w_e = exposed_wing_mgc(S, b, taper, c_r, b_f)
@@ -125,13 +125,13 @@ def C_D0(ac: Aircraft,
     R_wf = Rwf(M, R_N_fus)
     C_f_w = C_f(R_N=density * speed * c_w_e / mu, M=M)
     l_dash = 1.2
-    t_c_max =  # at mean geometric chord
+    t_c_max = ac.wing.t_c_max # at mean geometric chord
     x_c_t_c_max = 
     if x_c_t_c_max < 0.3:
         l_dash = 2.0
-    t_c_r = 
-    t_c_t = 
-    sweep_t_c_max_deg = sweep_at_x_c_deg(LE_sweep_deg(sweep_c_4_deg, c_r, b, taper), c_r, b, taper, x_c=x_c_t_c_max)
+    t_c_r = t_c_max
+    t_c_t = t_c_max
+    sweep_t_c_max_deg = sweep_at_x_c_deg(ac.wing.sweep_LE_deg, c_r, b, taper, x_c=x_c_t_c_max)
     R_LS = interp_value(pd.read_csv('lookups/roskam_p6_fig_4_2_rls.csv'), np.cos(np.deg2rad(sweep_t_c_max_deg)), 'cos(quarter chord)', 'lifting surface correction', log_x=False)
     S = ac.wing.area
 
@@ -152,7 +152,7 @@ def C_D0(ac: Aircraft,
     S_wet_ht = 
     ht_t_c_max = 
     ht_x_c_t_c_max = 
-    ht_sweep_t_c_max_deg = sweep_at_x_c_deg(LE_sweep_deg(ht_sweep_c_4_deg, c_r_ht, b_ht, taper_ht), c_r_ht, b_ht, taper_ht, x_c=ht_x_c_t_c_max)
+    ht_sweep_t_c_max_deg = sweep_at_x_c_deg(ac.wing.sweep_LE_deg, c_r_ht, b_ht, taper_ht, x_c=ht_x_c_t_c_max)
     R_LS_ht = interp_value(pd.read_csv('lookups/roskam_p6_fig_4_2_rls.csv'), np.cos(np.deg2rad(ht_sweep_t_c_max_deg)), 'cos(quarter chord)', 'lifting surface correction', log_x=False)
     b_f_ht =  # fuselage width at ht intersection position
     R_N_ht = density * speed * exposed_wing_mgc(S_ht, b_ht, taper_ht, c_r_ht, b_f_ht) / mu
@@ -226,7 +226,21 @@ def C_D0(ac: Aircraft,
         y_end_flap = 
         cf_c =  # flap chord length / chord length
         flap_deflection =  # degrees
-        D_CD_flap_stuff =  # See eqn 4.71 Roskam VI
+        if flap_type = 'split':  # 'split' or 'plain' or 'slotted' 'fowler' or 'krueger'
+            fd = closest_value(t_c_max, values=[10, 20, 30])
+            D_CD_flap_stuff = interp_value(pd.read_csv(f'lookups/t_c_0.{fd}.csv'), cf_c, f'cf/c ({flight_condition})', f'dCdp ({flight_condition})', log_x=False)
+        elif flap_type == 'plain':
+            fd = closest_value(flap_deflection, values=[15, 60])
+            D_CD_flap_stuff = interp_value(pd.read_csv(f'lookups/d_f_{fd}.csv'), cf_c, 'cf/c', 'dCdp', log_x=False)
+        elif flap_type == 'slotted':
+            fd = closest_value(cf_c, values=[0.1, 0.2, 0.3])
+            D_CD_flap_stuff = interp_value(pd.read_csv('lookups/cf_c_comb2.csv'), flap_deflection, 'df', f'dCdp (cf={fd}0)', log_x=False)
+        elif flap_type == 'fowler':
+            fd = closest_value(cf_c, values=[0.1, 0.2, 0.3, 0.4])
+            D_CD_flap_stuff = interp_value(pd.read_csv('lookups/roskam_p6_fig_4_48.csv'), flap_deflection, f'df(cf/c={fd})', f'dCdp(cf/c={fd})', log_x=False)
+        elif flap_type == 'krueger':
+            D_CD_flap_stuff = wing * (cf_c * np.cos(np.deg2rad(flap_deflection)) + 1)
+        D_CD_flap_stuff =   # See eqn 4.71 Roskam VI
         flap_profile = D_CD_flap_stuff * np.cos(np.deg2rad(sweep_c_4_deg)) * S_wf(y_start_flap, y_end_flap, taper, c_r, b) / S
 
         b_fi_b = y_start_flap * 2 / b
