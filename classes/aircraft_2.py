@@ -150,35 +150,22 @@ class Wing:
 
 @dataclass
 class Fuselage:
-    length: float
-    span: float
-    height: float
-    wetted_area: float
+    wall_thickness: float
+    floor_thickness: float
+    aisle_height: float
+    top_compartment_height: float
 
+    clearance: float
+    arm_rest_width: float
     seat_width: float
     aisle_width: float
-    ailse_height: float
-    clearance: float
-    seat_pitch: float
-    wall_thickness: float
-    compartment_width: float 
-    compartment_height: float
-    back_storage_width: float
-    back_storage_heigt: float
-    num_seats: int
-    floor_thickness: float
-    under_compartment_storage_height: float 
+    top_compartment_width: float
 
-    cockpit_length: float
-    divider: float
+    back_storage_width: float
+    back_storage_height: float
 
     tail_cone_fuselage_ratio: float
-    tail_upsweep_taildragger: float
-    tail_upsweep_tricycle: float
     approach_angle: float
-    nose_cone_length: float
-    window_angle: float
-    emergency_exit_width: float
 
 
     def __str__(self):
