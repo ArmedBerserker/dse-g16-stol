@@ -239,13 +239,13 @@ def plot_sensitivity_mesh(df, output_filepath):
         )
 
         # label at end
-        last = sub.iloc[-6]
+        last = sub.iloc[0]
 
         ax.text(
             last['W/S']-10,
             last['W/P'],
             f'A={A:.1f}',
-            fontsize=8
+            fontsize=11
         )
 
     # -------------------------------------------------
@@ -274,15 +274,15 @@ def plot_sensitivity_mesh(df, output_filepath):
             last['W/S'],
             last['W/P'],
             f'$C_{{max_{{LD}}}}$={CL:.2f}',
-            fontsize=8
+            fontsize=11
         )
 
     # W_P_ref = [0.054147611,0.075714426,0.060130048,0.059649008,0.067577078,0.057702788,0.068512198,0.079514477,0.071580563,0.070699017,0.063456392]
     # W_S_ref = [1969.879518,972.8764492,1426.223077,1341.383441,1073.87574,1467.486818,1099.141935,921.0838509,982.8055215,1369.249615,722.3727273]
 
     # ax.scatter(W_S_ref, W_P_ref, label='Reference aircraft datapoints', color='black')
-    ax.set_xlabel('W/S')
-    ax.set_ylabel('W/P')
+    ax.set_xlabel('W/S', fontsize=14)
+    ax.set_ylabel('W/P', fontsize=14)
     # ax.legend(True)
 
     ax.set_title('Matching Diagram Sensitivity Mesh')
@@ -896,9 +896,9 @@ def run_concepts_c1(ac_lst: list[object],
 
 
 if __name__ == '__main__':
-    file_path = "yamls/aircraft.yaml"
-    target_class = Aircraft
-    ac = loader.load(file_path, target_class)
+    # file_path = "yamls/aircraft.yaml"
+    # target_class = Aircraft
+    # ac = loader.load(file_path, target_class)
 
     ac1 = Aircraft('Boosted_piston_taildragger',
                   loader.load('concepts/reqs_nturb.yaml', Requirements),
@@ -975,33 +975,35 @@ if __name__ == '__main__':
     # ac_lst = [ac1, ac2, ac3, ac4, ac5, ac6, ac7, ac8, ac9, ac10]
     ac_lst = [ac1, ac2, ac3, ac4, ac6, ac7, ac8, ac9]
 
-    run_concepts_c1(ac_lst, output_filepath=f'concepts/test_c1_results.csv')
-    # # Sensitivity study matching plot output path:
-    # output_dir = Path("outputs")
-    # folder = output_dir / 'Matching_concepts'
-    # folder.mkdir(parents=True, exist_ok=True)
-    # output_path1 = folder / "Sensitivity_study_graph_A.png"
-    # output_path2 = folder / "Sensitivity_study_graph_CL.png"
-    # output_path3 = folder / "Mesh_sensitivity_study_graph.png"
+    # run_concepts_c1(ac_lst, output_filepath=f'concepts/test_c1_results.csv')
+    # Sensitivity study matching plot output path:
+    output_dir = Path("outputs")
+    folder = output_dir / 'Matching_concepts'
+    folder.mkdir(parents=True, exist_ok=True)
+    output_path1 = folder / "Sensitivity_study_graph_A.png"
+    output_path2 = folder / "Sensitivity_study_graph_CL.png"
+    output_path3 = folder / "Mesh_sensitivity_study_graph.png"
 
-    # folder1 = folder / 'Sensitivity_study_graphs'
-    # folder1.mkdir(parents=True, exist_ok=True)
+    folder1 = folder / 'Sensitivity_study_graphs'
+    folder1.mkdir(parents=True, exist_ok=True)
 
-    # A_values = np.arange(6, 9, 1)
-    # CL_values = np.arange(1.8, 3.3, 0.1)
+    A_values = np.arange(5, 13, 1)
+    CL_values = np.arange(1.8, 3.3, 0.1)
 
-    # df_mesh = sensitivity_mesh(
-    #     ac,
-    #     type_to_use=ac.requirements.general['standard_type'],
-    #     W_S_plot=np.arange(1,1500),
-    #     W_P_or_T_W_plot=np.arange(0.00000001,0.15,0.0001),
-    #     output_filepath_base="outputs/test",
-    #     A_values=A_values,
-    #     CL_values=CL_values
-    # )
+    ac = ac1
 
-    # df_mesh.to_csv("outputs/sensitivity_mesh.csv", index=False)
-    # plot_sensitivity_mesh(df_mesh, output_path3)
+    df_mesh = sensitivity_mesh(
+        ac,
+        type_to_use=ac.requirements.general['standard_type'],
+        W_S_plot=np.arange(1,1500),
+        W_P_or_T_W_plot=np.arange(0.00000001,0.15,0.0001),
+        output_filepath_base="outputs/test",
+        A_values=A_values,
+        CL_values=CL_values
+    )
+
+    df_mesh.to_csv("outputs/sensitivity_mesh.csv", index=False)
+    plot_sensitivity_mesh(df_mesh, output_path3)
 
     # file_paths_A, file_paths_CL = run_sensitivity_study_save_results(aircraft_obj=[ac], concept_IDs=['CP_test'], n_steps=2)
     # plot_sensitivity_study(file_paths_A, file_paths_CL, output_path1, param='A')

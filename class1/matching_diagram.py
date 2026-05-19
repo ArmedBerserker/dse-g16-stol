@@ -546,9 +546,9 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
 
 if __name__ == '__main__':
     # file_path = "dse-g16-stol/yamls/aircraft.yaml"
-    file_path = BASE_DIR.parent / "yamls" / "aircraft.yaml"  # uses BASE_DIR you defined above
-    target_class = Aircraft
-    ac = loader.load(file_path, target_class)
+    # file_path = BASE_DIR.parent / "yamls" / "aircraft.yaml"  # uses BASE_DIR you defined above
+    # target_class = Aircraft
+    # ac = loader.load(file_path, target_class)
 
     ac1 = Aircraft('Boosted_piston_taildragger',
                   loader.load('concepts/reqs_nturb.yaml', Requirements),
@@ -557,13 +557,13 @@ if __name__ == '__main__':
                   loader.load('concepts/wing_courier.yaml', Wing),
                   loader.load('yamls/fuselage.yaml', Fuselage),
                   loader.load('concepts/engine_piston_b.yaml', Engine))
-    # ac2 = Aircraft('Piston_hybrid_taildragger',
-    #               loader.load('concepts/reqs_nturb.yaml', Requirements),
-    #               loader.load('yamls/mission.yaml', Mission),
-    #               loader.load('yamls/weights.yaml', Weights),
-    #               loader.load('concepts/wing_courier.yaml', Wing),
-    #               loader.load('yamls/fuselage.yaml', Fuselage),
-    #               loader.load('concepts/engine_piston_e.yaml', Engine))
+    ac2 = Aircraft('Piston_hybrid_taildragger',
+                  loader.load('concepts/reqs_nturb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_courier.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_piston_e.yaml', Engine))
     ac3 = Aircraft('Boosted_turboprop_taildragger',
                   loader.load('concepts/reqs_turb.yaml', Requirements),
                   loader.load('yamls/mission.yaml', Mission),
@@ -571,20 +571,20 @@ if __name__ == '__main__':
                   loader.load('concepts/wing_courier.yaml', Wing),
                   loader.load('yamls/fuselage.yaml', Fuselage),
                   loader.load('concepts/engine_tprop_b.yaml', Engine))
-    # ac4 = Aircraft('Turbine_hybrid_taildragger',
-    #               loader.load('concepts/reqs_turb.yaml', Requirements),
-    #               loader.load('yamls/mission.yaml', Mission),
-    #               loader.load('yamls/weights.yaml', Weights),
-    #               loader.load('concepts/wing_courier.yaml', Wing),
-    #               loader.load('yamls/fuselage.yaml', Fuselage),
-    #               loader.load('concepts/engine_turb_e.yaml', Engine))
-    # ac5 = Aircraft('H2_taildragger',
-    #               loader.load('concepts/reqs_nturb.yaml', Requirements),
-    #               loader.load('yamls/mission.yaml', Mission),
-    #               loader.load('yamls/weights.yaml', Weights),
-    #               loader.load('concepts/wing_courier.yaml', Wing),
-    #               loader.load('yamls/fuselage.yaml', Fuselage),
-    #               loader.load('concepts/engine_h2.yaml', Engine))
+    ac4 = Aircraft('Turbine_hybrid_taildragger',
+                  loader.load('concepts/reqs_turb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_courier.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_turb_e.yaml', Engine))
+    ac5 = Aircraft('H2_taildragger',
+                  loader.load('concepts/reqs_nturb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_courier.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_h2.yaml', Engine))
     ac6 = Aircraft('Boosted_piston_tricycle',
                   loader.load('concepts/reqs_nturb.yaml', Requirements),
                   loader.load('yamls/mission.yaml', Mission),
@@ -592,13 +592,13 @@ if __name__ == '__main__':
                   loader.load('concepts/wing_electra.yaml', Wing),
                   loader.load('yamls/fuselage.yaml', Fuselage),
                   loader.load('concepts/engine_piston_b.yaml', Engine))
-    # ac7 = Aircraft('Piston_hybrid_tricycle',
-    #               loader.load('concepts/reqs_nturb.yaml', Requirements),
-    #               loader.load('yamls/mission.yaml', Mission),
-    #               loader.load('yamls/weights.yaml', Weights),
-    #               loader.load('concepts/wing_electra.yaml', Wing),
-    #               loader.load('yamls/fuselage.yaml', Fuselage),
-    #               loader.load('concepts/engine_piston_e.yaml', Engine))
+    ac7 = Aircraft('Piston_hybrid_tricycle',
+                  loader.load('concepts/reqs_nturb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_electra.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_piston_e.yaml', Engine))
     ac8 = Aircraft('Boosted_turboprop_tricycle',
                   loader.load('concepts/reqs_turb.yaml', Requirements),
                   loader.load('yamls/mission.yaml', Mission),
@@ -606,23 +606,23 @@ if __name__ == '__main__':
                   loader.load('concepts/wing_electra.yaml', Wing),
                   loader.load('yamls/fuselage.yaml', Fuselage),
                   loader.load('concepts/engine_tprop_b.yaml', Engine))
-    # ac9 = Aircraft('Turbine_hybrid_tricycle',
-    #               loader.load('concepts/reqs_turb.yaml', Requirements),
-    #               loader.load('yamls/mission.yaml', Mission),
-    #               loader.load('yamls/weights.yaml', Weights),
-    #               loader.load('concepts/wing_electra.yaml', Wing),
-    #               loader.load('yamls/fuselage.yaml', Fuselage),
-    #               loader.load('concepts/engine_turb_e.yaml', Engine))
-    # ac10 = Aircraft('H2_tricycle',
-    #               loader.load('concepts/reqs_nturb.yaml', Requirements),
-    #               loader.load('yamls/mission.yaml', Mission),
-    #               loader.load('yamls/weights.yaml', Weights),
-    #               loader.load('concepts/wing_electra.yaml', Wing),
-    #               loader.load('yamls/fuselage.yaml', Fuselage),
-    #               loader.load('concepts/engine_h2.yaml', Engine))
-    for ac in [ac1, ac3, ac6, ac8]:
-        data_cr = plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=True, requirement_to_meet='cruise')
-        data_to = plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=True, requirement_to_meet='to')
+    ac9 = Aircraft('Turbine_hybrid_tricycle',
+                  loader.load('concepts/reqs_turb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_electra.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_turb_e.yaml', Engine))
+    ac10 = Aircraft('H2_tricycle',
+                  loader.load('concepts/reqs_nturb.yaml', Requirements),
+                  loader.load('yamls/mission.yaml', Mission),
+                  loader.load('yamls/weights.yaml', Weights),
+                  loader.load('concepts/wing_electra.yaml', Wing),
+                  loader.load('yamls/fuselage.yaml', Fuselage),
+                  loader.load('concepts/engine_h2.yaml', Engine))
+    for ac in [ac1, ac3, ac6, ac8, ac2, ac4, ac5, ac7, ac9, ac10]:
+        data_cr = plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=False, requirement_to_meet='cruise')
+        data_to = plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=False, requirement_to_meet='to')
 
         print(f" \n Aircraft: {ac.name}:")
         print(f" \n Cruise data: \n {data_cr}")
