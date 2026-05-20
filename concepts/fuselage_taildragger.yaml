@@ -47,3 +47,6 @@ x_pos_seats: [0,0,0]  # m
 x_cargo_holds: null # list if multiple, if multiple uncomment the line below for lift of mass fractions (sum to 1)
 # mass_frac_cargo_holds: null
 n_pax: 6
+n_window_seats: 2
+n_middle_seats: 0
+n_aisle_seats: 0

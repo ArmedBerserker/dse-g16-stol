@@ -198,6 +198,9 @@ class Fuselage:
     x_cargo_holds: list
     mass_frac_cargo_holds: list
     n_pax: int
+    n_window_seats: int
+    n_middle_seats: int
+    n_aisle_seats: int
 
 
     def __str__(self):
