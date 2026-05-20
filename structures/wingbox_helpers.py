@@ -143,3 +143,22 @@ def compute_internal_loads(y_stations, chords, T_c4, Fn_aero, Ft_aero, m_prime, 
     Mx_stations * n, Mz_stations *n , T_stations * n)
 
     return V_stations, Mx_stations, Mz_stations, T_stations
+
+def check_buckle(h_spar, tspar_m, V_stations, E_spar):
+    nu = 0.33  # Standard Poisson's ratio for aerospace aluminum alloys
+    ks = 5.35  # Buckling coefficient for a long simply-supported plate in shear
+
+    # Calculate actual average shear stress (assuming both spars are almost the same height)
+    A_web = 2 * tspar_m * h_spar
+    tau_actual = np.abs(V_stations) / A_web
+
+    # Calculate critical buckling stress
+    tau_critical = ks * ((np.pi ** 2 * E_spar) / (12 * (1 - nu ** 2))) * (tspar_m / h_spar) ** 2
+
+    # Compute Margin of Safety
+    with np.errstate(divide='ignore', invalid='ignore'):
+        spar_margins = (tau_critical / tau_actual) - 1
+        # Handle divide by zeros near the wingtip safely
+        spar_margins = np.nan_to_num(spar_margins, nan=10.0, posinf=10.0)
+
+    return float(np.min(spar_margins))
