@@ -12,13 +12,13 @@ e_2 : null         # specific energy for source 2 [J/kg] (the constant item)
 Phi : 0            # power split ratio, P_b / (P_b + P_f)
 eng_vdist_from_wing_y_c : -0.21  # m (-ve = below)
 eng_above_wing : False
-eng_y_pos_fuselage: 1.25  # m
+eng_y_pos_fuselage: 1.42  # m
 eng_x_pos: le
 n_fuel_tanks: 2
 x_cg_fuel_tanks_c_r: 0.4
 fuel_type: Jet-A1
-engine_power_cruise: 208000  # watts
+engine_power_cruise: 550000  # watts
 super_cap_power: 60000  # watts
-power_cr: 157770  # watts
+power_cr: 177236  # watts
 power_to: 216730 # watts 
-prop_diameter: 1.778 m
+prop_diameter: 2.03 # m

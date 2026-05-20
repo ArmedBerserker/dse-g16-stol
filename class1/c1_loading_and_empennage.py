@@ -78,14 +78,17 @@ def size_empennage_planform(ac: Aircraft):
     # Calculate moment arms dynamically
     ht_moment_arm = x_h - x_cgaft
     vt_moment_arm = x_v - x_cgaft
+    ht['l_h'] = ht_moment_arm
     
     # Extract fixed constants from YAML
     V_h = ht['volume_coefficient']
     A_h = ht['aspect_ratio']
     taper_h = ht['taper_ratio']
+    sweep_h = ht['sweep']
     V_v = vt['volume_coefficient']
     A_v = vt['aspect_ratio']
     taper_v = vt['taper_ratio']
+    sweep_v = vt['sweep']
 
     # ---------------------------------------------------------
     # HORIZONTAL STABILIZER SIZING
@@ -96,7 +99,7 @@ def size_empennage_planform(ac: Aircraft):
     # 2. Update geometry dependent on the new area
     b_h = np.sqrt(A_h * S_h)
     c_r_h = 2 * ht.area / (ht.span * (1 + taper_h))
-    c_t_h = c_r_t * taper_h
+    c_t_h = c_r_h * taper_h
     
     MAC_h = (2 / 3) * c_r_h * (1 + taper_h + taper_h**2) / (1 + taper_h)
     y_MAC_h = (c_r_h - MAC_h) / (c_r_h * (1 - taper_h)) * (b_h / 2)
@@ -107,6 +110,7 @@ def size_empennage_planform(ac: Aircraft):
     ht['c_t_h'] = c_t_h
     ht['MAC_h'] = MAC_h
     ht['y_MAC_h'] = y_MAC_h
+    ht['sweep_LE_deg'] = np.rad2deg(np.arctan(np.tan(np.deg2rad(sweep_h)) + 0.5 * c_r_h / b_h * (1 - taper_h)))
 
     # ---------------------------------------------------------
     # VERTICAL STABILIZER SIZING
@@ -128,6 +132,7 @@ def size_empennage_planform(ac: Aircraft):
     vt['c_t_v'] = c_t_v
     vt['MAC_v'] = MAC_v
     vt['y_MAC_v'] = y_MAC_v
+    vt['sweep_LE_deg'] = np.rad2deg(np.arctan(np.tan(np.deg2rad(sweep_v)) + 0.5 * c_r_v / b_v * (1 - taper_v)))
 
 
 

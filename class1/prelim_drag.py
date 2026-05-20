@@ -91,6 +91,8 @@ def cd0(ac : Aircraft,
     f = 10 ** logf
 
     cd0 = f / (ac.wing.area * M2_TO_F2)
+
+    cd0 += 0.01
     
     return cd0
 

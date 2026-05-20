@@ -1,0 +1,29 @@
+flaps:
+  flap_type: 'slotted'
+  cdash_c:  # c'/c
+  cf_c: null
+  S_wf: null
+  y_flap_in: 1.125  # m
+  y_flap_out: 6.5  # m
+  ld_deflection: null  # deg
+  to_deflection: null  # deg
+ailerons:
+  y_aileron_in: 6.75  # m
+  y_aileron_out: 7.4  # m
+slats:
+  slat_type: 'slat'
+  y_slat_in: 1.125  # m
+  y_slat_out: 7.4  # m
+landing_lift:
+  CL_alpha:  # per deg
+  alpha_zero_lift:  # deg
+  CL_max: 
+  alpha_stall:  # deg
+  CL_LD: 
+take_off_lift:
+  CL_alpha:  # per deg
+  alpha_zero_lift:  # deg
+  CL_max: 
+  alpha_stall:  # deg
+  CL_TO:
+

@@ -1,5 +1,5 @@
 from classes.aircraft_2 import Aircraft
-from c2_m import Snet, LE_sweep_deg, sweep_at_x_c_deg, lift_slope, S_wf, closest_value
+from c2_m import Snet, LE_sweep_deg, sweep_at_x_c_deg, lift_slope, S_wf, closest_value, chord_at_y_span
 from lookups.consts import *
 import pandas as pd
 import numpy as np
@@ -95,13 +95,14 @@ def C_D0(ac: Aircraft,
         temp = Atm.temp
         density = Atm.density
     if flight_condition == 'take-off':
-        C_L = 
+        C_L = ac.hld_and_ailerons.take_off_lift['CL_TO']
         temp_shift = ac.requirements.take_off['to_temp_shift']
         alt = ac.requirements.take_off['to_altitude'] * FT_TO_M
         Atm = Atmosphere(alt, temp_shift)
         density = Atm.density
         mass_frac = ac.requirements.cruise['to_mass_frac']
         speed = np.sqrt(mass_frac * ac.weights.m_takeoff / (0.5 * density * C_L * S))
+        flap_deflection = ac.hld_and_ailerons.flaps['to_deflection']
     if flight_condition == 'take-off':
         temp_shift = ac.requirements.landing['la_temp_shift']
         alt = ac.requirements.landing['la_altitude'] * FT_TO_M
@@ -109,6 +110,7 @@ def C_D0(ac: Aircraft,
         density = Atm.density
         mass_frac = ac.requirements.landing['la_mass_frac']
         speed = 1.3 * ac.requirements.general['stall_speed'] * KTS_TO_MS
+        flap_deflection = ac.hld_and_ailerons.flaps['ld_deflection']
         
     # Wing
     mu = mu_air(temp)
@@ -138,42 +140,20 @@ def C_D0(ac: Aircraft,
     wing = CD0_w(R_wf, R_LS, C_f_w, l_dash, t_c_max, S_wet_wing(t_c_r, t_c_t, S, b_f, taper, b, c_r), S)  # R_wf * R_LS * C_f_w * (1 + l_dash * t_c_max + 100 * t_c_max**4) * S_wet_w / S
 
     # Fuselage
-    S_fus =  # max fuselage cross section area
-    S_b_fus = 
+    f = ac.fuselage
+    S_fus = f.max_cross_section_area  # max fuselage cross section area
+    S_b_fus = f.base_area
     fuselage = CD0_fuselage(density, speed, l_f, mu, S_fus, S_b_fus, S, M, R_N_fus=R_N_fus)
 
-    # HT
-    t_tail_condition: bool =  # t-tail or not
-    ht_sweep_c_4_deg = 
-    c_r_ht = 
-    taper_ht = 
-    b_ht = 
-    S_ht = 
-    S_wet_ht = 
-    ht_t_c_max = 
-    ht_x_c_t_c_max = 
-    ht_sweep_t_c_max_deg = sweep_at_x_c_deg(ac.wing.sweep_LE_deg, c_r_ht, b_ht, taper_ht, x_c=ht_x_c_t_c_max)
-    R_LS_ht = interp_value(pd.read_csv('lookups/roskam_p6_fig_4_2_rls.csv'), np.cos(np.deg2rad(ht_sweep_t_c_max_deg)), 'cos(quarter chord)', 'lifting surface correction', log_x=False)
-    b_f_ht =  # fuselage width at ht intersection position
-    R_N_ht = density * speed * exposed_wing_mgc(S_ht, b_ht, taper_ht, c_r_ht, b_f_ht) / mu
-    if not t_tail_condition:
-        R_N_ht *= np.sqrt(0.85)
-    C_f_ht = C_f(R_N_ht, M)
-    l_dash_ht = 1.2
-    if ht_x_c_t_c_max < 0.3:
-        l_dash_ht = 2.0
-    t_c_r_ht = 
-    t_c_t_ht = 
-    ht = CD0_w(R_wf=1.0, R_LS=R_LS_ht, C_f_w=C_f_ht, l_dash=l_dash_ht, t_c_max=ht_t_c_max, S_wet_w=S_wet_wing(t_c_r_ht, t_c_t_ht, S_ht, b_f_ht, taper_ht, b_ht, c_r_ht), S=S_ht)
-
     # VT
-    vt_sweep_c_4_deg = 
-    c_r_vt = 
-    taper_vt = 
-    b_vt = 
-    S_vt = 
-    vt_t_c_max = 
-    vt_x_c_t_c_max = 
+    vt_sweep_c_4_deg = ac.empennage.vertical_tail['sweep']
+    c_r_vt = vt['c_r_v']
+    c_t_vt = vt['c_t_v']
+    taper_vt = vt['taper_ratio']
+    b_vt = vt['b_v']
+    S_vt = vt['area']
+    vt_t_c_max = ac.empennage.vertical_tail['t_c_max']
+    vt_x_c_t_c_max = ac.empennage.vertical_tail['loc_t_c_max']
     vt_sweep_t_c_max_deg = sweep_at_x_c_deg(LE_sweep_deg(vt_sweep_c_4_deg, c_r_vt, b_vt, taper_vt), c_r_vt, b_vt, taper_vt, x_c=vt_x_c_t_c_max)
     R_LS_vt = interp_value(pd.read_csv('lookups/roskam_p6_fig_4_2_rls.csv'), np.cos(np.deg2rad(vt_sweep_t_c_max_deg)), 'cos(quarter chord)', 'lifting surface correction', log_x=False)
     b_f_vt =  # fuselage width at vt intersection position
@@ -181,9 +161,34 @@ def C_D0(ac: Aircraft,
     l_dash_vt = 1.2
     if vt_x_c_t_c_max < 0.3:
         l_dash_vt = 2.0
-    t_c_r_vt = 
-    t_c_t_vt = 
+    t_c_r_vt = vt_t_c_max
+    t_c_t_vt = vt_t_c_max
     vt = CD0_w(R_wf=1.0, R_LS=R_LS_vt, C_f_w=C_f_vt, l_dash=l_dash_vt, t_c_max=vt_t_c_max, S_wet_w=S_wet_wing(t_c_r_vt, t_c_t_vt, S_vt, b_f_vt, taper_vt, b_vt, c_r_vt), S=S_vt)
+
+    # HT
+    t_tail_condition: bool = ac.empennage.t_tail_condition  # t-tail or not
+    c_r_ht = ht['c_r_h']
+    taper_ht = ht['taper_ratio']
+    b_ht = ht['b_h']
+    S_ht = ht['area']
+    ht_t_c_max = ac.empennage.horizontal_tail['t_c_max']
+    ht_x_c_t_c_max = ac.empennage.horizontal_tail['loc_t_c_max']
+    ht_sweep_t_c_max_deg = sweep_at_x_c_deg(ac.wing.sweep_LE_deg, c_r_ht, b_ht, taper_ht, x_c=ht_x_c_t_c_max)
+    R_LS_ht = interp_value(pd.read_csv('lookups/roskam_p6_fig_4_2_rls.csv'), np.cos(np.deg2rad(ht_sweep_t_c_max_deg)), 'cos(quarter chord)', 'lifting surface correction', log_x=False)
+    b_f_ht = c_t_vt * t_c_t_vt / 2  # fuselage width at ht intersection position
+    if not t_tail_condition:
+        b_f_ht = 
+    R_N_ht = density * speed * exposed_wing_mgc(S_ht, b_ht, taper_ht, c_r_ht, b_f_ht) / mu
+    if not t_tail_condition:
+        R_N_ht *= np.sqrt(0.85)
+    C_f_ht = C_f(R_N_ht, M)
+    l_dash_ht = 1.2
+    if ht_x_c_t_c_max < 0.3:
+        l_dash_ht = 2.0
+    t_c_r_ht = ht_t_c_max
+    t_c_t_ht = ht_t_c_max
+    ht = CD0_w(R_wf=1.0, R_LS=R_LS_ht, C_f_w=C_f_ht, l_dash=l_dash_ht, t_c_max=ht_t_c_max, S_wet_w=S_wet_wing(t_c_r_ht, t_c_t_ht, S_ht, b_f_ht, taper_ht, b_ht, c_r_ht), S=S_ht)
+
 
     # Nacelle/pylon
     n_eng = ac.engine.count
@@ -192,20 +197,18 @@ def C_D0(ac: Aircraft,
     S_b_nac =  # nacelle base area
     isolated_nac = CD0_fuselage(density, speed, l_nac, mu, S_nac_max, S_b_nac, S, M, R_N_fus)
 
-    c_r_nac = 
-    b_nac = 
+    c_nac = chord_at_y_span(c_r, taper, y=b_f/2+ac.engine.eng_y_pos_fuselage, b=b)  # chord at nacelle 
+    b_nac = ac.engine.eng_vdist_from_wing_y_c * c_nac  # nacelle width
     nac_t_c_max = 
     nac_x_c_t_c_max = 
     nac_sweep_t_c_max_deg = sweep_at_x_c_deg(LE_sweep_deg(sweep_c_4=0, c_r=c_r_nac, b=b_nac, taper_ratio=0), c_r_nac, b_nac, taper_ratio=0, x_c=nac_x_c_t_c_max)
     R_LS_nac = interp_value(pd.read_csv('lookups/roskam_p6_fig_4_2_rls.csv'), np.cos(np.deg2rad(nac_sweep_t_c_max_deg)), 'cos(quarter chord)', 'lifting surface correction', log_x=False)
-    C_f_nac = C_f(R_N=density * speed * c_r_nac / mu, M=M)
+    C_f_nac = C_f(R_N=density * speed * l_nac / mu, M=M)
     l_dash_nac = 1.2
     if nac_x_c_t_c_max < 0.3:
         l_dash_nac = 2.0
     isolated_pylon = CD0_w(R_wf=1.0, R_LS=R_LS_nac, C_f_w=C_f_nac, l_dash=l_dash_nac, t_c_max=nac_t_c_max, S_wet_w=S_wet_wing(nac_t_c_max, nac_t_c_max, S=b_nac*c_r_nac, b_f=t_c_max*(c_r + taper*c_r)/2, taper=0, b=b_nac, c_r=c_r_nac))
 
-    b_nac =  # nacelle width
-    c_nac =  # chord at nacelle 
     i_n =  # nacelle incidence angle [deg]
     D_cl_1 = -0.3
     if nacelle_on_top_of_wing:
@@ -213,7 +216,7 @@ def C_D0(ac: Aircraft,
     D_cl_2 = 0.056 * i_n
     wing_nac_interference = 0.036 * (c_nac * b_nac / S) * (D_cl_1 + D_cl_2)**2
 
-    SHP =  # shaft horse power
+    SHP = ac.engine.power_cr / HP_TO_W  # shaft horse power
     D_prop =  ac.engine.prop_diameter # propeller diameter
     wind_milling = 33 / (0.5 * density * speed**2 * PA_TO_LBSpFT2 * S) * SHP / (speed * MpS_TO_FpS)
     if n_engine_operative != n_eng:
@@ -222,11 +225,10 @@ def C_D0(ac: Aircraft,
     
     # Flap:
     if flight_condition != 'cruise':
-        y_start_flap = 
-        y_end_flap = 
-        cf_c =  # flap chord length / chord length
-        flap_deflection =  # degrees
-        if flap_type = 'split':  # 'split' or 'plain' or 'slotted' 'fowler' or 'krueger'
+        y_start_flap = ac.hld_and_ailerons.flaps['y_flap_in']
+        y_end_flap = ac.hld_and_ailerons.flaps['y_flap_out']
+        cf_c = ac.hld_and_ailerons.flaps['cf_c']  # flap chord length / chord length
+        if flap_type == 'split':  # 'split' or 'plain' or 'slotted' 'fowler' or 'krueger'
             fd = closest_value(t_c_max, values=[10, 20, 30])
             D_CD_flap_stuff = interp_value(pd.read_csv(f'lookups/t_c_0.{fd}.csv'), cf_c, f'cf/c ({flight_condition})', f'dCdp ({flight_condition})', log_x=False)
         elif flap_type == 'plain':
@@ -238,20 +240,21 @@ def C_D0(ac: Aircraft,
         elif flap_type == 'fowler':
             fd = closest_value(cf_c, values=[0.1, 0.2, 0.3, 0.4])
             D_CD_flap_stuff = interp_value(pd.read_csv('lookups/roskam_p6_fig_4_48.csv'), flap_deflection, f'df(cf/c={fd})', f'dCdp(cf/c={fd})', log_x=False)
-        elif flap_type == 'krueger':
+        elif flap_type == 'kruger':
             D_CD_flap_stuff = wing * (cf_c * np.cos(np.deg2rad(flap_deflection)) + 1)
-        D_CD_flap_stuff =   # See eqn 4.71 Roskam VI
+        else: 
+            raise ValueError(f"Flap type give: {flap_type}, check possible entries for D_CD_flap_stuff variable")
         flap_profile = D_CD_flap_stuff * np.cos(np.deg2rad(sweep_c_4_deg)) * S_wf(y_start_flap, y_end_flap, taper, c_r, b) / S
 
-        b_fi_b = y_start_flap * 2 / b
-        b_fo_b = y_end_flap * 2 / b
-        K = 
-        Delta_CL_max_flapped = 
-        induced_flap = K**2 * Delta_CL_max_flapped**2 * np.cos(np.deg2rad(sweep_c_4_deg))
+        # b_fi_b = y_start_flap * 2 / b
+        # b_fo_b = y_end_flap * 2 / b
+        # K = 
+        # Delta_CL_max_flapped = 
+        # induced_flap = K**2 * Delta_CL_max_flapped**2 * np.cos(np.deg2rad(sweep_c_4_deg))
 
         interference_flap = flap_profile * flap_interference_factor(flap_type)
 
-        flaps = interference_flap + flap_profile + induced_flap
+        flaps = interference_flap + flap_profile # + induced_flap
     else: 
         flaps = 0
 
@@ -269,7 +272,6 @@ def C_D0(ac: Aircraft,
     return C_D0
 
 def C_D_L(ac:Aircraft, 
-          flap_deflection: float, # deg
           flight_condition: str = 'cruise' # 'cruise' or 'landing' or 'take-off'
           ):
     S = ac.wing.area
@@ -281,15 +283,17 @@ def C_D_L(ac:Aircraft,
         density = Atm.density
         mass_frac = ac.requirements.cruise['cr_mass_frac']
         C_L = mass_frac * ac.weights.m_takeoff * g / (0.5 * density * speed**2 * S)
+        flap_deflection = 0
     if flight_condition == 'take-off':
-        C_L = 
+        C_L = ac.hld_and_ailerons.take_off_lift['CL_TO']
         temp_shift = ac.requirements.take_off['to_temp_shift']
         alt = ac.requirements.take_off['to_altitude'] * FT_TO_M
         Atm = Atmosphere(alt, temp_shift)
         density = Atm.density
         mass_frac = ac.requirements.cruise['to_mass_frac']
         speed = np.sqrt(mass_frac * ac.weights.m_takeoff / (0.5 * density * C_L * S))
-    if flight_condition == 'take-off':
+        flap_deflection = ac.hld_and_ailerons.flaps['to_deflection']
+    if flight_condition == 'landing':
         temp_shift = ac.requirements.landing['la_temp_shift']
         alt = ac.requirements.landing['la_altitude'] * FT_TO_M
         Atm = Atmosphere(alt, temp_shift)
@@ -297,11 +301,13 @@ def C_D_L(ac:Aircraft,
         mass_frac = ac.requirements.landing['la_mass_frac']
         speed = 1.3 * ac.requirements.general['stall_speed'] * KTS_TO_MS
         C_L = mass_frac * ac.weights.m_takeoff * g / (0.5 * density * speed**2 * S)
+        flap_deflection = ac.hld_and_ailerons.flaps['ld_deflection']
     
     # General
     A = ac.wing.aspect_ratio
-    A_eff = A + ... # NOTE: add wing tip effect here
-    c_r = 
+    A_wing_tip = ...  # NOTE: add wing tip effect here
+    A_eff = A + A_wing_tip 
+    c_r = ac.wing.c_root
     b = ac.wing.span
     taper = ac.wing.taper_ratio
     if ac.wing.sweep == 0:
@@ -323,7 +329,7 @@ def C_D_L(ac:Aircraft,
 
     K = 1 / (np.pi * A_eff * e)
     CDi = C_L**2 * K
-    tip_twist =  # degrees
+    tip_twist = ac.wing.tip_twist  # degrees
     if tip_twist != 0:
         CDi += 0.00004 * 2 / 3 * tip_twist
     return CDi, e, K

@@ -144,6 +144,18 @@ class Wing:
     airfoils : list[str] = None
     ld : float | None = None
     wing_type: float | None = None
+    c_root: float | None = None
+    c_tip: float | None = None
+    sweep_LE_deg: float | None = None
+    sweep_TE_deg: float | None = None
+    sweep_c_2_deg: float | None = None
+    MAC: float | None = None
+    y_MAC: float | None = None
+    x_c_front_spar: float | None = None
+    x_c_rear_spar: float | None = None
+    x_le: float | None = None
+    tip_twist: float | None = None
+
     # ADD WHATEVER IS NEEDED
 
     def __str__(self):
@@ -173,6 +185,39 @@ class Fuselage:
         return text
 
 @dataclass
+class Empennage:
+    cg_and_positioning: dict
+    horizontal_tail : dict
+    vertical_tail : dict
+    t_tail_condition : bool
+
+    def __str__(self):
+        text = "The empennage is:\n"
+        for field_info in fields(self):
+            field_name = field_info.name
+            field_value = getattr(self, field_name)
+
+            text += f'{field_name}: {field_value} \n'
+        return text
+
+@dataclass
+class HLD_and_AIL:
+    flaps: dict
+    ailerons: dict
+    slats: dict
+    landing_lift: dict
+    take_off_lift: dict
+
+    def __str__(self):
+        text = "The HLD and ailerons are:\n"
+        for field_info in fields(self):
+            field_name = field_info.name
+            field_value = getattr(self, field_name)
+
+            text += f'{field_name}: {field_value} \n'
+        return text
+    
+@dataclass
 class Engine:
     engine_type : str | None
     alpha_p_id : str | None
@@ -183,18 +228,18 @@ class Engine:
     e_1 : float | None
     e_2 : float | None
     Phi : float | None
-    eng_vdist_from_wing : float | None
-    eng_above_wing : bool
-    eng_y_pos_fuselage: float | None
-    eng_x_pos: str | None
-    n_fuel_tanks: int | None
-    x_cg_fuel_tanks_c_r: float | None
-    fuel_type: str | None
-    engine_power_cruise: float | None
-    super_cap_power: float | None
-    power_cr: float | None
-    power_to: float | None
-    prop_diameter: float | None
+    # eng_vdist_from_wing_y_c : float | None
+    # eng_above_wing : bool
+    # eng_y_pos_fuselage: float | None
+    # eng_x_pos: str | None
+    # n_fuel_tanks: int | None
+    # x_cg_fuel_tanks_c_r: float | None
+    # fuel_type: str | None
+    # engine_power_cruise: float | None
+    # super_cap_power: float | None
+    # power_cr: float | None
+    # power_to: float | None
+    # prop_diameter: float | None
 
     def __post_init__(self):
         self.eta_1 = m.prod(self.eta_1)
@@ -219,6 +264,8 @@ class Aircraft:
     wing : Wing
     fuselage : Fuselage
     engine : Engine
+    empennage: Empennage
+    hld_and_ailerons: HLD_and_AIL
 
     @classmethod
     def from_dict(cls, data : dict):

@@ -25,7 +25,7 @@ climb:
   n_eng: 1
 
 cruise:
-  cr_speed: 150  # [kts] cruise speed requirement as specified by stakeholders
+  cr_speed: 132  # [kts] cruise speed requirement as specified by stakeholders
   cr_altitude: 8500  # [ft] minimum service ceiling requirement as specified by stakeholders
   cr_mass_frac: 0.95 # [-] assumed cruise mass fraction, to be updated with a more accurate value
 
@@ -56,3 +56,4 @@ general:
   type_to_use: 'Twin Engine Propeller Driven'
   engine_type: ''
   max_wing_loading: 90  # kg/m2
+  n_ult: 3.8

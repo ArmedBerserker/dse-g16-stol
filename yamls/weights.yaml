@@ -7,9 +7,9 @@ m_cargo: 200
 m_energy: null
 m_fuel: null
 m_battery: null
-m_piston: 95.5  
+m_piston: 111.2 
 m_supercap: 36 
-m_turboprop: 106
+m_turboprop: 112
 x_cg_aft: 3.23  # Taildragger
 x_cg_fwd: 2.88
 # x_cg_aft: 3.20 # Tricycle

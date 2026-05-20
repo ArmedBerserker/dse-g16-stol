@@ -2,12 +2,23 @@
 area: 17.10
 span: 14.55
 aspect_ratio: 9
-taper_ratio: null
-sweep: null
+taper_ratio: 0.4
+sweep: 0
 c_f: 0.0035
 phi : 0.95
 psi : 0.007
 airfoils:
   - null
-ld : 10.4
+ld : 12.6
 wing_type: cantilever
+c_root: 2.412881154
+c_tip: 0.965152462
+sweep_LE_deg: 2.726310994
+sweep_TE_deg: null
+sweep_c_2_deg: null
+MAC: 1.792426
+y_MAC: 3.257389558
+x_c_front_spar: 0.19
+x_c_rear_spar: 0.56
+x_le: 2.457915811  # CHANGE!!!
+tip_twist: 0 # deg
