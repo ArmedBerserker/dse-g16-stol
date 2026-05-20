@@ -634,7 +634,7 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     x_cg_seats = ...  # Front to back cg positions of seats (length 3)
     assert len(x_cg_seats) == 3, f"There must be 3 seat cg positions, {len(x_cg_seats)} were given"
     x_cg_seats = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_seats, ac)
-    n_pax = ...
+    n_pax = ac.fuselage.n_pax
     m_pax = ac.weights.m_pax
     n_rows = n_pax / len(x_cg_seats)
     n_window = ...  # should be 2
