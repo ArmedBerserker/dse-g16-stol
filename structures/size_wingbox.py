@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 # --- Constants & Geometry Settings ---
 load_factor = 3.8
-
+b_spacing = 0.7
 xfs_pct = 0.19  # 15-20
 xrs_pct = 0.56 # 55-65
 tskin_m = 2E-3
@@ -59,7 +59,7 @@ class WingResults:
 def main(
     S, AR, taper,
     xflr5_file, airfoil_file, xfs_pct, xrs_pct, tskin_m, tspar_web, wspar_cap, tspar_cap, Astr_one_m, n_str,
-    materials, E_ref, G_ref, load_factor, y_eng, Fn_eng, Ft_eng, dz_eng, dx_eng,
+    materials, E_ref, G_ref, load_factor, y_eng, Fn_eng, Ft_eng, dz_eng, dx_eng, b_spacing
 ):
     # 1. Inputs
     b, y_tip, c_root, c_tip, C_mac = calculate_wing_geometry(S, AR, taper)
@@ -98,8 +98,8 @@ def main(
         load_factor, y_eng, Fn_eng, Ft_eng, dz_eng, dx_eng
     )
 
-    buckle_mos_front = check_buckle(fspars, tspar_web, V_stations, materials["skin"]['E'])
-    buckle_mos_rear = check_buckle(rspars, tspar_web, V_stations, materials["skin"]['E'])
+    buckle_mos_front = check_buckle(fspars, tspar_web, V_stations, materials["skin"]['E'], b_spacing)
+    buckle_mos_rear = check_buckle(rspars, tspar_web, V_stations, materials["skin"]['E'], b_spacing)
     min_mos = min(buckle_mos_front, buckle_mos_rear)
 
     # 5. Deflection Integration Using Reference Modulus
@@ -185,7 +185,8 @@ if __name__ == "__main__":
         Fn_eng=Fn_eng,
         Ft_eng=Ft_eng,
         dz_eng=dz_eng,
-        dx_eng=dx_eng
+        dx_eng=dx_eng,
+        b_spacing=b_spacing
     )
 
     output_results(results)

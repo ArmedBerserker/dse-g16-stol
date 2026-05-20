@@ -11,13 +11,14 @@ span, y_tip, c_root, c_tip, _ = calculate_wing_geometry(S, AR, taper)
 y_stations, T_c4, Fn_aero, Ft_aero, _ = load_aerodynamic_data(xflr5_file)
 chords = c_root - (c_root - c_tip) * (y_stations / y_tip)
 b_limit_val = span / 2 * 1000
-N_STR_FIXED = 16
+N_STR_FIXED = 12
+b_spacing = 0.7
 
 MAT_CATALOG = [
     {'name': 'AA6061-T6', 'E': 68.9e9, 'G': 26.0e9, 'rho': 2700},
-    {'name': 'AA2024-T3', 'E': 73.1e9, 'G': 28.0e9, 'rho': 2780}
+    {'name': 'AA2024-T3', 'E': 73.1e9, 'G': 28.0e9, 'rho': 2780},
     #{'name': 'AA2099-T83 (Al-Li)',    'E': 75.0e9, 'G': 28.5e9, 'rho': 2630},
-    #{'name': 'GFRP (E-Glass/Epoxy)',  'E': 22.0e9, 'G':  8.5e9, 'rho': 1950},
+    {'name': 'GFRP (E-Glass/Epoxy)', 'E': 37.5e9, 'G': 3.79e9, 'rho': 1950}
     #{'name': 'Sitka Spruce',          'E': 11.2e9, 'G':  0.75e9, 'rho': 400}
 ]
 
@@ -61,8 +62,8 @@ def compute_all(x):
         fspars = chords * hfs_norm
         rspars = chords * hrs_norm
 
-        buckle_mos_front = check_buckle(fspars, tspar_web, V_stations, m_spar['E'])
-        buckle_mos_rear = check_buckle(rspars, tspar_web, V_stations, m_spar['E'])
+        buckle_mos_front = check_buckle(fspars, tspar_web, V_stations, m_spar['E'],b_spacing)
+        buckle_mos_rear = check_buckle(rspars, tspar_web, V_stations, m_spar['E'],b_spacing)
         min_mos = min(buckle_mos_front, buckle_mos_rear)
 
         # 5. Deflections
@@ -93,10 +94,10 @@ if __name__ == '__main__':
     bounds = [
         (0.10, 0.20),  # xfs
         (0.55, 0.65),  # xrs
-        (0.0005, 0.0015),  # tskin
-        (0.003, 0.005),  # tspar_web
-        (0.010, 0.050),  # wspar_cap
-        (0.002, 0.010),  # tspar_cap
+        (0.0005, 0.001),  # tskin
+        (0.001, 0.005),  # tspar_web
+        (0.005, 0.050),  # wspar_cap
+        (0.001, 0.010),  # tspar_cap
         (1e-5, 5e-5),  # Astr
         (0, num_mats - 1),  # Skin Material Index
         (0, num_mats - 1),  # Spar Material Index
@@ -115,8 +116,8 @@ if __name__ == '__main__':
 
     res = differential_evolution(
         objective, bounds=bounds, constraints=nl_constraints,
-        integrality=integrality, popsize=50, maxiter=100,
-        disp=True, workers=10, polish=True
+        integrality=integrality, popsize=20, maxiter=50,
+        disp=True, workers=1, polish=True
     )
 
     f_xfs, f_xrs, f_tskin, f_tspar_web, f_wspar_cap, f_tspar_cap, f_Astr, f_skin_idx, f_spar_idx, f_str_idx = res.x
