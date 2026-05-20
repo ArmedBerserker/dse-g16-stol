@@ -26,10 +26,28 @@ from typing import Callable
 import numpy as np
 
 from classes.aircraft_2 import Aircraft, loader
-from class1 import c1_m, matching_diagram, c2_drag, c1_landing_gear, c1_wing_planform
+from class1 import c1_m, matching_diagram, c2_drag, c1_landing_gear, c1_wing_planform, c1_loading_and_empennage
 from c2_m import W_oe_and_cg_from_nose, W_to_new, loading_diagram, x_cg_structural_from_nose, overlay_wing_pos_and_scissor_plot
 from lookups.consts import *
 
+''' TO DO:
+    - Add Non-iterative steps to loop
+    - Fix initial cg calculation
+    - Add propulsion
+    - Add HLD and lift slope calculations
+    - Change class I mass to use actual drag estimate after epoch 1 '''
+
+# 0. Helper function
+def check_power_requirement(ac: Aircraft):
+    e = ac.engine
+    P_a_cr = e.eta_1 * e.eta_3 * e.engine_power_cruise
+    P_r_cr = e.power_cr
+    phi = (e.super_cap_power) / (e.super_cap_power + e.engine_power_cruise)
+    P_a_to = (e.eta_1 * e.engine_power_cruise * (1 - phi) + e.eta_2 * e.super_cap_power ) * e.eta_2
+    P_r_to = e.power_to
+    condition_cr = P_r_cr < P_a_cr
+    condition_to = P_r_to < P_a_to
+    return condition_cr, condition_to
 
 # 1. Configuration
 
@@ -83,7 +101,6 @@ def compute_aerodynamics(ac: Aircraft) -> Aircraft:
     # ─────────────────────────────────────────────────────────────────────────
     return ac
 
-
 def compute_propulsion(ac: Aircraft) -> Aircraft:
     """
     Step 2 — update engine/propulsion parameters.
@@ -101,36 +118,6 @@ def compute_landing_gear_positions(ac: Aircraft) -> Aircraft:
     ac = c1_landing_gear.tire_location(ac, update_ac=True)
     return ac
 
-
-def compute_energy_weights(ac: Aircraft) -> Aircraft:
-    """
-    Step 3 — size fuel / battery from updated mission & propulsion.
-    Replace the body with your energy model.
-    """
-    # ── placeholder logic ────────────────────────────────────────────────────
-    # e.g. ac.weights.m_fuel    = your_energy_module.fuel_mass(ac)
-    # e.g. ac.weights.m_battery = your_energy_module.battery_mass(ac)
-    # e.g. ac.weights.m_energy  = ac.weights.m_fuel + ac.weights.m_battery
-    pass
-    # ─────────────────────────────────────────────────────────────────────────
-    return ac
-
-
-def compute_weights(ac: Aircraft) -> Aircraft:
-    """
-    Step 4 — update MTOW and empty weight from component contributions.
-    Replace the body with your weight model.
-    """
-    # ── placeholder logic ────────────────────────────────────────────────────
-    # e.g. ac.weights.m_empty   = your_weight_module.empty_mass(ac)
-    # e.g. ac.weights.m_takeoff = (ac.weights.m_empty
-    #                              + ac.weights.m_payload
-    #                              + ac.weights.m_energy)
-    pass
-    # ─────────────────────────────────────────────────────────────────────────
-    return ac
-
-
 def compute_wing_geometry(ac: Aircraft) -> Aircraft:
     """
     Step 5 — re-size wing area and span from updated MTOW.
@@ -144,6 +131,9 @@ def compute_wing_geometry(ac: Aircraft) -> Aircraft:
     # ─────────────────────────────────────────────────────────────────────────
     return ac
 
+def compute_empennage(ac: Aircraft) -> Aircraft:
+    c1_loading_and_empennage.size_empennage_planform(ac)
+    return ac
 
 def compute_fuselage(ac: Aircraft) -> Aircraft:
     """
@@ -235,10 +225,10 @@ def Class_II_drag(ac: Aircraft):
 
 ITERATION_STEPS: list[Callable[[Aircraft], Aircraft]] = [
     compute_aerodynamics,
-    compute_wing_geometry,
     compute_fuselage,
     compute_propulsion,
     compute_landing_gear_positions,
+    compute_empennage,
     compute_energy_weights
 ]
 
@@ -256,6 +246,10 @@ def run_iteration(ac: Aircraft,
     # Class I mass
     ac = compute_class_I_mass(ac)
     mtow_class_I = ac.weights.m_takeoff      # snapshot before geometry steps
+
+    if epoch == 1:
+        tricycle_condition = ...
+        c1_loading_and_empennage.class_I_loading_cgs(ac, tricycle_condition, update_ac=True)
 
     # Geometry / aero / propulsion etc.
     """Execute every registered step in order."""
@@ -393,6 +387,8 @@ def run_design_loop(
     print(f"History log → {os.path.abspath(config.history_file)}\n")
     _print_header(config.convergence_params)
 
+    insufficient_to_power_counter = 0
+    insufficient_cr_power_counter = 0
     for epoch in range(1, config.max_epochs + 1):
 
         # Deep-copy BEFORE the iteration so we can diff afterwards
@@ -400,6 +396,17 @@ def run_design_loop(
 
         # Run one full design cycle
         ac, inner_converged = run_iteration(ac, epoch, INNER_TOLERANCE)
+
+        # Power requirement check
+        enough_cr_power, enough_to_power =  check_power_requirement(ac)
+        if enough_to_power:
+            insufficient_to_power_counter = 0
+        else:
+            insufficient_to_power_counter += 1
+        if enough_cr_power:
+            insufficient_cr_power_counter = 0
+        else:
+            insufficient_cr_power_counter += 1
 
         # Check convergence
         converged, deltas = has_converged(prev, ac, config.convergence_params)
@@ -410,6 +417,14 @@ def run_design_loop(
 
         # Console output
         _print_epoch(epoch, ac, deltas, config.convergence_params, converged, inner_converged)
+
+        # Stop if not enough power
+        if insufficient_to_power_counter >5:
+            print(f"\n⚠  Insufficient take-off power for 6 consecutive epochs.")
+            break
+        if insufficient_cr_power_counter >5:
+            print(f"\n⚠  Insufficient cruise power for 6 consecutive epochs.")
+            break
 
         if converged:
             print(f"\n✓  Converged after {epoch} epoch(s).")

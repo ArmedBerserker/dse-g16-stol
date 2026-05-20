@@ -119,6 +119,8 @@ class Weights:
     m_piston: float | None 
     m_supercap: float | None 
     m_turboprop: float | None
+    x_cg_aft: float | None
+    x_cg_fwd: float | None
 
     def __str__(self):
         text = "The weights are:\n"
@@ -188,6 +190,10 @@ class Engine:
     n_fuel_tanks: int | None
     x_cg_fuel_tanks_c_r: float | None
     fuel_type: str | None
+    engine_power_cruise: float | None
+    super_cap_power: float | None
+    power_cr: float | None
+    power_to: float | None
 
     def __post_init__(self):
         self.eta_1 = m.prod(self.eta_1)

@@ -4,7 +4,7 @@ count : 1          # number of engines aboard
 #       [combustion]
 eta_1 : [0.2]
 #       null
-eta_2 : [1.0] # null
+eta_2 : [0.98] # null
 #       [Prop]
 eta_3 : [0.8]
 e_1 : 43000000     # specific energy for source 1 [J/kg] (the varying item)
@@ -17,3 +17,7 @@ eng_x_pos: le
 n_fuel_tanks: 2
 x_cg_fuel_tanks_c_r: 0.4
 fuel_type: Jet-A1
+engine_power_cruise: 208000  # watts
+super_cap_power: 60000  # watts
+power_cr: 157770  # watts
+power_to: 216730 # watts 
