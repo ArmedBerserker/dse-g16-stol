@@ -57,10 +57,12 @@ def explore_concepts(eng_paths : str,
                             'Operating Empty Mass' : oem,
                             'Engine Type' : e[1],
                             'Gear Type' : w[1]}
-
+            
+            cd0 = drag.cd0(aircraft, 'Twin Engine Propeller Driven')
+            k, eff = drag.k(aircraft)
             print('###############################################################################')
-            print(f'Aircraft: {name}\nEnergy Fraction is: {fuel_frac}\nOperating Empty Mass is: {oem}\n')
-
+            print(f'Aircraft: {name}\nEnergy Fraction is: {fuel_frac}\nOperating Empty Mass is: {oem}\nZero-lift drag is: {cd0}\nOswald efficiency is: {eff}\n')
+            print(f'Drag is: {drag.prelim_drag(aircraft, 'Twin Engine Propeller Driven')}')
             if ('H2' in name or 'Boosted' in name) and do_powers:
                 data_cr = match.plot_matching_and_select_design_point(aircraft, 'Twin Engine Propeller Driven', 
                                                                     W_S_plot = np.arange(0.1, 1000), 
@@ -193,7 +195,7 @@ def main(masses = True, powers = True, sensitivity = True, plots = False):
             )
 
         plt.tight_layout()
-        plt.savefig('outputs/class_1configs1.jpg')
+        plt.savefig('outputs/class_1configs10.png')
 
         eng = ac.loader.load(eng_paths[2][0], ac.Engine)
         fuse = ac.loader.load(fuse_path, ac.Fuselage)
@@ -343,11 +345,15 @@ def main(masses = True, powers = True, sensitivity = True, plots = False):
         plt.savefig("outputs/battery_needed_takeoff.svg")
         #plt.show()
 
-        if sensitivity:
-            results = explore_concepts()
+        # if sensitivity:
+        #     results = explore_concepts()
     if sensitivity:
         _, _, _, thing = explore_concepts(eng_paths, wing_paths, reqs_paths, fuse_path, mission_path, weights_path, False, True)
         print(thing)
         
 if __name__ == '__main__':
-    main(True, False, False)
+    main(masses = False,
+         powers = True,
+         sensitivity = False, 
+         plots = False)
+    

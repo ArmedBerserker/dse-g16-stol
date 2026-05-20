@@ -125,11 +125,11 @@ def breguet_prop(ac : Aircraft, frac_source : str) -> float | tuple[float]:
     efg = e_f / g
     lnfrac = R / (eta_prop * eta_fuel * ld * efg)
     cruise_frac = np.exp(-lnfrac)
-    fuel_frac = 1.
-    for keys, vals in rel_data.items():
-        if keys == 'Airplane Type':
-            continue
-        fuel_frac *= float(vals)
+    fuel_frac = 1
+    # for keys, vals in rel_data.items():
+    #     if keys == 'Airplane Type':
+    #         continue
+    #     fuel_frac *= float(vals)
     fuel_frac *= cruise_frac
 
     return (1 - fuel_frac, )

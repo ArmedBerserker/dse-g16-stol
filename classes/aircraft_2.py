@@ -7,8 +7,8 @@ Also provides a simple loader class for reading YAML files into these
 dataclasses.
 """
 
-from dataclasses import dataclass, is_dataclass, fields, field
-from typing import Type, TypeVar, Any
+from dataclasses import dataclass, is_dataclass, fields
+from typing import Type, TypeVar
 import yaml
 import os
 import math as m
@@ -137,7 +137,7 @@ class Wing:
     airfoils : list[str] = None
     ld : float | None = None
     # ADD WHATEVER IS NEEDED
-
+    type : str = None
     def __str__(self):
         text = "The wing is:\n"
         for field_info in fields(self):
