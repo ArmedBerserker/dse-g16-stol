@@ -214,7 +214,7 @@ def C_D0(ac: Aircraft,
     wing_nac_interference = 0.036 * (c_nac * b_nac / S) * (D_cl_1 + D_cl_2)**2
 
     SHP =  # shaft horse power
-    D_prop =  # propeller diameter
+    D_prop =  ac.engine.prop_diameter # propeller diameter
     wind_milling = 33 / (0.5 * density * speed**2 * PA_TO_LBSpFT2 * S) * SHP / (speed * MpS_TO_FpS)
     if n_engine_operative != n_eng:
         wind_milling_inoperative = 0.00125 * ac.engine.eta_prop * D_prop**2 / S

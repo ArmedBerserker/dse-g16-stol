@@ -21,3 +21,4 @@ engine_power_cruise: 170000  # watts
 super_cap_power: 60000  # watts
 power_cr: 174950  # watts
 power_to: 216730 # watts 
+prop_diameter: 1.778 m

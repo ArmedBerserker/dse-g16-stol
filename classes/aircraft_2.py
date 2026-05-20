@@ -194,6 +194,7 @@ class Engine:
     super_cap_power: float | None
     power_cr: float | None
     power_to: float | None
+    prop_diameter: float | None
 
     def __post_init__(self):
         self.eta_1 = m.prod(self.eta_1)
