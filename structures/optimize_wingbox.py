@@ -13,12 +13,13 @@ chords = c_root - (c_root - c_tip) * (y_stations / y_tip)
 b_limit_val = span / 2 * 1000
 N_STR_FIXED = 12
 b_spacing = 0.7
+y_fus = 0.94
 
 MAT_CATALOG = [
     {'name': 'AA6061-T6', 'E': 68.9e9, 'G': 26.0e9, 'rho': 2700},
     {'name': 'AA2024-T3', 'E': 73.1e9, 'G': 28.0e9, 'rho': 2780},
     #{'name': 'AA2099-T83 (Al-Li)',    'E': 75.0e9, 'G': 28.5e9, 'rho': 2630},
-    {'name': 'GFRP (E-Glass/Epoxy)', 'E': 37.5e9, 'G': 3.79e9, 'rho': 1950}
+    #{'name': 'GFRP (E-Glass/Epoxy)', 'E': 37.5e9, 'G': 3.79e9, 'rho': 1950},
     #{'name': 'Sitka Spruce',          'E': 11.2e9, 'G':  0.75e9, 'rho': 400}
 ]
 
@@ -67,9 +68,9 @@ def compute_all(x):
         min_mos = min(buckle_mos_front, buckle_mos_rear)
 
         # 5. Deflections
-        twist_tip = abs(calculate_torsional_deflection(y_stations, T, G_ref, J)[-1])
-        by_tip = abs(calculate_bending_deflection(y_stations, Mx, E_ref, Ixx)[-1])
-        bz_tip = abs(calculate_bending_deflection(y_stations, Mz, E_ref, Izz)[-1])
+        twist_tip = abs(calculate_torsional_deflection(y_stations, T, G_ref, J, y_fus)[-1])
+        by_tip = abs(calculate_bending_deflection(y_stations, Mx, E_ref, Ixx, y_fus)[-1])
+        bz_tip = abs(calculate_bending_deflection(y_stations, Mz, E_ref, Izz, y_fus)[-1])
 
         return (half_mass * 2, twist_tip, by_tip, bz_tip, min_mos)
 
@@ -95,10 +96,10 @@ if __name__ == '__main__':
         (0.10, 0.20),  # xfs
         (0.55, 0.65),  # xrs
         (0.0005, 0.001),  # tskin
-        (0.001, 0.005),  # tspar_web
-        (0.005, 0.050),  # wspar_cap
+        (0.001, 0.006),  # tspar_web
+        (0.01, 0.10),  # wspar_cap
         (0.001, 0.010),  # tspar_cap
-        (1e-5, 5e-5),  # Astr
+        (0.5e-5, 5e-5),  # Astr
         (0, num_mats - 1),  # Skin Material Index
         (0, num_mats - 1),  # Spar Material Index
         (0, num_mats - 1)  # Stringer Material Index
@@ -116,7 +117,7 @@ if __name__ == '__main__':
 
     res = differential_evolution(
         objective, bounds=bounds, constraints=nl_constraints,
-        integrality=integrality, popsize=20, maxiter=50,
+        integrality=integrality, popsize=15, maxiter=50,
         disp=True, workers=1, polish=True
     )
 

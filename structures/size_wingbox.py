@@ -4,17 +4,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
+#
+# --- STRUCTURAL MASS ---
+# Skin Mass:      13.11 kg
+# Spars Mass:     28.69 kg
+# Stringers Mass: 12.52 kg
+# TOTAL AIRCRAFT WINGBOX MASS: 108.64 kg
+#
+# --- DEFLECTIONS (Positive = Up / Forward / Nose-Up) ---
+# Load Factor: 3.8
+# Total Tip Twist: 2.4414 deg
+# Total Tip Vertical Deflection: 719.6938 mm
+# Total Tip Chordwise Deflection: -1.6698 mm
+# Minimim MOS Spar Shear Buckling: -0.2646
+
+
 # --- Constants & Geometry Settings ---
 load_factor = 3.8
 b_spacing = 0.7
 xfs_pct = 0.19  # 15-20
 xrs_pct = 0.56 # 55-65
-tskin_m = 2E-3
-tspar_web = 4E-3
-wspar_cap = 2E-2
-tspar_cap = 4E-3
-Astr_one_m = 3E-5  # Cross-sectional area of ONE stringer (m^2)
-n_str = 16  # Total number of stringers (MUST be even)
+tskin_m = 0.5E-3
+tspar_web = 2.5E-3
+wspar_cap = 40E-3
+tspar_cap = 3E-3
+Astr_one_m = 5E-5  # Cross-sectional area of ONE stringer (m^2)
+n_str = 12  # Total number of stringers (MUST be even)
+y_fus = 0.94 # Everything up to here is rigid
 
 # --- Material Properties ---
 # E = Young's Modulus (Pa), G = Shear Modulus (Pa), rho = Density (kg/m^3)
@@ -59,13 +75,13 @@ class WingResults:
 def main(
     S, AR, taper,
     xflr5_file, airfoil_file, xfs_pct, xrs_pct, tskin_m, tspar_web, wspar_cap, tspar_cap, Astr_one_m, n_str,
-    materials, E_ref, G_ref, load_factor, y_eng, Fn_eng, Ft_eng, dz_eng, dx_eng, b_spacing
+    materials, E_ref, G_ref, load_factor, y_eng, Fn_eng, Ft_eng, dz_eng, dx_eng, b_spacing, y_fus
 ):
     # 1. Inputs
     b, y_tip, c_root, c_tip, C_mac = calculate_wing_geometry(S, AR, taper)
 
     # Rename variables to clarify they are aerodynamic-only
-    y_stations, T_c4, Fn_aero, Ft_aero, xflr5_chords = load_aerodynamic_data(xflr5_file)
+    y_stations, T_c4, Fn_aero, Ft_aero, xflr5_chords = load_aerodynamic_data(xflr5_file, True)
 
     analytical_chords = c_root - (c_root - c_tip) * (y_stations / y_tip)
 
@@ -103,9 +119,9 @@ def main(
     min_mos = min(buckle_mos_front, buckle_mos_rear)
 
     # 5. Deflection Integration Using Reference Modulus
-    twist_val = calculate_torsional_deflection(y_stations, T_stations, G_ref, J_eq)
-    bending_n_val = calculate_bending_deflection(y_stations, Mx_stations, E_ref, Ixx_eq)
-    bending_t_val = calculate_bending_deflection(y_stations, Mz_stations, E_ref, Izz_eq)
+    twist_val = calculate_torsional_deflection(y_stations, T_stations, G_ref, J_eq, y_fus)
+    bending_n_val = calculate_bending_deflection(y_stations, Mx_stations, E_ref, Ixx_eq, y_fus)
+    bending_t_val = calculate_bending_deflection(y_stations, Mz_stations, E_ref, Izz_eq, y_fus)
 
     total_mass = half_wing_mass * 2
 
@@ -186,7 +202,8 @@ if __name__ == "__main__":
         Ft_eng=Ft_eng,
         dz_eng=dz_eng,
         dx_eng=dx_eng,
-        b_spacing=b_spacing
+        b_spacing=b_spacing,
+        y_fus=y_fus
     )
 
     output_results(results)
