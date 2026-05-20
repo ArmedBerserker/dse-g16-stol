@@ -151,21 +151,53 @@ class Wing:
 @dataclass
 class Fuselage:
     wall_thickness: float
+
     floor_thickness: float
     aisle_height: float
     top_compartment_height: float
 
     clearance: float
-    arm_rest_width: float
+    arm_rest_width:float
     seat_width: float
     aisle_width: float
     top_compartment_width: float
 
-    back_storage_width: float
-    back_storage_height: float
+    cargo_width: float
+    cargo_height: float
+    cargo_length: float
 
     tail_cone_fuselage_ratio: float
     approach_angle: float
+
+    seat_pitch: float
+    cockpit_length: float
+
+    tail_upsweep_taildragger: float
+    tail_upsweep_tricycle: float
+
+    nose_cone_length: float
+    window_angle: float
+
+    emergency_exit_width: float
+    emergency_exit_height: float
+
+    door_width: float
+    door_height: float
+
+    length: float 
+    height: float
+    width: float
+    base_area: float
+    tail_cone_length: float
+    upsweep_angle: float
+    max_cross_section_area: float
+    max_perimeter: float
+    l_cabin: float
+    vol_cabin_and_cargo: float
+    x_pos_seats: list
+    x_cargo_holds: list
+    mass_frac_cargo_holds: list
+    n_pax: int
 
 
     def __str__(self):
@@ -187,7 +219,7 @@ class Engine:
     eta_3 : list[float] | None        # this corresponds to the prop always. Prop is always last
     e_1 : float | None
     e_2 : float | None
-    Phi : float | None
+    Phi : f # mloat | None
 
     def __post_init__(self):
         self.eta_1 = m.prod(self.eta_1)
