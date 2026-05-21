@@ -1,0 +1,14 @@
+name : 
+  A1T
+requirements : 
+  concepts2/reqs_turb.yaml
+mission : 
+  yamls/mission.yaml
+weights : 
+  yamls/weights.yaml
+wing : 
+  concepts2/A.yaml
+fuselage : 
+  yamls/fuselage.yaml
+engine : 
+  concepts2/1T.yaml

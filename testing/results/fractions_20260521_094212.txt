@@ -1,0 +1,50 @@
+Configuration A1P:
+	Operating Empty Mass fraction: 0.6110
+	Energy Mass fraction: 0.0718
+	Total fraction: 0.6828
+
+Configuration A1T:
+	Operating Empty Mass fraction: 0.5197
+	Energy Mass fraction: 0.0890
+	Total fraction: 0.6087
+
+Configuration A2H:
+	Operating Empty Mass fraction: 0.5197
+	Energy Mass fraction: 2.2262
+	Total fraction: 2.7459
+
+Configuration A3P:
+	Operating Empty Mass fraction: 0.6110
+	Energy Mass fraction: 0.3176
+	Total fraction: 0.9287
+
+Configuration A3T:
+	Operating Empty Mass fraction: 0.5197
+	Energy Mass fraction: 0.3676
+	Total fraction: 0.8873
+
+Configuration B1P:
+	Operating Empty Mass fraction: 0.5884
+	Energy Mass fraction: 0.0849
+	Total fraction: 0.6732
+
+Configuration B1T:
+	Operating Empty Mass fraction: 0.4971
+	Energy Mass fraction: 0.1050
+	Total fraction: 0.6021
+
+Configuration B2H:
+	Operating Empty Mass fraction: 0.4971
+	Energy Mass fraction: 2.6492
+	Total fraction: 3.1462
+
+Configuration B3P:
+	Operating Empty Mass fraction: 0.5884
+	Energy Mass fraction: 0.3760
+	Total fraction: 0.9644
+
+Configuration B3T:
+	Operating Empty Mass fraction: 0.4971
+	Energy Mass fraction: 0.4348
+	Total fraction: 0.9318
+
