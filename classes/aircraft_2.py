@@ -142,6 +142,9 @@ class Wing:
     phi : float | None = None
     psi : float | None = None
     airfoils : list[str] = None
+    e: float | None = None
+    CD0: float | None = None
+    k: float | None = None
     ld : float | None = None
     wing_type: float | None = None
     c_root: float | None = None

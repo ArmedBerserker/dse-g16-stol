@@ -9,6 +9,9 @@ phi : 0.95
 psi : 0.007
 airfoils:
   - null
+e: 0.8
+CD0: 0.025
+k: null
 ld: 12.6
 wing_type: cantilever
 c_root: 2.412881154
