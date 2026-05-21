@@ -196,7 +196,7 @@ class Fuselage:
     vol_cabin_and_cargo: float
     x_pos_seats: list
     x_cargo_holds: list
-    mass_frac_cargo_holds: list
+    #mass_frac_cargo_holds: list
     n_pax: int
     n_window_seats: int
     n_middle_seats: int
@@ -222,7 +222,7 @@ class Engine:
     eta_3 : list[float] | None        # this corresponds to the prop always. Prop is always last
     e_1 : float | None
     e_2 : float | None
-    Phi : f # mloat | None
+    Phi : float | None
 
     def __post_init__(self):
         self.eta_1 = m.prod(self.eta_1)
