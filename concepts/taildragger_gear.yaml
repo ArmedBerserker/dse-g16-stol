@@ -6,8 +6,9 @@ pt: 44.9616987        # Tire pressure [PSI]. Value for landing on hard grass/san
 n_nlg_min_as: 0.08 # Minimum nose(tail) landing gear load fraction. Value from Vos
 n_nlg_max_as: 0.15 # Maximum nose(tail) landing gear load fraction. Value from Vos
 tipover: 15     # Tip-over angle requirement [degrees]. Value from Vos
+scrape: 0      # Scrape angle requirement  [degrees]. Not applicable for taildragger. Value from Roskam
 prop_clear: 0.18 # propeller clearance requirement with tail wheel [m]. From CS25.925
-fus_pitch: null         # Fuselage inclination relative to ground plane [degrees]
+fus_pitch: 12         # Fuselage inclination relative to ground plane [degrees] STANDARD VALUE FROM VOS
 turnover: 50          # Turnover angle requirement [degrees]. Value from Roskam for rough field
 bank: 8               # Bank angle clearance requirement [degrees]. Valye from Vos
 a: 0.33333             # Fraction of total stroke between 1-g compression and full compression. Value from Vos

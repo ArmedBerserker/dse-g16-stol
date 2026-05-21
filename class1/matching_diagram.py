@@ -416,7 +416,7 @@ def find_design_point(datasets, max_wingloading,
 
 
 def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
-        type_to_use : str = "Single Engine Propeller Driven",
+        type_to_use : str = "Twin Engine Propeller Driven",
         W_S_plot: np.ndarray = np.arange(1,10000),
         W_P_plot: np.ndarray = np.arange(1,10000),
         output_filepath: str = 'outputs/Matching_Diagram.png', 

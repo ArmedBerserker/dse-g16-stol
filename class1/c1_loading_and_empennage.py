@@ -88,7 +88,7 @@ def size_empennage_planform(ac: Aircraft):
     V_v = vt['volume_coefficient']
     A_v = vt['aspect_ratio']
     taper_v = vt['taper_ratio']
-    sweep_v = vt['sweep']
+    LE_sweep_v = vt['sweep_LE_deg']
 
     # ---------------------------------------------------------
     # HORIZONTAL STABILIZER SIZING
@@ -133,7 +133,7 @@ def size_empennage_planform(ac: Aircraft):
     vt['c_t_v'] = c_t_v
     vt['MAC_v'] = MAC_v
     vt['y_MAC_v'] = y_MAC_v
-    vt['sweep_LE_deg'] = np.rad2deg(np.arctan(np.tan(np.deg2rad(sweep_v)) + 0.5 * c_r_v / b_v * (1 - taper_v)))
+    vt['sweep'] = np.rad2deg(np.arctan(np.tan(np.deg2rad(LE_sweep_v)) - 0.5 * c_r_v / b_v * (1 - taper_v)))
     vt['x_le'] = x_v - y_MAC_v * np.tan(np.deg2rad(vt['sweep_LE_deg'])) - 0.4 * MAC_v
 
 

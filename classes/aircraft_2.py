@@ -328,6 +328,7 @@ class Landing_Gear:
     n_nlg_min_as: float | None # Minimum nose(tail) landing gear load fraction. Value from Vos
     n_nlg_max_as: float | None # Maximum nose(tail) landing gear load fraction. Value from Vos
     tipover: float | None # Tip-over angle requirement [degrees]. Value from Vos
+    scrape: float | None # Scrape angle requirement [degrees]. Value from Vos
     prop_clear: float | None # propeller clearance requirement with tail wheel [m]. From CS25.925
     fus_pitch: float | None # Fuselage inclination relative to ground plane [degrees]
     turnover: float | None # Turnover angle requirement [degrees]. Value from Roskam for rough field
@@ -378,12 +379,20 @@ class Aircraft:
                    wing = Wing(**data['wing']),
                    fuselage = Fuselage(**data['fuselage']),
                    engine = Engine(**data['engine']))
-    
+    # def __str__(self):
+    #     text = "The aircraft is:\n"
+    #     for field_info in fields(self):
+    #         field_name = field_info.name
+    #         field_value = getattr(self, field_name)
+    #         stripped_f_val = str(field_value).split('\n', 1)[1]
+    #         text += f'{field_name}: {stripped_f_val} \n'
+    #     return text
     def __str__(self):
         text = "The aircraft is:\n"
         for field_info in fields(self):
             field_name = field_info.name
             field_value = getattr(self, field_name)
-            stripped_f_val = str(field_value).split('\n', 1)[1]
+            parts = str(field_value).split('\n', 1)
+            stripped_f_val = parts[1] if len(parts) > 1 else parts[0]
             text += f'{field_name}: {stripped_f_val} \n'
         return text

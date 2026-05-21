@@ -153,7 +153,7 @@ def S_wf(y_start_f, y_end_f, taper, c_r, b):
     return (c_end_f + c_start_f) * np.abs(y_end_f - y_start_f)
 
 def beta(V, altitude, temp_shift):
-    M = V / np.sqrt(287 * 1.4 * Atmosphere(altitude, temp_shift)).temp
+    M = V / np.sqrt(287 * 1.4 * float(Atmosphere(altitude, temp_shift).temp))
     return np.sqrt(1 - M**2)
 
 def lift_slope(A, beta, sweep_c_2_deg, eta=0.95):
@@ -177,10 +177,10 @@ def D_Cl_max(flap_type: str, # 'plain' or 'split' or 'slotted' or 'fowler' or 'd
     return flap_values.get(flap_type)
 
 def W_to(ac: Aircraft, w_oe, w_f, w_pl, w_crew = 0, update_ac: bool = False):
-    W_to = sum(w_oe, w_f, w_pl, w_crew) * (1 + 0.005 / 0.995)  # 0.5% trapped fuel and oil
+    Wto = sum(w_oe, w_f, w_pl, w_crew) * (1 + 0.005 / 0.995)  # 0.5% trapped fuel and oil
     if update_ac:
-        ac.weights.m_takeoff = W_to
-    return W_to
+        ac.weights.m_takeoff = Wto
+    return Wto
 
 def W_oe_and_cg_from_nose(ac: Aircraft, update_ac: bool = False, 
                           pie_chart_output_path: str = None, show_pie_chart: bool = False, 
@@ -191,7 +191,7 @@ def W_oe_and_cg_from_nose(ac: Aircraft, update_ac: bool = False,
     wwing = W_wing(ac)
     wfus = W_fus(ac)
     wnac = W_nac(ac)
-    w_structure = sum(wwing, w_ht, w_vt, wfus, wnac, w_mlg, w_nlg)
+    w_structure = wwing + w_ht + w_vt + wfus + wnac + w_mlg + w_nlg
     w_fxeq, x_cg_fxeq = W_feq_and_cg_from_nose(ac)
     W_oe = w_structure + w_power + w_fxeq
     x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr)
@@ -258,18 +258,20 @@ def W_to_new(ac: Aircraft,
              show_pie_chart: bool = False
              ):
     W_PL = ac.weights.m_payload
-    W_e = W_oe_and_cg_from_nose(ac)[0]
+    W_e = ac.weights.m_empty
     m_ff = 1 - ac.weights.m_fuel / ac.weights.m_takeoff # Insert class I method called
     m_tfo = ac.weights.m_takeoff * 0.005
-    W_to = (W_e + W_PL + W_crew) / (m_ff * (1 + m_res) - m_res - m_tfo)
-    W_F = W_to-W_e-m_tfo-W_PL
+    Wto = (W_e + W_PL + W_crew) / (m_ff * (1 + m_res) - m_res - m_tfo)
+    print(f'Wto: {Wto}, m_ff: {m_ff}, W_e: {W_e}, W_PL: {W_PL}')
+    W_F = Wto-W_e-m_tfo-W_PL
     if update_ac:
-        ac.weights.m_takeoff = W_to
+        ac.weights.m_takeoff = Wto
         ac.weights.m_fuel = W_F
 
     if pie_chart_output_path is not None:
         categories = ['Empty weight', 'Payload', 'Trapped fuel and oil', 'Fuel']
-        values = [W_e, W_PL, m_tfo, W_to-W_e-m_tfo-W_PL] / W_to * 100
+        values = [W_e, W_PL, m_tfo, Wto-W_e-m_tfo-W_PL] / Wto * 100
+        print(f'Pie chart values: {values}')
         fig, ax = plt.subplots(figsize=(8, 6))
         wedges, _ = ax.pie(values, startangle=90)
         total = sum(values)
@@ -292,7 +294,7 @@ def W_to_new(ac: Aircraft,
         plt.savefig(pie_chart_output_path)
         if show_pie_chart:
             plt.show()
-    return W_to, W_F, ac
+    return Wto, W_F, ac
 
 def W_pwr_and_x_cg_from_nose(ac: Aircraft):
     x_le = ac.wing.x_le
@@ -332,39 +334,37 @@ def W_pwr_and_x_cg_from_nose(ac: Aircraft):
     return (W_pwr1 + W_supercap + W_fs), x_cg
 
 def W_feq_and_cg_from_nose(ac: Aircraft):
-    W_to = ac.weights.m_takeoff / LBS_TO_KG
+    Wto = ac.weights.m_takeoff / LBS_TO_KG
     W_e = ac.weights.m_empty
     N_pax = ac.fuselage.n_pax  # Including crew
-    T_cr = Atmosphere(ac.requirements.cruise['cr_altitude'] * FT_TO_M).temp_isa
+    T_cr = float(Atmosphere(ac.requirements.cruise['cr_altitude'] * FT_TO_M).temp_isa)
     M_D = 1.5 * ac.requirements.cruise['cr_speed'] * KTS_TO_MS / np.sqrt(1.4 * 287 * T_cr)  # Design dive Mach number
-    no_pressurization_const = 0.7 # Fraction to take into account api does not have p (pressurization) in our case
+    no_pressurization_const = 0.2 # Fraction to take into account api does not have p (pressurization) in our case
     V_pax_cargo = ac.fuselage.vol_cabin_and_cargo * M2_TO_F2/FT_TO_M  # Volume of passenger cabin and cargo [ft3]
 
-    W_fc = 0.5 * (0.0168 * W_to + 1.066 * W_to**0.626)
+    W_fc = 0.5 * (0.0168 * Wto + 1.066 * Wto**0.626)
 
     # Cessna
-    W_hps = 0.009 * W_to
-    W_els = 0.0268 * W_to
+    W_hps = 0.009 * Wto
+    W_els = 0.0268 * Wto
     # # Torenbeek (W_hps + W_els = W_hps_els)
-    # W_hps_els = 0.0078 * W_to**1.2
-    W_iae = 40 + 0.008 * W_to
-    W_api = (0.265 * W_to**0.52 * N_pax**0.68 * W_iae**0.17 * M_D**0.08) * no_pressurization_const
-    W_fur = 0.5 * (0.412 * N_pax**1.145 * W_to**0.489 + 15 * N_pax + V_pax_cargo)
+    # W_hps_els = 0.0078 * Wto**1.2
+    W_iae = 40 + 0.008 * Wto
+    W_api = (0.265 * Wto**0.52 * N_pax**0.68 * W_iae**0.17 * M_D**0.08) * no_pressurization_const
+    W_fur = 0.5 * (0.412 * N_pax**1.145 * Wto**0.489 + 15 * N_pax + V_pax_cargo)
     W_ops = 0
-    W_fti = 0.5 * (155 / 9980 * W_to + 708 / 24912 * W_to)
+    W_fti = 0.5 * (155 / 9980 * Wto + 708 / 24912 * Wto)
     W_aux = 0.01 * W_e
     W_bal = 0
-    W_pt = 0.0045 * W_to
+    W_pt = 0.0045 * Wto
     W_etc = 0  # NOTE: check if there are other things to include
-    Weights = np.array([W_fc, W_hps, W_els, W_iae, W_api, W_fur, W_ops, W_fti, W_aux, W_pt, W_etc])
-    W_feq = np.sum(Weights)
 
     # CG from nose - *indicated source = https://archive.aoe.vt.edu/mason/Mason_f/M96SC02.pdf 
     c_r_w = ac.wing.c_root
     taper_w = ac.wing.taper_ratio
     b_w = ac.wing.span
-    b_ht = ac.empennage.ht['b_h']
-    b_vt = ac.empennage.ht['b_v']
+    b_ht = ac.empennage.horizontal_tail['b_h']
+    b_vt = ac.empennage.vertical_tail['b_v']
     w_sweep_c_4_deg = ac.wing.sweep
     ht_sweep_le_deg = ac.empennage.horizontal_tail['sweep_LE_deg']
     vt_sweep_le_deg = ac.empennage.vertical_tail['sweep_LE_deg']
@@ -393,6 +393,10 @@ def W_feq_and_cg_from_nose(ac: Aircraft):
     x_cg_aux = start_cabin  # Assuming additional stuff like fire axes near cockpit
     x_cg_pt = start_cabin + 0.5 * l_cabin  # Guestimation
     x_cg_etc = 0  # NOTE: check if there was anything to add
+
+    # print(f'Weights FEQ: {W_fc, W_hps, W_els, W_iae, W_api, W_fur, W_ops, W_fti, W_aux, W_pt, W_etc}')
+    Weights = np.array([W_fc, W_hps, W_els, W_iae, W_api, W_fur, W_ops, W_fti, W_aux, W_pt, W_etc])
+    W_feq = np.sum(Weights)
     cgs = np.array([x_cg_fc, x_cg_hps, x_cg_els, x_cg_iae, x_cg_api, x_cg_fur, x_cg_ops, x_cg_fti, x_cg_aux, x_cg_pt, x_cg_etc])
     x_cg_feq = (Weights@cgs) / W_feq
 
@@ -400,7 +404,7 @@ def W_feq_and_cg_from_nose(ac: Aircraft):
 
 def W_wing(ac: Aircraft, update_ac: bool = False):
     w = ac.wing
-    W_to = ac.weights.m_takeoff / LBS_TO_KG
+    Wto = ac.weights.m_takeoff / LBS_TO_KG
     S = w.area * M2_TO_F2
     n_ult = ac.requirements.general['n_ult']  # NOTE: add later
     A = w.aspect_ratio
@@ -415,16 +419,16 @@ def W_wing(ac: Aircraft, update_ac: bool = False):
     
     # Cessna
     if wing_type == 'cantilever':
-        W_wing_c = 0.04674 * (W_to ** 0.397) * (S ** 0.36) * (n_ult ** 0.397) * (A ** 1.712)
+        W_wing_c = 0.04674 * (Wto ** 0.397) * (S ** 0.36) * (n_ult ** 0.397) * (A ** 1.712)
 
     else:
         W_wing_c = 0.002933 * (S ** 1.018) * (A ** 2.473) * (n_ult ** 0.611)
 
     # USAF
-    # W_wing_u = 96.948 * (((W_to * n_ult * 1e-5) ** 0.65) * ((A / np.cos(np.deg2rad(sweep_c_4_deg))) ** 0.57) * ((S / 100) ** 0.61) * (((1 + taper) / (2 * t_c_max)) ** 0.36) * ((1 + V_h / 500) ** 0.5)) ** 0.993
+    # W_wing_u = 96.948 * (((Wto * n_ult * 1e-5) ** 0.65) * ((A / np.cos(np.deg2rad(sweep_c_4_deg))) ** 0.57) * ((S / 100) ** 0.61) * (((1 + taper) / (2 * t_c_max)) ** 0.36) * ((1 + V_h / 500) ** 0.5)) ** 0.993
 
     # Torenbeek
-    W_wing_t = 0.00125 * W_to * ((b / np.cos(np.deg2rad(w.sweep_c_2_deg))) ** 0.75) * (1 + (6.3 * np.cos(np.deg2rad(w.sweep_c_2_deg)) / b) ** 0.5) * (n_ult ** 0.55) * (b * S / (t_r * W_to * np.cos(np.deg2rad(w.sweep_c_2_deg))))**0.3
+    W_wing_t = 0.00125 * Wto * ((b / np.cos(np.deg2rad(w.sweep_c_2_deg))) ** 0.75) * (1 + (6.3 * np.cos(np.deg2rad(w.sweep_c_2_deg)) / b) ** 0.5) * (n_ult ** 0.55) * (b * S / (t_r * Wto * np.cos(np.deg2rad(w.sweep_c_2_deg))))**0.3
 
     return (W_wing_c + W_wing_t) / 2
 
@@ -447,15 +451,16 @@ def W_emp(ac: Aircraft, update_ac: bool = False):
     A_h = ht['aspect_ratio']
     A_v = vt['aspect_ratio']
     vt_sweep_c_4_deg = ac.empennage.vertical_tail['sweep']
+    Wto = ac.weights.m_takeoff / LBS_TO_KG
 
     # Cessna
-    W_h_c = (3.184 * (W_to ** 0.887) * (S_h ** 0.101) * (A_h ** 0.138)) / (174.04 * (t_r_h **0.223))
-    W_v_c = (1.68 * (W_to ** 0.567) * (S_v ** 1.249) * (A_v ** 0.482)) / (639.95 * (t_r_v ** 0.747) * (np.cos(np.rad2deg(vt_sweep_c_4_deg)) ** 0.882))
+    W_h_c = (3.184 * (Wto ** 0.887) * (S_h ** 0.101) * (A_h ** 0.138)) / (174.04 * (t_r_h **0.223))
+    W_v_c = (1.68 * (Wto ** 0.567) * (S_v ** 1.249) * (A_v ** 0.482)) / (639.95 * (t_r_v ** 0.747) * (np.cos(np.rad2deg(vt_sweep_c_4_deg)) ** 0.882))
     W_emp_c = W_h_c + W_v_c
 
     # USAF
-    W_h_u = 127 * ((W_to * n_ult * 1e-5)**0.87 * (S_h / 100)**1.2 * 0.289 * (l_h / 10)**0.483 * (b_h / t_r_h)**0.5)**0.458
-    W_v_u = 98.5 * ((W_to * n_ult * 1e-5)**0.87 * (S_v / 100)**1.2 * 0.289 * (b_v / t_r_v)**0.5)**0.458
+    W_h_u = 127 * ((Wto * n_ult * 1e-5)**0.87 * (S_h / 100)**1.2 * 0.289 * (l_h / 10)**0.483 * (b_h / t_r_h)**0.5)**0.458
+    W_v_u = 98.5 * ((Wto * n_ult * 1e-5)**0.87 * (S_v / 100)**1.2 * 0.289 * (b_v / t_r_v)**0.5)**0.458
     W_emp_u = W_h_u + W_v_u
 
     # # Torenbeek
@@ -473,17 +478,18 @@ def W_fus(ac: Aircraft, update_ac: bool = False):
     h_f = fus.height / FT_TO_M  # Max fuselage height in ft
     n_ult = ac.requirements.general['n_ult']
     alt_c = ac.requirements.cruise['cr_altitude'] * FT_TO_M  # m
-    rho_c = Atmosphere(height=alt_c) # kg/m3
+    rho_c = float(Atmosphere(height=alt_c).density) # kg/m3
     V_c = ac.requirements.cruise['cr_speed'] * np.sqrt(rho_c / 1.225) # KEAS
     l_f_n = l_f # Fuselage length - nacelle in ft
     P_max = ac.fuselage.max_perimeter / FT_TO_M  # Maximum fuselage perimeter in ft
     N_pax = ac.fuselage.n_pax  # Number of passengers including pilot(s)
+    Wto = ac.weights.m_takeoff / LBS_TO_KG
 
     # Cessna
-    W_fus_c = 14.86 * (W_to**0.144) * (l_f_n / P_max)**0.778 * (l_f_n**0.383) * (N_pax**0.455)
+    W_fus_c = 14.86 * (Wto**0.144) * (l_f_n / P_max)**0.778 * (l_f_n**0.383) * (N_pax**0.455)
     
     # USAF
-    W_fus_u = 200 * ((W_to * n_ult * 1e-5)**0.286 * (l_f / 10)**0.857 * ((w_f + h_f) / 10) * (V_c / 100)**0.338)**1.1
+    W_fus_u = 200 * ((Wto * n_ult * 1e-5)**0.286 * (l_f / 10)**0.857 * ((w_f + h_f) / 10) * (V_c / 100)**0.338)**1.1
 
     return (W_fus_c + W_fus_u) / 2
 
@@ -527,16 +533,20 @@ def W_nac(ac: Aircraft, update_ac: bool = False):
         return W_n_t
 
 def W_gear(ac: Aircraft, update_ac: bool = False):
-    W_to = ac.weights.m_takeoff / LBS_TO_KG
-    W_L = ac.requirements.landing['la_mass_frac'] * W_to
-    shock_strut_frac_whole = 0.5
-    l_s_m = shock_strut_frac_whole * (np.abs(ac.landing_gear.height_mlg) - ac.landing_gear.selected_mlg_tire['Tire Radius (In)'] * 2.54 / 100) / FT_TO_M # Shock strut length main gear [ft]
-    l_s_n = shock_strut_frac_whole * (np.abs(ac.landing_gear.height_nlg) - ac.landing_gear.selected_nlg_tire['Tire Radius (In)'] * 2.54 / 100) / FT_TO_M # Shock strut length nose gear [ft]
+    Wto = ac.weights.m_takeoff / LBS_TO_KG
+    W_L = ac.requirements.landing['la_mass_frac'] * Wto
+    shock_strut_frac_whole = 0.2
+    d_tire = ac.landing_gear.selected_mlg_tire["Outside Diameter Max (In)"] * 2.54 / 100  # tire diameter
+    d_tire_n = ac.landing_gear.selected_nlg_tire["Outside Diameter Max (In)"] * 2.54 / 100  # tire diameter
+    l_s_m = shock_strut_frac_whole * (np.abs(ac.landing_gear.height_mlg) - d_tire / 2) / FT_TO_M # Shock strut length main gear [ft]
+    l_s_n = shock_strut_frac_whole * (np.abs(ac.landing_gear.height_nlg) - d_tire_n / 2) / FT_TO_M # Shock strut length nose gear [ft]
     n_ult = ac.requirements.general['n_ult']
 
     # Cessna
-    W_mlg = (0.013 * W_to + 0.362 * (W_L**0.417) * (n_ult**0.950) * (l_s_m**0.183))
-    W_nlg = (6.2 + 0.0013 * W_to + 0.007157 * (W_L**0.749) * (n_ult) * (l_s_n**0.788))
+    W_mlg = (0.013 * Wto + 0.362 * (W_L**0.417) * (n_ult**0.950) * (l_s_m**0.183))
+    # print(f'W_mlg components: {Wto, W_L, n_ult, l_s_m}')
+    # print(W_mlg)
+    W_nlg = (6.2 + 0.0013 * Wto + 0.007157 * (W_L**0.749) * (n_ult) * (l_s_n**0.788))
     
     # # USAF
     # W_g_u = 0.054 * (l_s_m**0.501) * (W_L * n_ult)**0.684
@@ -627,6 +637,7 @@ def x_cg_structural_from_nose(ac: Aircraft,
                  'nose landing gear': x_cg_nlg, 'main landing gear': x_cg_mlg, 'nacelle': x_cg_nac}
     W_ht, W_vt = W_emp(ac)
     W_mlg, W_nlg = W_gear(ac)
+    print(f'Weights: {[W_wing(ac), W_ht, W_vt, W_fus(ac), W_mlg, W_nlg, W_nac(ac)]}')
     Weights = np.array([W_wing(ac), W_ht, W_vt, W_fus(ac), W_mlg, W_nlg, W_nac(ac)])
     cgs = np.array([x_cg_w, x_cg_ht, x_cg_vt, x_cg_fus, x_cg_mlg, x_cg_nlg, x_cg_nac])
     x_cg_struc = (Weights @ cgs) / np.sum(Weights)

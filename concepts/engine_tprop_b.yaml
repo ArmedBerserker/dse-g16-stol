@@ -1,6 +1,6 @@
 engine_type : prop 
 alpha_p_id : turboprop  # turboprop or hydrogen or piston
-count : 1          # number of engines aboard
+count : 2          # number of engines aboard
 #       [combustion]
 eta_1 : [0.2]
 #       null

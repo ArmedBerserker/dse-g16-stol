@@ -99,6 +99,8 @@ def tire_location(ac: Aircraft, update_ac = False):
     mlg_tire = ac.landing_gear.selected_mlg_tire
     nlg_tire = ac.landing_gear.selected_nlg_tire
 
+    # print(f'mlg tire: {mlg_tire}')
+
     D_tire = mlg_tire["Outside Diameter Max (In)"] * INCH_TO_M  # [m]
     D_rim = mlg_tire["Specified Rim Diameter (In)"] * INCH_TO_M  # [m]
 

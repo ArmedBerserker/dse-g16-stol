@@ -132,11 +132,11 @@ for ac in [ac1, ac3, ac6, ac8]:
     print(f'\n {ac.name}: \t Class I mass estimation complete')
 
     # 3. Matching Diagram
-    data_cr = matching_diagram.plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=False, requirement_to_meet='cruise')
-    data_to = matching_diagram.plot_matching_and_select_design_point(ac,W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=False, requirement_to_meet='to')
+    output_matching = f'outputs/matching_init_{ac.name}.png'
+    data_cr = matching_diagram.plot_matching_and_select_design_point(ac, output_filepath=output_matching, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=False, requirement_to_meet='cruise')
+    data_to = matching_diagram.plot_matching_and_select_design_point(ac, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), show_plot=False, requirement_to_meet='to')
     ac.engine.power_to = ac.weights.m_takeoff * g / data_to['W/P']
     ac.wing.area = ac.weights.m_takeoff * g / data_to['W/S']
-    data_cr = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use='Twin Engine Propeller Driven', W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='cruise')
     ac.engine.power_cr = ac.weights.m_takeoff * g / data_cr['W/P']
     # print(f" \n Aircraft: {ac.name}:")
     # print(f" \n Cruise data: \n {data_cr}")
@@ -160,27 +160,30 @@ for ac in [ac1, ac3, ac6, ac8]:
     c1_loading_and_empennage.class_I_loading_cgs(ac, tricycle_condition, update_ac=True)
     c1_loading_and_empennage.size_empennage_planform(ac)
     print(f'\n {ac.name}: \t Initial loading and empennage sizing complete')
+    # print(f'Empennage: {ac.empennage}')
 
     # 8. Landing gear NOTE: add .py and .yaml files
-    c1_gear_sizing.size_tires(ac)
-    c1_gear_sizing.tire_location(ac)
+    c1_gear_sizing.size_tires(ac, update_ac=True)
+    c1_gear_sizing.tire_location(ac, update_ac=True)
     print(f'\n {ac.name}: \t Landing gear sizing complete')
 
     # 9. Class II drag
     c2_drag.C_D0(ac, n_engine_operative=ac.engine.count, flight_condition='cruise', update_ac=True)
-    c2_drag.C_D_L(ac, flight_condition='cruise', update_ac=True)
+    c2_drag.C_D_L(ac, flight_condition='cruise', update_ac=True, wing_tip=False)
+    print(f'\n {ac.name} done (except loading diagram and Class II mass estim)')
+    # print(ac)
 
-    # 10. Class II weight
-    pie_chart_folder = Path('outputs/Class_2_mass')
-    mtow_pie_chart = pie_chart_folder / 'mtow_pie_chart_init.png'
-    oew_pie_chart = pie_chart_folder / 'oew_pie_chart_init.png'
-    struc_pie_chart = pie_chart_folder / 'struc_pie_chart_init.png'
-    x_le_ht = ac.empennage.horizontal_tail['x_le']
-    x_le_vt = ac.empennage.vertical_tail['x_le']
-    c2_m.W_oe_and_cg_from_nose(ac, update_ac=True, pie_chart_output_path=oew_pie_chart, show_pie_chart=True, struc_pie_chart_output_path=struc_pie_chart, struc_show_pie_chart=True)
-    c2_m.W_to_new(ac, W_crew=0, update_ac=True, pie_chart_output_path=mtow_pie_chart, show_pie_chart=True)
+    # # 10. Class II weight
+    # pie_chart_folder = Path('outputs/Class_2_mass')
+    # mtow_pie_chart = pie_chart_folder / f'mtow_pie_chart_init_{ac.name}.png'
+    # oew_pie_chart = pie_chart_folder / f'oew_pie_chart_init_{ac.name}.png'
+    # struc_pie_chart = pie_chart_folder / f'struc_pie_chart_init_{ac.name}.png'
+    # x_le_ht = ac.empennage.horizontal_tail['x_le']
+    # x_le_vt = ac.empennage.vertical_tail['x_le']
+    # c2_m.W_oe_and_cg_from_nose(ac, update_ac=True, pie_chart_output_path=oew_pie_chart, show_pie_chart=True, struc_pie_chart_output_path=struc_pie_chart, struc_show_pie_chart=True)
+    # c2_m.W_to_new(ac, W_crew=0, update_ac=True, pie_chart_output_path=mtow_pie_chart, show_pie_chart=True)
 
-    # 11. Loading diagram
-    loading_diagram_path = pie_chart_folder / 'Initial_loading_diagram.png'
-    c2_m.loading_diagram(ac.wing.x_le, ac, show_plot=True, output_filepath=loading_diagram_path, update_ac_cgs=True)
+    # # 11. Loading diagram
+    # loading_diagram_path = pie_chart_folder / 'Initial_loading_diagram.png'
+    # c2_m.loading_diagram(ac.wing.x_le, ac, show_plot=True, output_filepath=loading_diagram_path, update_ac_cgs=True)
 
