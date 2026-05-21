@@ -32,6 +32,8 @@ def calculate_payload_range_parameters(m_pl, m_pl_max, R_design, eta_eng, eta_p,
     design_point_3 = (R_design, m_pl)
 
     R_aux = (R_eq - R_design)
+    print(f"Equivalent range: {R_eq}")
+    print(f"Auxiliary range: {R_aux}")
 
     m_f_at_struct_payload = m_mto - m_e - m_pl_max
     R_at_struct_payload = eta_eng * eta_p * cl_cd * e_f / g * math.log((m_e + m_pl_max + m_f_at_struct_payload) / (m_e + m_pl_max)) - R_aux
@@ -80,7 +82,7 @@ if __name__ == '__main__':
     m_pl = 704
     m_pl_max = 725  # m_pl * 1.03
     R_design = 500 * 1000
-    eta_eng = 0.25 # 0.25 piston / 0.2 turboprop
+    eta_eng = 0.2 # 0.25 piston / 0.2 turboprop
     eta_p = 0.8
     A = 9
     e = 0.7996
@@ -88,7 +90,7 @@ if __name__ == '__main__':
     h_cr = 2590
     V_cr = 77
     e_f = 43000000
-    me_mto = 0.62 # 0.62 for boosted piston / 0.52 for boosted turboprop - 0.02 added for supercapacitor
+    me_mto = 0.52 # 0.62 for boosted piston / 0.52 for boosted turboprop - 0.02 added for supercapacitor
 
     payload_range_points = calculate_payload_range_parameters(m_pl, m_pl_max, R_design, eta_eng, eta_p, A, e, C_d0, h_cr, V_cr, e_f, me_mto)
     plot_payload_range(payload_range_points)

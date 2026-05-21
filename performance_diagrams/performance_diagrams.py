@@ -4,61 +4,62 @@ import numpy as np
 from classes.isa import *
 from lookups.consts import *
 import matplotlib.pyplot as plt
+from scipy.optimize import brentq
 
 
-def calculate_cd(cd0, e, AR, mtom, rho, V, S):
-    C_l = mtom / (0.5 * rho * V ** 2 * S)
+def stall_speed(mtow, C_l_max, rho, S):
+    return math.sqrt((2 * mtow)/(rho * S * C_l_max))
+
+
+def calculate_cd(cd0, e, AR, mtow, rho_0, V, S):
+    C_l = mtow / (0.5 * rho_0 * V ** 2 * S)
     C_d = cd0 + C_l ** 2 / (np.pi * AR * e)
 
     return C_d
 
 
-def calculate_power_required(C_d, rho, V, S):
-
-    P_r = C_d * 0.5 * rho * V ** 3 * S
-
+def calculate_power_required(C_d, rho_0, V, S):
+    P_r = C_d * 0.5 * rho_0 * V ** 3 * S
     return P_r
 
 
-def power_curves(P_a, P_r, V):
+def power_curves(P_a_list, P_r_list, V):
+    # delta_t 20 temperature not taken into account
+    plt.plot(V, P_a_list)
+    plt.plot(V, P_r_list)
+    plt.show()
 
-    P_a = P_a * np.ones_like(V)
-    # plt.plot(V, P_a)
-    # plt.plot(V, P_r)
-    # plt.show()
-
-    return P_a - P_r
+    return P_a_list - P_r_list
 
 
-def RoC_vs_V(excess_power, V, mtom):
-    RoC = excess_power / mtom
+def RoC_vs_V(excess_power, V, mtow):
+    RoC = excess_power / mtow
     idx_max = np.argmax(RoC)
 
     V_max_RoC = V[idx_max]
     max_RoC = RoC[idx_max]
 
-    # print(f"Velocity for maximum RoC: {V_max_RoC}")
-    # print(f"Maximum RoC: {max_RoC}")
-    # plt.plot(V, RoC)
-    # plt.show()
+    print(f"Velocity for maximum RoC: {V_max_RoC}")
+    print(f"Maximum RoC: {max_RoC}")
+    plt.plot(V, RoC)
+    plt.show()
 
 
-def AoC_vs_V(P_a, P_r, mtom, V):
-    AoC = np.arcsin((P_a - P_r) / (mtom * V))
+def AoC_vs_V(P_a_list, P_r_list, mtow, V):
+    AoC = np.arcsin((P_a_list - P_r_list) / (mtow * V))
     AoC = np.rad2deg(AoC)
     idx_max = np.argmax(AoC)
 
     V_max_AoC = V[idx_max]
     max_AoC = AoC[idx_max]
 
-    # print(f"Velocity for maximum AoC: {V_max_AoC}")
-    # print(f"Maximum RoC: {max_AoC}")
-    # plt.plot(V, AoC)
-    # plt.show()
+    print(f"Velocity for maximum AoC: {V_max_AoC}")
+    print(f"Maximum AoC: {max_AoC}")
+    plt.plot(V, AoC)
+    plt.show()
 
 
-def power_curves_altitude(cd0, e, AR, W, rho_0, V, S, P_a_0, n):
-
+def power_curves_altitude(cd0, e, AR, mtow, rho_0, S, P_a_0, n, delta_T):
     altitudes_ft = [0, 2000, 4000, 6000, 8000, 10000]
 
     P_a_alts = []
@@ -68,70 +69,88 @@ def power_curves_altitude(cd0, e, AR, W, rho_0, V, S, P_a_0, n):
 
         alt_m = alt_ft * FT_TO_M
 
-        atmos_model = Atmosphere(alt_m, 0)
+        atmos_model = Atmosphere(alt_m, delta_T)
         rho = atmos_model.density[0]
+        V = np.arange(stall_speed(mtow, C_l_max, rho, S), 110, 1)
 
-        # --- Power Required ---
-
-        C_l = W / (0.5 * rho * V**2 * S)
-
+        C_l = mtow / (0.5 * rho * V**2 * S)
         C_d = cd0 + C_l**2 / (np.pi * AR * e)
 
         P_r = C_d * 0.5 * rho * V**3 * S
-
         P_r_alts.append(P_r)
-
-        # --- Power Available ---
-
         P_a = P_a_0 * (rho / rho_0) ** n
+        P_a = np.ones_like(V) * P_a
 
-        # Make horizontal line
-        P_a_curve = np.ones_like(V) * P_a
+        P_a_alts.append(P_a)
 
-        P_a_alts.append(P_a_curve)
+        line, = plt.plot(V, P_r, label=f"{alt_m: .0f} m")
+        plt.plot(V, P_a, '--', color=line.get_color())
 
-        # Plot power required first
-        # line, = plt.plot(V, P_r, label=f"{alt_ft} ft")
-
-    #     # Use same color for power available
-    #     plt.plot(
-    #         V,
-    #         P_a_curve,
-    #         '--',
-    #         color=line.get_color()
-    #     )
-    #
-    #
-    # plt.xlabel("Velocity [m/s]")
-    # plt.ylabel("Power [W]")
-    # plt.title("Power Required and Available vs Velocity")
-    # plt.grid(True)
-    # plt.legend()
-    # plt.show()
+    plt.xlabel("Velocity [m/s]")
+    plt.ylabel("Power [W]")
+    plt.title("Power Required and Available vs Velocity")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
 
     return P_a_alts, P_r_alts
 
 
-def RoC_multiple_alts(P_a, P_r, V, mtom):
+def RoC_multiple_alts(P_a_lists, P_r_lists, V, mtow):
 
-    RoC = [(P_a[i] - P_r[i]) / mtom for i in range(len(P_a))]
+    RoC = [(P_a_lists[i] - P_r_lists[i]) / mtow for i in range(len(P_a_lists))]
 
     for r in RoC:
-        plt.plot(V[0:50], r[0:50])
+        plt.plot(V, r)
 
     plt.show()
 
 
-def RoC_altitude(W, P_a_0, rho_0, n, V, cd0, S, AR, e):
-    alts = np.arange(0, 10000, 1)
+def RoC_altitude(mtow, P_a_0, rho_0, n, cd0, S, AR, e, delta_T):
+    alts = np.arange(0, 10000, 1)  # [ft]
+    alts = alts * FT_TO_M
+
     max_RoCs = []
 
     for a in alts:
-        atmos_model = Atmosphere(a, 0)
+        atmos_model = Atmosphere(a, delta_T)
+        rho = atmos_model.density[0]
+        V = np.arange(stall_speed(mtow, C_l_max, rho, S), 110, 1)
+
+        C_l = mtow / (0.5 * rho * V ** 2 * S)
+        C_d = cd0 + C_l ** 2 / (np.pi * AR * e)
+
+        P_r = C_d * 0.5 * rho * V ** 3 * S
+        P_a = P_a_0 * (rho / rho_0) ** n
+        P_a = np.ones_like(V) * P_a
+
+        RoC = (P_a - P_r) / mtow
+        idx_max = np.argmax(RoC)
+        max_RoC = RoC[idx_max]
+
+        max_RoCs.append(max_RoC)
+
+    # print(max_RoCs[-2000])
+    # print(alts[-2000])
+    plt.plot(max_RoCs, alts)
+    plt.show()
+
+
+def envelope(C_l_max, mtow, S, V, cd0, AR, e, P_a_0, rho_0, n, delta_T):
+    alts = np.arange(0, 10000, 1)  # [ft]
+    alts = alts * FT_TO_M
+
+    V_s_list = []
+    V_max_list = []
+
+    for a in alts:
+        atmos_model = Atmosphere(a, delta_T)
         rho = atmos_model.density[0]
 
-        C_l = W / (0.5 * rho * V ** 2 * S)
+        V_s = math.sqrt((2 * mtow)/(rho * S * C_l_max))
+        V_s_list.append(V_s)
 
+        C_l = mtow / (0.5 * rho * V ** 2 * S)
         C_d = cd0 + C_l ** 2 / (np.pi * AR * e)
 
         P_r = C_d * 0.5 * rho * V ** 3 * S
@@ -139,48 +158,90 @@ def RoC_altitude(W, P_a_0, rho_0, n, V, cd0, S, AR, e):
         P_a = P_a_0 * (rho / rho_0) ** n
         P_a = np.ones_like(V) * P_a
 
-        RoC = (P_a - P_r) / W
-        idx_max = np.argmax(RoC)
-        max_RoC = RoC[idx_max]
 
-        max_RoCs.append(max_RoC)
 
-    # print(max_RoCs[-760])
-    # print(alts[-760])
-    plt.plot(max_RoCs, alts)
+        # diff = P_a - P_r
+        # crossing_indices = np.where(np.diff(np.sign(diff)) != 0)[0]
+        # intersections = []
+        #
+        # for i in crossing_indices:
+        #     # Linear interpolation
+        #     x1, x2_ = V[i], V[i + 1]
+        #     d1, d2 = diff[i], diff[i + 1]
+        #
+        #     # intersection x
+        #     xi = x1 - d1 * (x2_ - x1) / (d2 - d1)
+        #
+        #     # intersection y
+        #     yi = P_a[i] + (P_a[i + 1] - P_a[i]) * (xi - x1) / (x2_ - x1)
+        #
+        #     intersections.append((xi, yi))
+        #
+        # print("Intersection points:")
+        # for pt in intersections:
+        #     print(pt)
+        #
+        # if len(intersections) == 1:
+        #     i = crossing_indices[0]
+        #
+        #     # Check sign change direction
+        #     before = diff[i]
+        #     after = diff[i + 1]
+        #
+        #     if before < 0 and after > 0:
+        #         kind = "minimum"
+        #     elif before > 0 and after < 0:
+        #         kind = "maximum"
+        #     else:
+        #         kind = "undetermined"
+        #
+        #     print(f"\nSingle intersection corresponds to a local {kind}.")
+        # idx = np.where(np.diff(np.sign(P_a - P_r)))[0]
+        # print(idx)
+        #
+        # V_intersection = V[idx][0]
+        # V_max_list.append(int(V_intersection))
+
+    # print(V_max_list)
+    print(V_s_list)
+    plt.plot(V_s_list, alts)
     plt.show()
 
 
 
 if __name__ == '__main__':
-    alt = 0
-    cd0 = 0.015
-    e = 0.8
-    AR = 9
-    mtom = 2000 * g
-    atmos_model = Atmosphere(alt, 0)
-    rho = atmos_model.density[0]
-    V = np.arange(25, 100, 1)
-    S = 30 #25.675
-    eta_p = 0.8
-    P_a = 200000 * eta_p
-
-    C_d = calculate_cd(cd0, e, AR, mtom, rho, V, S)
-
-    P_r = calculate_power_required(C_d, rho, V, S)
-
-    excess_power = power_curves(P_a, P_r, V)
-
-    # RoC_vs_V(excess_power, V, mtom)
-    #
-    # AoC_vs_V(P_a, P_r, mtom, V)
+    alt = 0 # [m]
+    delta_T = 20  # [K]
+    cd0 = 0.025 # [-]
+    e = 0.8 # [-]
+    AR = 9 # [-]
+    mtow = 2000 * g # [N]
+    atmos_model = Atmosphere(alt, 20)
+    rho_0 = atmos_model.density[0] # [kg / m^3]
+    C_l_max = 1.7
+    S = 25.675  # [m^2]
+    V = np.arange(stall_speed(mtow, C_l_max, rho_0, S), 110, 1) # [m / s]
+    eta_p = 0.8 # [-]
     n = 0.8 # 1 for piston / 0.8 for turboprop
+    P_a = 550000 * eta_p * (rho_0 / 1.225) ** n # [W] 202000-piston; 550000-turboprop
+    P_a_list = P_a * np.ones_like(V)
 
-    P_a, P_r = power_curves_altitude(cd0, e, AR, mtom, rho, V, S, P_a, n)
+    C_d = calculate_cd(cd0, e, AR, mtow, rho_0, V, S)
 
-    # RoC_multiple_alts(P_a, P_r, V, mtom)
+    P_r_list = calculate_power_required(C_d, rho_0, V, S)
 
-    P_a = 200000 * eta_p
-    RoC_altitude(mtom, P_a, rho, n, V, cd0, S, AR, e)
+    excess_power = power_curves(P_a_list, P_r_list, V)
+
+    RoC_vs_V(excess_power, V, mtow)
+
+    AoC_vs_V(P_a_list, P_r_list, mtow, V)
+
+    P_a_lists, P_r_lists = power_curves_altitude(cd0, e, AR, mtow, rho_0, S, P_a, n, delta_T)
+
+    RoC_multiple_alts(P_a_lists, P_r_lists, V, mtow)
+
+    RoC_altitude(mtow, P_a, rho_0, n, cd0, S, AR, e, delta_T)
+
+    envelope(C_l_max, mtow, S, V, cd0, AR, e, P_a, rho_0, n, delta_T)
 
 # length, width, height, length of nose cone and tail cone, area of base, X location of seats, X location of cargo, volume of cabin
