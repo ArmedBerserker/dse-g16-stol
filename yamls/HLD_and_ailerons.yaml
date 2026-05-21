@@ -1,12 +1,17 @@
 flaps:
   flap_type: 'slotted'
-  cdash_c:  # c'/c
-  cf_c: null
-  S_wf: null
+  cdash_c_to: 1.08  # c'/c
+  cdash_c_ld: 1.16  # c'/c
+  cf_c: 0.4
+  Delta_c_cf_to: 0.2
+  Delta_c_cf_ld: 0.4
+  cdash_cf_to: 2.7
+  cdash_cf_ld: 2.9
+  S_wf: 18.13
   y_flap_in: 1.125  # m
   y_flap_out: 6.5  # m
-  ld_deflection: null  # deg
-  to_deflection: null  # deg
+  ld_deflection: 40  # deg
+  to_deflection: 20  # deg
 ailerons:
   y_aileron_in: 6.75  # m
   y_aileron_out: 7.4  # m
@@ -14,6 +19,12 @@ slats:
   slat_type: 'slat'
   y_slat_in: 1.125  # m
   y_slat_out: 7.4  # m
+
+  cdash_c_to: 1.10  # c'/c
+  cdash_c_ld: 1.10  # c'/c
+  S_wf: 20.0925
+  y_flap_in: 1.125  # m
+  y_flap_out: 6.5  # m
 landing_lift:
   CL_alpha:  # per deg
   alpha_zero_lift:  # deg

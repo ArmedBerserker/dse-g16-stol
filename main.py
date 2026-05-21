@@ -1,4 +1,4 @@
-from class1 import c1_m, c1_loading_and_empennage, matching_diagram, prelim_drag, c1_wing_planform, c2_drag, c1_gear_sizing, c1_fuselage
+from class1 import c1_m, c1_loading_and_empennage, matching_diagram, prelim_drag, c1_planform_sizing, c2_drag, c1_gear_sizing, c1_fuselage
 import c2_m
 import sys
 import os
@@ -100,7 +100,7 @@ for ac in [ac1, ac3, ac6, ac8]:
         - Preliminary drag estimation       DONE
         - Class I mass
         - Matching diagram                  DONE
-        - Wing planform                     ADD FILES
+        - Wing planform                     DONE
         - HLD and ailerons
         - Fuselage                          DONE
         - Empennage sizing                  DONE
@@ -139,7 +139,7 @@ for ac in [ac1, ac3, ac6, ac8]:
     print(f'\n {ac.name}: \t Matching complete')
 
     # 4. Wing planform NOTE: edit airfoil name!!!
-    c1_wing_planform.size_wing_planform(ac)
+    c1_planform_sizing.size_wing_planform(ac)
     print(f'\n {ac.name}: \t Planform sizing complete')
 
     # 5. HLD and ailerons

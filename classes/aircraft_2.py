@@ -160,6 +160,8 @@ class Wing:
     x_le: float | None = None
     tip_twist: float | None = None
     dihedral: float | None = None
+    airfoil_name: str | None = None
+    incidence_deg: float | None = None
 
     # ADD WHATEVER IS NEEDED
 

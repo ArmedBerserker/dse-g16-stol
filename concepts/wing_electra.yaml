@@ -25,3 +25,5 @@ x_c_rear_spar: null
 x_le: 2.457915811  # CHANGE!!!
 tip_twist: 0  # deg
 dihedral: 0  # deg
+airfoil_name: "NACA 23012"
+incidence_deg: 0
