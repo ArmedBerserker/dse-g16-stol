@@ -111,6 +111,7 @@ def size_empennage_planform(ac: Aircraft):
     ht['MAC_h'] = MAC_h
     ht['y_MAC_h'] = y_MAC_h
     ht['sweep_LE_deg'] = np.rad2deg(np.arctan(np.tan(np.deg2rad(sweep_h)) + 0.5 * c_r_h / b_h * (1 - taper_h)))
+    ht['x_le'] = x_h - y_MAC_h * np.tan(np.deg2rad(ht['sweep_LE_deg'])) - 0.4 * MAC_h
 
     # ---------------------------------------------------------
     # VERTICAL STABILIZER SIZING
@@ -133,6 +134,7 @@ def size_empennage_planform(ac: Aircraft):
     vt['MAC_v'] = MAC_v
     vt['y_MAC_v'] = y_MAC_v
     vt['sweep_LE_deg'] = np.rad2deg(np.arctan(np.tan(np.deg2rad(sweep_v)) + 0.5 * c_r_v / b_v * (1 - taper_v)))
+    vt['x_le'] = x_v - y_MAC_v * np.tan(np.deg2rad(vt['sweep_LE_deg'])) - 0.4 * MAC_v
 
 
 

@@ -182,7 +182,7 @@ def W_to(ac: Aircraft, w_oe, w_f, w_pl, w_crew = 0, update_ac: bool = False):
         ac.weights.m_takeoff = W_to
     return W_to
 
-def W_oe_and_cg_from_nose(ac: Aircraft, x_le_w, x_le_ht, x_le_vt, update_ac: bool = False, 
+def W_oe_and_cg_from_nose(ac: Aircraft, update_ac: bool = False, 
                           pie_chart_output_path: str = None, show_pie_chart: bool = False, 
                           struc_pie_chart_output_path: str = None, struc_show_pie_chart: bool = False) -> tuple:
     w_power, x_cg_pwr = W_pwr_and_x_cg_from_nose(ac)
@@ -194,7 +194,7 @@ def W_oe_and_cg_from_nose(ac: Aircraft, x_le_w, x_le_ht, x_le_vt, update_ac: boo
     w_structure = sum(wwing, w_ht, w_vt, wfus, wnac, w_mlg, w_nlg)
     w_fxeq, x_cg_fxeq = W_feq_and_cg_from_nose(ac)
     W_oe = w_structure + w_power + w_fxeq
-    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, x_le_w, x_le_vt, x_le_ht, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr)
+    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr)
     if update_ac:
         ac.weights.m_empty = W_oe
         ac.weights.x_cg_oew = x_cg_oe
@@ -250,7 +250,7 @@ def W_oe_and_cg_from_nose(ac: Aircraft, x_le_w, x_le_ht, x_le_vt, update_ac: boo
             plt.show()
     return W_oe, x_cg_oe, ac
 
-def W_to_new(ac: Aircraft, x_le_w, x_le_ht, x_le_vt,
+def W_to_new(ac: Aircraft,
              m_ff, # from class I
              m_res, # from class I
              W_crew = 0.0, # included in PL probably
@@ -259,7 +259,7 @@ def W_to_new(ac: Aircraft, x_le_w, x_le_ht, x_le_vt,
              show_pie_chart: bool = False
              ):
     W_PL = ac.weights.m_payload
-    W_e = W_oe_and_cg_from_nose(ac, x_le_w, x_le_ht, x_le_vt)[0]
+    W_e = W_oe_and_cg_from_nose(ac)[0]
     m_ff = ... # Insert class I method called
     m_res = ... # Assume value NOTE: check if Shubhankar used the whole range + diversion for fuel mass est, else add here
     m_tfo = ac.weights.m_takeoff * 0.005
@@ -546,14 +546,14 @@ def W_gear(ac: Aircraft, update_ac: bool = False):
     return W_mlg, W_nlg
 
 def x_cg_structural_from_nose(ac: Aircraft,
-                            x_le_w: float,
-                            x_le_vt: float,
-                            x_le_ht: float,
                             update_ac=False):
     w = ac.wing
     ht = ac.empennage.horizontal_tail
     vt = ac.empennage.vertical_tail
 
+    x_le_w = w.x_le
+    x_le_ht = ht['x_le']
+    x_le_vt = vt['x_le']
     l_fus = ac.fuselage.length
     w_sweep_c_4_deg = ac.wing.sweep
     ht_sweep_c_4_deg = ac.empennage.horizontal_tail['sweep']
@@ -657,8 +657,8 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     m_cargo = ac.weights.m_cargo
     ht_sweep_le_deg = ac.empennage.horizontal_tail['sweep_LE_deg']
     vt_sweep_le_deg = ac.empennage.vertical_tail['sweep_LE_deg']
-    x_le_ht = ac.empennage.horizontal_tail['x_h_frac_lf'] * ac.fuselage.length - ac.empennage.horizontal_tail['MAC_h']* np.tan(np.deg2rad(ht_sweep_le_deg)) - 0.4 * ac.empennage.horizontal_tail['y_MAC_h'] # HT root chord LE distance from nose
-    x_le_vt = ac.empennage.vertical_tail['x_v_frac_lf'] * ac.fuselage.length - ac.empennage.vertical_tail['MAC_v']* np.tan(np.deg2rad(vt_sweep_le_deg)) - 0.4 * ac.empennage.vertical_tail['y_MAC_v']  # ac.empennage.vertical_tail['x_v_frac_lf'] * ac.fuselage.length
+    # x_le_ht = ac.empennage.horizontal_tail['x_h_frac_lf'] * ac.fuselage.length - ac.empennage.horizontal_tail['MAC_h']* np.tan(np.deg2rad(ht_sweep_le_deg)) - 0.4 * ac.empennage.horizontal_tail['y_MAC_h'] # HT root chord LE distance from nose
+    # x_le_vt = ac.empennage.vertical_tail['x_v_frac_lf'] * ac.fuselage.length - ac.empennage.vertical_tail['MAC_v']* np.tan(np.deg2rad(vt_sweep_le_deg)) - 0.4 * ac.empennage.vertical_tail['y_MAC_v']  # ac.empennage.vertical_tail['x_v_frac_lf'] * ac.fuselage.length
     x_cg_seats = ac.fuselage.x_pos_seats  # Front to back cg positions of seats (length 3)
     assert len(x_cg_seats) == 3, f"There must be 3 seat cg positions, {len(x_cg_seats)} were given"
     x_cg_seats = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_seats, ac)
@@ -689,7 +689,7 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     W_plot_btf = []
 
     # OEW
-    W_oe, x_cg_oe = W_oe_and_cg_from_nose(ac, x_le_w, x_le_ht, x_le_vt)
+    W_oe, x_cg_oe = W_oe_and_cg_from_nose(ac)
     W_plot_ftb.append(W_oe)
     x_cg_lemac_plot_ftb.append(convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_oe, ac))
     W_plot_btf.append(W_oe)

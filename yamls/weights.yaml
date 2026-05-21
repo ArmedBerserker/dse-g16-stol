@@ -12,6 +12,5 @@ m_supercap: 36
 m_turboprop: 112
 x_cg_aft: 3.23  # Taildragger
 x_cg_fwd: 2.88
-# x_cg_aft: 3.20 # Tricycle
-# x_cg_fwd: 2.83
+z_cg: 1.29  # from bottom of fuselage
 

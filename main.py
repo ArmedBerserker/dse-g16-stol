@@ -1,4 +1,4 @@
-from class1 import c1_m, c1_loading_and_empennage, matching_diagram, prelim_drag, c1_wing_planform, c2_drag, c1_landing_gear, c1_fuselage
+from class1 import c1_m, c1_loading_and_empennage, matching_diagram, prelim_drag, c1_wing_planform, c2_drag, c1_gear_sizing, c1_fuselage
 import c2_m
 import sys
 import os
@@ -104,7 +104,7 @@ for ac in [ac1, ac3, ac6, ac8]:
         - HLD and ailerons
         - Fuselage                          DONE
         - Empennage sizing                  DONE
-        - Landing gear sizing               ADD FILES
+        - Landing gear sizing               DONE
         - Class II drag
         - Class II weight                   DONE
         - Loading diagram                   DONE
@@ -151,14 +151,15 @@ for ac in [ac1, ac3, ac6, ac8]:
     print(f'\n {ac.name}: \t Fuselage sizing complete')
 
     # 7. Empennage
-    tricycle_condition = ac.name.endswith('tricycle')
+    tricycle_condition = ac.landing_gear.gear_type == 'tricycle'
+    # tricycle_condition = ac.name.endswith('tricycle')
     c1_loading_and_empennage.class_I_loading_cgs(ac, tricycle_condition, update_ac=True)
     c1_loading_and_empennage.size_empennage_planform(ac)
     print(f'\n {ac.name}: \t Initial loading and empennage sizing complete')
 
     # 8. Landing gear NOTE: add .py and .yaml files
-    c1_landing_gear.size_tires(ac)
-    c1_landing_gear.tire_location(ac)
+    c1_gear_sizing.size_tires(ac)
+    c1_gear_sizing.tire_location(ac)
     print(f'\n {ac.name}: \t Landing gear sizing complete')
 
     # 9. Class II drag
@@ -168,12 +169,12 @@ for ac in [ac1, ac3, ac6, ac8]:
     mtow_pie_chart = pie_chart_folder / 'mtow_pie_chart_init.png'
     oew_pie_chart = pie_chart_folder / 'oew_pie_chart_init.png'
     struc_pie_chart = pie_chart_folder / 'struc_pie_chart_init.png'
-    x_le_ht = 
-    x_le_vt = 
+    x_le_ht = ac.empennage.horizontal_tail['x_le']
+    x_le_vt = ac.empennage.vertical_tail['x_le']
     m_ff = 
     m_res =
-    c2_m.W_oe_and_cg_from_nose(ac, ac.wing.x_le, x_le_ht, x_le_vt, update_ac=True, pie_chart_output_path=oew_pie_chart, show_pie_chart=True, struc_pie_chart_output_path=struc_pie_chart, struc_show_pie_chart=True)
-    c2_m.W_to_new(ac, ac.wing.x_le, x_le_ht, x_le_vt, m_ff, m_res, update_ac=True, pie_chart_output_path=mtow_pie_chart, show_pie_chart=True)
+    c2_m.W_oe_and_cg_from_nose(ac, update_ac=True, pie_chart_output_path=oew_pie_chart, show_pie_chart=True, struc_pie_chart_output_path=struc_pie_chart, struc_show_pie_chart=True)
+    c2_m.W_to_new(ac, m_ff, m_res, W_crew=0, update_ac=True, pie_chart_output_path=mtow_pie_chart, show_pie_chart=True)
 
     # 11. Loading diagram
     loading_diagram_path = pie_chart_folder / 'Initial_loading_diagram.png'

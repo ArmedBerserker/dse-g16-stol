@@ -13,6 +13,7 @@ horizontal_tail:
   t_c_max: 0.12  # CHANGE ONCE AIRFOIL SELECTED
   loc_t_c_max: null
   l_h: null
+  x_le: null
 
 vertical_tail:
   volume_coefficient: 0.06275
@@ -23,5 +24,6 @@ vertical_tail:
   sweep_LE_deg: null
   t_c_max: 0.12 # CHANGE ONCE AIRFOIL SELECTED
   loc_t_c_max: null
+  x_le: null
 
 t_tail_condition: True

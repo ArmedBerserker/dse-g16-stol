@@ -25,3 +25,4 @@ x_c_front_spar: 0.19
 x_c_rear_spar: 0.56
 x_le: 2.457915811  # CHANGE!!!
 tip_twist: 0 # deg
+dihedral: 0  # deg

@@ -121,6 +121,7 @@ class Weights:
     m_turboprop: float | None
     x_cg_aft: float | None
     x_cg_fwd: float | None
+    z_cg: float | None
 
     def __str__(self):
         text = "The weights are:\n"
@@ -158,6 +159,7 @@ class Wing:
     x_c_rear_spar: float | None = None
     x_le: float | None = None
     tip_twist: float | None = None
+    dihedral: float | None = None
 
     # ADD WHATEVER IS NEEDED
 
@@ -310,6 +312,44 @@ class Engine:
         return text
 
 @dataclass
+class Landing_Gear:
+    gear_type: str | None
+    n_struts_mlg: int | None
+    n_wheels_mlg: int | None
+    n_wheels_nlg: int | None
+    pt: float | None
+    n_nlg_min_as: float | None # Minimum nose(tail) landing gear load fraction. Value from Vos
+    n_nlg_max_as: float | None # Maximum nose(tail) landing gear load fraction. Value from Vos
+    tipover: float | None # Tip-over angle requirement [degrees]. Value from Vos
+    prop_clear: float | None # propeller clearance requirement with tail wheel [m]. From CS25.925
+    fus_pitch: float | None # Fuselage inclination relative to ground plane [degrees]
+    turnover: float | None # Turnover angle requirement [degrees]. Value from Roskam for rough field
+    bank: float | None # Bank angle clearance requirement [degrees]. Valye from Vos
+    a: float | None # Fraction of total stroke between 1-g compression and full compression. Value from Vos
+    s:  float | None # Total stroke of the suspension system [m]
+    fus_ground_clear:  float | None # Required distance from ground to tail cone (CHOSEN VALUE, NOT CS23 f)[m]
+
+    selected_mlg_tire: dict | None
+    selected_nlg_tire: dict | None
+
+    longitudinal_nlg: float | None
+    lateral_nlg: float | None
+    height_nlg: float | None
+
+    longitudinal_mlg: float | None
+    lateral_mlg: float | None
+    height_mlg: float | None
+
+    def __str__(self):
+        text = "The landing gear is:\n"
+        for field_info in fields(self):
+            field_name = field_info.name
+            field_value = getattr(self, field_name)
+
+            text += f'{field_name}: {field_value} \n'
+        return text
+
+@dataclass
 class Aircraft:
     name : str
     requirements : Requirements
@@ -320,6 +360,7 @@ class Aircraft:
     engine : Engine
     empennage: Empennage
     hld_and_ailerons: HLD_and_AIL
+    landing_gear: Landing_Gear
 
     @classmethod
     def from_dict(cls, data : dict):
