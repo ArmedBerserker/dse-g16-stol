@@ -172,11 +172,60 @@ class Wing:
 
 @dataclass
 class Fuselage:
-    length : float | None
-    span : float
-    height : float
-    wetted_area : float
-    width : float
+    over_nose_angle: float | None = None 
+    wall_thickness: float | None = None
+
+    floor_thickness: float | None = None
+    aisle_height: float | None = None
+    top_compartment_height: float | None = None
+
+    clearance: float | None = None
+    arm_rest_width: float | None = None
+    seat_width: float | None = None
+    aisle_width: float | None = None
+    top_compartment_width: float | None = None
+
+    cargo_width: float | None = None
+    cargo_height: float | None = None
+    cargo_length: float | None = None
+
+    tail_cone_fuselage_ratio: float | None = None
+    approach_angle: float | None = None
+
+    seat_pitch: float | None = None
+    cockpit_length: float | None = None
+
+    tail_upsweep_taildragger: float | None = None
+    tail_upsweep_tricycle: float | None = None
+
+    nose_cone_length: float | None = None
+    window_angle: float | None = None
+
+    emergency_exit_width: float | None = None
+    emergency_exit_height: float | None = None
+
+    door_width: float | None = None
+    door_height: float | None = None
+
+    length: float | None = None
+    height: float | None = None
+    width: float | None = None
+    eq_diameter: float | None = None
+    base_area: float | None = None
+    tail_cone_length: float | None = None
+    upsweep_angle: float | None = None
+    max_cross_section_area: float | None = None
+    max_perimeter: float | None = None
+    start_cabin: float | None = None
+    l_cabin: float | None = None
+    vol_cabin_and_cargo: float | None = None
+    x_pos_seats: list | None = None
+    x_cargo_holds: float | None = None # list if multiple, if multiple uncomment the line below for lift of mass fractions (sum to 1)
+    #mass_frac_cargo_holds: null
+    n_pax: int | None = None
+    n_window_seats: int | None = None
+    n_middle_seats: int | None = None
+    n_aisle_seats: int | None = None
 
     def __str__(self):
         text = "The fuselage is:\n"
@@ -231,18 +280,20 @@ class Engine:
     e_1 : float | None
     e_2 : float | None
     Phi : float | None
-    # eng_vdist_from_wing_y_c : float | None
-    # eng_above_wing : bool
-    # eng_y_pos_fuselage: float | None
-    # eng_x_pos: str | None
-    # n_fuel_tanks: int | None
-    # x_cg_fuel_tanks_c_r: float | None
-    # fuel_type: str | None
-    # engine_power_cruise: float | None
-    # super_cap_power: float | None
-    # power_cr: float | None
-    # power_to: float | None
-    # prop_diameter: float | None
+    eng_vdist_from_wing_y_c : float | None
+    eng_above_wing : bool
+    eng_y_pos_fuselage: float | None
+    eng_x_pos: str | None
+    n_fuel_tanks: int | None
+    x_cg_fuel_tanks_c_r: float | None
+    fuel_type: str | None
+    engine_power_cruise: float | None
+    super_cap_power: float | None
+    power_cr: float | None
+    power_to: float | None
+    prop_diameter: float | None
+    nac_diameter: float | None
+    length_nac: float | None
 
     def __post_init__(self):
         self.eta_1 = m.prod(self.eta_1)

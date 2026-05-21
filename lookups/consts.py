@@ -14,3 +14,5 @@ NMIL_TO_KM       = 1.852
 g                = 9.80665
 HP_TO_W          = 746
 MpS_TO_FpS       = 3.28084
+M_TO_INCH        = 39.3701
+INCH_TO_M        = 0.0254

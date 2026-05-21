@@ -253,7 +253,6 @@ def W_oe_and_cg_from_nose(ac: Aircraft, x_le_w, x_le_ht, x_le_vt, update_ac: boo
 def W_to_new(ac: Aircraft, x_le_w, x_le_ht, x_le_vt,
              m_ff, # from class I
              m_res, # from class I
-             m_tfo, # from class I
              W_crew = 0.0, # included in PL probably
              update_ac: bool = False,
              pie_chart_output_path: str = None,
