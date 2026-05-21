@@ -22,28 +22,31 @@ def CD0_w(R_wf, R_LS, C_f_w, l_dash, t_c_max, S_wet_w, S):
     return R_wf * R_LS * C_f_w * (1 + l_dash * t_c_max + 100 * t_c_max**4) * S_wet_w / S
 
 def CD0_fuselage(density, speed, l_f, mu, S_fus, # max fuselage cross section area
-                 S_b_fus, S, M, R_N_fus, S_wet_fus):
+                 S_b_fus, S, M, R_N_fus, S_wet_fus): # density, speed, l_nac, mu, S_nac_max, S_b_nac, S, M, R_N_nac, S_wet_fus=S_wet_nac
     R_wf = Rwf(M, R_N_fus)
     C_f_fus = C_f(R_N=density * speed * l_f / mu, M=M)
+    print(f'R_wf: {R_wf}, C_f_fus: {C_f_fus}')
     d_b = np.sqrt(4 * S_b_fus / np.pi)
     d_f_eq = np.sqrt(4 * S_fus / np.pi)
-    print(f'R_wf: {R_wf}, C_f_fus: {C_f_fus}, d_b: {d_b}, d_f_eq: {d_f_eq}, density: {density}, speed: {speed}, l_f: {l_f}, mu: {mu}, S_fus: {S_fus}, S_b_fus: {S_b_fus}, S: {S}, M: {M}, R_N_fus: {R_N_fus}, S_wet_fus: {S_wet_fus}')
+    # print(f'R_wf: {R_wf}, C_f_fus: {C_f_fus}, d_b: {d_b}, d_f_eq: {d_f_eq}, density: {density}, speed: {speed}, l_f: {l_f}, mu: {mu}, S_fus: {S_fus}, S_b_fus: {S_b_fus}, S: {S}, M: {M}, R_N_fus: {R_N_fus}, S_wet_fus: {S_wet_fus}')
     C_D0_b_fus = R_wf * C_f_fus * (1 + 60 / (l_f / d_f_eq)**3 + 0.0025 * (l_f / d_f_eq)) * S_wet_fus / S
     C_D_b_fuse = (0.029 * (d_b / d_f_eq)**3 / (C_D0_b_fus * (S / S_fus))**0.5) * (S / S_fus)
     return C_D0_b_fus + C_D_b_fuse
 
 def S_wet_wing(t_c_r, t_c_t, S, b_f, taper, b, c_r):
     tau = t_c_t / t_c_r
-    return 2 * Snet(S, b_f, taper, b, c_r) * (1 + 0.25 * t_c_r * (1 + tau * taper) / (1 + taper))
+    # print(f'Snet: {Snet(S, b_f, taper, b, c_r)}')
+    # return 2 * Snet(S, b_f, taper, b, c_r) * (1 + 0.25 * t_c_r * (1 + tau * taper) / (1 + taper))
+    return 2 * 1.07 * Snet(S, b_f, taper, b, c_r)
 
 def C_f(R_N, M):  # DATCOM fig 4.1.5.1-26
     x = np.log10(R_N)
     CF3 = 3.92725e-6 * x**5 -1.30370e-4 * x**4 -1.65388e-3 * x**3 -9.59519e-3 * x**2 +2.18366e-2 * x 
-    CF0 = 4.12963e-6 * x**5 -1.36204e-4 * x**4 + 1.71620e-3 * x**3 - 9.88935e-3 * x**2 +2.23641e-2 * x
+    CF0 = 4.12963e-6 * x**5 -1.36204e-4 * x**4 + 1.71620e-3 * x**3 -9.88935e-3 * x**2 +2.23641e-2 * x
     if M > 0.3:
-        return CF3
+        return CF0
     else: 
-        return CF0 - (CF0 - CF3) * (M / 0.3)
+        return CF0 # - (CF0 - CF3) * (M / 0.3)
 
 def flap_interference_factor(flap_type: str, # 'split' or 'plain' or 'slotted' 'fowler' or 'krueger'
                              ):
@@ -117,7 +120,7 @@ def C_D0(ac: Aircraft,
         flap_deflection = ac.hld_and_ailerons.flaps['ld_deflection']
         
     # Wing
-    mu = mu_air(temp)
+    mu = float(mu_air(temp))
     M = speed / np.sqrt(1.4 * 287 * temp)
     b = ac.wing.span
     sweep_c_4_deg = ac.wing.sweep
@@ -140,7 +143,8 @@ def C_D0(ac: Aircraft,
     sweep_t_c_max_deg = sweep_at_x_c_deg(ac.wing.sweep_LE_deg, c_r, b, taper, x_c=x_c_t_c_max)
     R_LS = interp_value(pd.read_csv('lookups/roskam_p6_fig_4_2_rls.csv'), np.cos(np.deg2rad(sweep_t_c_max_deg)), 'cos(quarter chord)', 'lifting surface correction', log_x=False)
     S = ac.wing.area
-
+    print(f'Swet_wing: {S_wet_wing(t_c_r, t_c_t, S, b_f, taper, b, c_r)}')
+    print(R_wf, R_LS, C_f_w, l_dash, t_c_max, S_wet_wing(t_c_r, t_c_t, S, b_f, taper, b, c_r), S)
     wing_drag = CD0_w(R_wf, R_LS, C_f_w, l_dash, t_c_max, S_wet_wing(t_c_r, t_c_t, S, b_f, taper, b, c_r), S)  # R_wf * R_LS * C_f_w * (1 + l_dash * t_c_max + 100 * t_c_max**4) * S_wet_w / S
 
     # Fuselage
@@ -207,6 +211,8 @@ def C_D0(ac: Aircraft,
     S_wet_nac = ac.engine.nac_diameter * np.pi * l_nac + 2 * S_b_nac
     R_N_nac = density * speed * l_nac / mu
     isolated_nac = CD0_fuselage(density, speed, l_nac, mu, S_nac_max, S_b_nac, S, M, R_N_nac, S_wet_fus=S_wet_nac)
+    isolated_nac = 0 # .06 * S_nac_max / S
+    # print(f'Isolated nacelle: {isolated_nac}, {density, speed, l_nac, mu, S_nac_max, S_b_nac, S, M, R_N_nac, S_wet_nac}')
 
     c_nac = chord_at_y_span(c_r, taper, y=b_f/2+ac.engine.eng_y_pos_fuselage, b=b)  # chord at nacelle 
     c_r_nac = 0.25 * c_nac
@@ -220,21 +226,25 @@ def C_D0(ac: Aircraft,
     if nac_x_c_t_c_max < 0.3:
         l_dash_nac = 2.0
     isolated_pylon = CD0_w(R_wf=1.0, R_LS=R_LS_nac, C_f_w=C_f_nac, l_dash=l_dash_nac, t_c_max=nac_t_c_max, S_wet_w=S_wet_wing(nac_t_c_max, nac_t_c_max, S=b_nac*c_r_nac, b_f=t_c_max*(c_r + taper*c_r)/2, taper=0, b=b_nac, c_r=c_r_nac), S=b_nac*c_r_nac)
+    isolated_pylon = 0
+    print(f'Isolated pylon: {isolated_pylon}')
     i_n = ac.engine.i_n  # nacelle incidence angle [deg]
     D_cl_1 = -0.3
     if nacelle_on_top_of_wing:
         D_cl_1 = 0.2
     D_cl_2 = 0.056 * i_n
     wing_nac_interference = 0.036 * (c_nac * b_nac / S) * (D_cl_1 + D_cl_2)**2
+    print(f'Wing nacelle interference: {wing_nac_interference}')
 
     SHP = ac.engine.power_cr / HP_TO_W  # shaft horse power
     D_prop =  ac.engine.prop_diameter # propeller diameter
     wind_milling = 33 / (0.5 * density * speed**2 * PA_TO_LBSpFT2 * S) * SHP / (speed * MpS_TO_FpS)
+    wind_milling = 0
     wind_milling_inoperative = 0
     if n_engine_operative != n_eng:
         wind_milling_inoperative = 0.00125 * ac.engine.eta_prop * D_prop**2 / S
     propulsion_drag = n_eng * (wind_milling + wing_nac_interference + isolated_pylon + isolated_nac) + (n_eng - n_engine_operative) * wind_milling_inoperative
-    
+    propulsion_drag = 0
     # Flap:
     if flight_condition != 'cruise':
         y_start_flap = ac.hld_and_ailerons.flaps['y_flap_in']
@@ -276,7 +286,7 @@ def C_D0(ac: Aircraft,
     w_strut = 0.5 * w_tire
     l_strut = np.abs(ac.landing_gear.height_mlg) - d_tire / 2
     m = (w_tire * d_tire + l_strut * w_strut) / ((w_tire + w_strut) * (l_strut + 0.5 * d_tire))
-    lg_drag = ((w_tire + w_strut) * (l_strut + 0.5 * d_tire)) * 0.04955 * np.exp(5.615 * m)
+    lg_drag = ((w_tire + w_strut) * (l_strut + 0.5 * d_tire) / S) * 0.04955 * np.exp(5.615 * m)
 
     # Miscelaneous (+5%)
     C_D0 = (wing_drag + fuselage_drag + ht_drag + vt_drag + propulsion_drag + flap_drag + lg_drag) * 1.05

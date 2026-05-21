@@ -63,8 +63,8 @@ def size_wing_planform(ac: Aircraft):
 
     # Update Aircraft
     if airfoil:
-        w.t_c_max = airfoil.thickness_pct
-        w.camber_c = airfoil.camber_pct
+        w.t_c_max = airfoil.thickness_pct / 100
+        w.camber_c = airfoil.camber_pct / 100
         w.cl_max_2d = airfoil.cl_max_2d
         w.cm_c4 = airfoil.cm_c4
         w.drag_bucket_cl = airfoil.drag_bucket_cl

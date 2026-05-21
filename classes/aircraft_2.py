@@ -119,6 +119,8 @@ class Weights:
     m_piston: float | None 
     m_supercap: float | None 
     m_turboprop: float | None
+    m_propeller: float | None
+    oew_frac: float | None
     x_cg_aft: float | None
     x_cg_fwd: float | None
     z_cg: float | None

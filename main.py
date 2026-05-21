@@ -99,7 +99,8 @@ ac8 = Aircraft('Boosted_turboprop_tricycle',
 #                 loader.load('concepts/wing_electra.yaml', Wing),
 #                 loader.load('concepts/fuselage_tricycle.yaml', Fuselage),
 #                 loader.load('concepts/engine_h2.yaml', Engine))
-for ac in [ac1, ac3, ac6, ac8]:
+acs = [ac1, ac3, ac6, ac8]
+for ac in [ac1]:
     ''' STEPS:
         - Preliminary drag estimation       DONE
         - Class I mass                      DONE
@@ -171,17 +172,20 @@ for ac in [ac1, ac3, ac6, ac8]:
     c2_drag.C_D0(ac, n_engine_operative=ac.engine.count, flight_condition='cruise', update_ac=True)
     c2_drag.C_D_L(ac, flight_condition='cruise', update_ac=True, wing_tip=False)
     print(f'\n {ac.name} done (except loading diagram and Class II mass estim)')
-    # print(ac)
 
-    # # 10. Class II weight
-    # pie_chart_folder = Path('outputs/Class_2_mass')
-    # mtow_pie_chart = pie_chart_folder / f'mtow_pie_chart_init_{ac.name}.png'
-    # oew_pie_chart = pie_chart_folder / f'oew_pie_chart_init_{ac.name}.png'
-    # struc_pie_chart = pie_chart_folder / f'struc_pie_chart_init_{ac.name}.png'
-    # x_le_ht = ac.empennage.horizontal_tail['x_le']
-    # x_le_vt = ac.empennage.vertical_tail['x_le']
-    # c2_m.W_oe_and_cg_from_nose(ac, update_ac=True, pie_chart_output_path=oew_pie_chart, show_pie_chart=True, struc_pie_chart_output_path=struc_pie_chart, struc_show_pie_chart=True)
-    # c2_m.W_to_new(ac, W_crew=0, update_ac=True, pie_chart_output_path=mtow_pie_chart, show_pie_chart=True)
+    # 10. Class II weight
+    pie_chart_folder = Path('outputs/Class_2_mass')
+    mtow_pie_chart = pie_chart_folder / f'mtow_pie_chart_init_{ac.name}.png'
+    oew_pie_chart = pie_chart_folder / f'oew_pie_chart_init_{ac.name}.png'
+    struc_pie_chart = pie_chart_folder / f'struc_pie_chart_init_{ac.name}.png'
+    x_le_ht = ac.empennage.horizontal_tail['x_le']
+    x_le_vt = ac.empennage.vertical_tail['x_le']
+    c2_m.W_oe_and_cg_from_nose(ac, update_ac=True, pie_chart_output_path=oew_pie_chart, show_pie_chart=False, struc_pie_chart_output_path=struc_pie_chart, struc_show_pie_chart=False)
+    print(ac.weights.m_empty)
+    c2_m.W_to_new(ac, W_crew=0, update_ac=True, pie_chart_output_path=mtow_pie_chart, show_pie_chart=True)
+    print(ac.weights.m_takeoff)
+    # print(ac)
+    # print(ac.wing.CD0)
 
     # # 11. Loading diagram
     # loading_diagram_path = pie_chart_folder / 'Initial_loading_diagram.png'

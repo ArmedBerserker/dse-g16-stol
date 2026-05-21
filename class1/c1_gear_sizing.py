@@ -85,6 +85,8 @@ def tire_location(ac: Aircraft, update_ac = False):
     Z_cg = ac.weights.z_cg    # [m]
     X_tcone = (1 - ac.fuselage.tail_cone_fuselage_ratio) * ac.fuselage.length  # [m]
     Z_tcone = 0                    # [m]
+    X_tcone = 8.83 # [m]
+    Z_tcone = 1.2    
     Y_prop = ac.engine.eng_y_pos_fuselage + ac.fuselage.width / 2      # [m] for the outermost wing-mounted propeller
     dihedral = ac.wing.dihedral
     chord_at_eng = ac.wing.c_root - 2 * Y_prop / ac.wing.span * (ac.wing.c_root - ac.wing.c_tip)
@@ -174,8 +176,8 @@ def tire_location(ac: Aircraft, update_ac = False):
         # LATERAL POSITIONING
         l_mlg_aft = abs(X_mlg - X_cg_aft)
         l_nlg_aft = abs(X_cg_aft - X_nlg)
-        Y_mlg_req1 = (l_mlg_aft + l_nlg_aft) / np.sqrt(
-            l_nlg_aft ** 2 * np.tan(turnover) ** 2 / (Z_cg - Z_mlg) ** 2 - 1)
+        Y_mlg_req1 = (l_mlg_aft + l_nlg_aft) / np.sqrt(l_nlg_aft ** 2 * np.tan(turnover) ** 2 / (Z_cg - Z_mlg) ** 2 - 1)
+        print(f'LG stuff: {l_nlg_aft ** 2 * np.tan(turnover) ** 2 / (Z_cg - Z_mlg) ** 2}')
         Y_mlg_req2 = Y_prop - (Z_prop - Z_mlg) / np.tan(bank)
         # no req3
         delta_Z_mlg = (a * s + (D_tire - D_rim) / 2)
