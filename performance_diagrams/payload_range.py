@@ -10,7 +10,8 @@ from pathlib import Path
 def calculate_payload_range_parameters(m_pl, m_pl_max, R_design, eta_eng, eta_p, A, e, C_d0, h_cr, V_cr, e_f, me_mto):
 
     cl_cd = 0.5 * math.sqrt(math.pi * A * e / C_d0)
-
+    print(f"ClCd: {cl_cd}")
+    # cl_cd = 11.9
     R_lost = 1 / 0.7 * cl_cd * (h_cr + V_cr ** 2 / (2 * g))
 
     t_e = 45 * 60
@@ -23,6 +24,7 @@ def calculate_payload_range_parameters(m_pl, m_pl_max, R_design, eta_eng, eta_p,
     m_e = me_mto * m_mto
     m_f = mf_mto * m_mto
 
+    print(f"Fuel mass fraction: {mf_mto}")
     print(f"Empty mass: {m_e}")
     print(f"Fuel mass: {m_f}")
     print(f"Payload mass: {m_pl}")
@@ -81,16 +83,18 @@ if __name__ == '__main__':
 
     m_pl = 704
     m_pl_max = 725  # m_pl * 1.03
+
     R_design = 500 * 1000
+
     eta_eng = 0.2 # 0.25 piston / 0.2 turboprop
     eta_p = 0.8
     A = 9
     e = 0.7996
     C_d0 = 0.04
     h_cr = 2590
-    V_cr = 77
+    V_cr = 68
     e_f = 43000000
-    me_mto = 0.52 # 0.62 for boosted piston / 0.52 for boosted turboprop - 0.02 added for supercapacitor
+    me_mto = 0.497 # 0.62 for boosted piston / 0.52 for boosted turboprop - 0.02 added for supercapacitor
 
     payload_range_points = calculate_payload_range_parameters(m_pl, m_pl_max, R_design, eta_eng, eta_p, A, e, C_d0, h_cr, V_cr, e_f, me_mto)
     plot_payload_range(payload_range_points)
