@@ -346,7 +346,7 @@ def W_feq_and_cg_from_nose(ac: Aircraft):
     N_pax = ac.fuselage.n_pax  # Including crew
     T_cr = float(Atmosphere(ac.requirements.cruise['cr_altitude'] * FT_TO_M).temp_isa)
     M_D = 1.5 * ac.requirements.cruise['cr_speed'] * KTS_TO_MS / np.sqrt(1.4 * 287 * T_cr)  # Design dive Mach number
-    no_pressurization_const = 0.2 # Fraction to take into account api does not have p (pressurization) in our case
+    no_pressurization_const = 0.6 # Fraction to take into account api does not have p (pressurization) in our case
     V_pax_cargo = ac.fuselage.vol_cabin_and_cargo * M2_TO_F2/FT_TO_M  # Volume of passenger cabin and cargo [ft3]
 
     W_fc = 0.5 * (0.0168 * Wto + 1.066 * Wto**0.626)
