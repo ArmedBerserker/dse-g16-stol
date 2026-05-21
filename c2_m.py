@@ -251,8 +251,7 @@ def W_oe_and_cg_from_nose(ac: Aircraft, update_ac: bool = False,
     return W_oe, x_cg_oe, ac
 
 def W_to_new(ac: Aircraft,
-             m_ff, # from class I
-             m_res, # from class I
+             m_res = 0.0, # from class I
              W_crew = 0.0, # included in PL probably
              update_ac: bool = False,
              pie_chart_output_path: str = None,
@@ -260,8 +259,7 @@ def W_to_new(ac: Aircraft,
              ):
     W_PL = ac.weights.m_payload
     W_e = W_oe_and_cg_from_nose(ac)[0]
-    m_ff = ... # Insert class I method called
-    m_res = ... # Assume value NOTE: check if Shubhankar used the whole range + diversion for fuel mass est, else add here
+    m_ff = 1 - ac.weights.m_fuel / ac.weights.m_takeoff # Insert class I method called
     m_tfo = ac.weights.m_takeoff * 0.005
     W_to = (W_e + W_PL + W_crew) / (m_ff * (1 + m_res) - m_res - m_tfo)
     W_F = W_to-W_e-m_tfo-W_PL
@@ -437,7 +435,7 @@ def W_emp(ac: Aircraft, update_ac: bool = False):
     n_ult = ac.requirements.general['n_ult']  # NOTE: add later
     S_h = ht['area'] * M2_TO_F2
     S_v = vt['area'] * M2_TO_F2
-    l_h = ... / FT_TO_M
+    l_h = ac.empennage.horizontal_tail['l_h'] / FT_TO_M
     b_h = ht['b_h'] / FT_TO_M
     b_v = vt['b_v'] / FT_TO_M
     t_c_max_h = ac.empennage.horizontal_tail['t_c_max']
@@ -570,7 +568,7 @@ def x_cg_structural_from_nose(ac: Aircraft,
     x_c_front_spar = ac.wing.x_c_front_spar
     x_c_rear_spar = ac.wing.x_c_rear_spar
     t_tail_condition: bool = ac.empennage.t_tail_condition  # is it a t-tail or not
-    l_nacelle = ...
+    l_nacelle = ac.engine.length_nac
     if ac.engine.eng_x_pos == 'le':
         nac_mount_dist = 0  # distance nacelle is mounted behind le of wing (front of nacelle)
     x_nlg = ac.landing_gear.longitudinal_nlg
@@ -780,7 +778,7 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
 def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, output_filepath=None, show_plot: bool = False)->np.ndarray:
     n_eng = ac.engine.count
     t_tail_condition: bool = ac.empennage.t_tail_condition  # T-tail or not
-    tail_type: str =  # 'fully moving' or 'adjustable' or 'fixed'
+    tail_type: str = ...  # 'fully moving' or 'adjustable' or 'fixed'
 
     # Flight conditions
     V_cruise = ac.requirements.cruise['cr_speed'] * KTS_TO_MS
@@ -807,7 +805,7 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     sweep_LE_deg = ac.wing.sweep_LE_deg  # LE_sweep_deg(sweep_c_4_deg, c_r, b, taper)
     C_m0_airfoil = ac.wing.cm_c4
     C_L_0 = np.abs(ac.hld_and_ailerons.landing_lift['alpha_zero_lift']) * ac.hld_and_ailerons.landing_lift['CL_alpha']  # CL of flapped wing at alpha = 0
-    C_L_LD = ac.hld_and_ailerons.landing_lift['CL_LD']
+    C_L_LD = ac.hld_and_ailerons.landing_lift['CL_max'] * 0.95
     mac = ac.wing.MAC
     mgc = S/b
 
@@ -824,7 +822,7 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     Swf = S_wf(y_start_f, y_end_f, taper, c_r, b)
 
     # Tail params
-    height_ht =  # height of ht above wing (perpendicular to chord lines)
+    height_ht = ...  # height of ht above wing (perpendicular to chord lines)
     l_h = ac.empennage.horizontal_tail['l_h']
     A_h = ac.empennage.horizontal_tail['aspect_ratio']
     r = 2 * l_h / b
@@ -835,7 +833,7 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     if ac.engine.eng_x_pos == 'le':
         nac_mount_dist = x_pos_le_along_span_from_nose(sweep_LE_deg, nac_y, x_le)  # Distance front of nacelle from nose
     l_fn = x_pos_le_along_span_from_nose(sweep_LE_deg, b_f/2, x_le)
-    b_n =  # nacelle diameter (max)
+    b_n = ac.engine.nac_diameter  # nacelle diameter (max)
     x_mac_c_4 = x_pos_le_along_span_from_nose(sweep_LE_deg, y_pos_at_chord_length(c_r, taper, mac, b), x_le) + 0.25 * mac
     l_n = x_mac_c_4 - nac_mount_dist
     if any(word in flap_type.lower() for word in ['fowler', 'slotted']):

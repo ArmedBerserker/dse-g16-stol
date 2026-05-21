@@ -33,9 +33,13 @@ from classes.aircraft_2 import Aircraft
 from lookups.consts import *
 import pandas as pd
 import numpy as np
+from typing import Literal
 
 
-def energy_frac_needed(ac : Aircraft, frac_source : str = 'lookups/fuel_fracs1.csv'):
+def energy_frac_needed(ac : Aircraft,
+                       Phi : float = None, 
+                       frac_source : str = 'lookups/fuel_fracs1.csv',
+                       update_ac: bool = False):
     """
     Compute the required energy fraction for an aircraft mission.
 
@@ -66,15 +70,32 @@ def energy_frac_needed(ac : Aircraft, frac_source : str = 'lookups/fuel_fracs1.c
     """
     # Check the engine type of the aircraft
     eng_type = ac.engine.engine_type
+    w = ac.weights
+    mtow = w.m_takeoff
     if eng_type == 'prop':
         assert ac.engine.Phi == 0
-        return breguet_prop(ac, frac_source)
+        output = breguet_prop(ac, frac_source)
+        if update_ac:
+            w.m_energy = output[0] * mtow
+            w.m_fuel = output[0] * mtow
+            w.m_battery = 0
+        return output
     elif eng_type == 'bat':
         assert ac.engine.Phi == 1
-        return breguet_bat(ac)
+        output = breguet_bat(ac)
+        if update_ac:
+            w.m_energy = output[0] * mtow
+            w.m_fuel = 0
+            w.m_battery = output[0] * mtow
+        return output
     elif eng_type == 'hyb':
         assert ac.engine.Phi > 0 and ac.engine.Phi < 1
-        return breguet_hyb(ac)
+        f_frac, b_frac = breguet_hyb(ac, Phi)
+        if update_ac:
+            w.m_energy = (f_frac + b_frac) * mtow
+            w.m_fuel = f_frac * mtow
+            w.m_battery = b_frac * mtow
+        return f_frac, b_frac
     else:
         return ValueError('Engine type not defined correctly. Must by "prop", "bat" or "hyb"')
     
@@ -112,14 +133,10 @@ def breguet_prop(ac : Aircraft, frac_source : str) -> float | tuple[float]:
 
 
     data = pd.read_csv(frac_source)
-    # rel_data = data[data['Airplane Type'] == ac_type].iloc[0]
-    filtered = data[data['Airplane Type'] == ac_type]
-    if filtered.empty:
-        raise ValueError(f"No data found for {ac_type}")
-    rel_data = filtered.iloc[0]
+    rel_data = data[data['Airplane Type'] == ac_type].iloc[0]
 
     eta_fuel = ac.engine.eta_1
-    eta_prop = ac.engine.eta_2
+    eta_prop = ac.engine.eta_prop
     e_f = ac.engine.e_1
     ld = ac.wing.ld
     R = ac.mission.range * 1000 # convert to meters
@@ -133,7 +150,7 @@ def breguet_prop(ac : Aircraft, frac_source : str) -> float | tuple[float]:
         fuel_frac *= float(vals)
     fuel_frac *= cruise_frac
 
-    return 1 - fuel_frac
+    return (1 - fuel_frac, )
 
 def breguet_bat(ac : Aircraft) -> float:
     """
@@ -154,16 +171,16 @@ def breguet_bat(ac : Aircraft) -> float:
     float
         Required battery mass fraction relative to takeoff mass.
     """
-    eta_bat = ac.engine.eta_1
-    eta_prop = ac.engine.eta_2
-    e_f = ac.engine.e_f
+    eta_bat = ac.engine.eta_2
+    eta_prop = ac.engine.eta_prop
+    e_b = ac.engine.e_2
     ld = ac.wing.ld
     R = ac.mission.range * 1000 # convert to meters
-    efg = e_f / g
-    battery_fraction = R / (eta_prop * eta_bat * ld * efg)
-    return battery_fraction 
+    ebg = e_b / g
+    battery_fraction = R / (eta_prop * eta_bat * ld * ebg)
+    return (battery_fraction, ) 
 
-def breguet_hyb(ac : Aircraft) -> tuple[float, float]:
+def breguet_hyb(ac : Aircraft, Phi : float = None) -> tuple[float, float]:
     """
     Compute fuel and battery fractions for a hybrid-electric aircraft.
 
@@ -197,82 +214,70 @@ def breguet_hyb(ac : Aircraft) -> tuple[float, float]:
 
     e_1 = ac.engine.e_1
     e_2 = ac.engine.e_2
-
-    Phi = ac.engine.Phi
+    if Phi == None:
+        phi = ac.engine.Phi
+    else:
+        phi = Phi
 
     ld = ac.wing.ld
     R = ac.mission.range * 1000
 
-    lnfrac = R / (eta_3 * (e_1 / g) * ld * (eta_1 + eta_2 * (Phi / (1 - Phi))))
+    lnfrac = R / (eta_3 * (e_1 / g) * ld * (eta_1 + eta_2 * (phi / (1 - phi))))
     fuel_frac = 1 - np.exp(-lnfrac)
 
-    battery_frac = (Phi / (1 - Phi)) * fuel_frac * (e_1 / e_2)
+    battery_frac = (phi / (1 - phi)) * fuel_frac * (e_1 / e_2)
     return float(fuel_frac), float(battery_frac)
 
 def operating_empty_frac(ac : Aircraft, 
                          correction : float = 1,
-                         source_for_fracs : str = 'references',
-                         subtype : str = 'Propeller Driven'):
-    """
-    Estimate the operating empty mass fraction of an aircraft.
-
-    The function can estimate operating empty mass fraction using either a fitted
-    relation from the local reference aircraft dataset or a statistical mass relation
-    from an external CSV lookup table.
-
-    Parameters
-    ----------
-    ac : Aircraft
-        Aircraft object containing takeoff mass and requirement data.
-    correction : float, optional
-        Multiplicative correction factor applied to the estimated operating empty
-        mass. This can be used to account for design innovations or assumptions.
-        Default is 1.
-    source_for_fracs : str, optional
-        Source used for estimating operating empty mass fraction.
-
-        If set to 'references', a linear fit based on reference aircraft is used.
-        Otherwise, this should be the path to a CSV file containing statistical
-        mass relation coefficients. Default is 'references'.
-    subtype : str, optional
-        Aircraft subtype used when looking up statistical mass relation coefficients.
-        Default is 'Propeller Driven'.
-
-    Returns
-    -------
-    float
-        Operating empty mass fraction, defined as operating empty mass divided by
-        takeoff mass.
-
-    Notes
-    -----
-    For the 'references' method, the current fitted relation is:
-
-        OEW = 0.5873688639193038 * MTOW - 2.683435417799367
-
-    where both OEW and MTOW are in kilograms.
-
-    For the lookup-table method, the function uses coefficients A and B from the
-    selected aircraft type and subtype, with the Roskam-style logarithmic relation
-    evaluated in pounds.
-    """
-    if source_for_fracs == 'references':
-        df = pd.read_csv('lookups/ref.csv')
-
+                         source_for_fracs : str = Literal['general', 'specific'],
+                         engine_type : str = Literal['turboprop', 'piston'],
+                         gear_type : str = Literal['tricycle', 'taildragger'],
+                         update_ac: bool = False):
+    
+    if source_for_fracs == 'general':
         # These coefficients come from a linear fit of our reference aircraft
         a, b = 0.5873688639193038, -2.683435417799367
         OEW = (a * ac.weights.m_takeoff + b) * correction # correction is for our innovations
+        if update_ac:
+            ac.weights.m_empty = OEW
         return OEW / ac.weights.m_takeoff
+    elif source_for_fracs == 'specific':
+        if engine_type == 'turboprop':
+            # Turboprop regression:
+            a1 = 0.659427
+            b1 = -426.832379 
+            # R^2 = 0.980083
+            #m_oe = 0.659427 m_to + -426.832379
+        elif engine_type == 'piston':
+            # Piston regression:
+            a1 = 0.641828
+            b1 = -52.572671 
+            # R^2 = 0.921436
+            # m_oe = 0.641828 m_to + -52.572671
+        else:
+            pass
+        
+        if gear_type == 'taildragger':
+            # Tail dragger regression:
+            a2 = 0.498280
+            b2 = 121.013331 
+            # R^2 = 0.936882
+            # m_oe = 0.498280 m_to + 121.013331
+        elif gear_type == 'tricycle':
+            #Tricycle regression:
+            a2 = 0.585847
+            b2 = 41.994669  
+            # R^2 = 0.947668
+            #m_oe = 0.585847 m_to + 41.994669
+        else:
+            pass
 
+        OEW1 = (a1 * ac.weights.m_takeoff + b1) * correction # correction is for our innovations
+        OEW2 = (a2 * ac.weights.m_takeoff + b2) * correction # correction is for our innovations
+        if update_ac:
+            ac.weights.m_empty = (OEW1 + OEW2) / 2
+        return 0.5 * (OEW1+OEW2) / ac.weights.m_takeoff
     else:
-        ac_type = ac.requirements.general['standard_type']
-
-        df = pd.read_csv(source_for_fracs)
-        row = df[
-        (df["Airplane Type"] == ac_type) &
-        (df["Subtype"] == subtype)
-        ]
-        A = row['A'].iloc[0]
-        B = row['B'].iloc[0]
-        W_e = 10 ** ((np.log10(ac.weights.m_takeoff / LBS_TO_KG) - A) / B)
-        return W_e / (ac.weights.m_takeoff / LBS_TO_KG)
+        raise ValueError(f'Wrong type given: gear type: {gear_type} and engine type: {engine_type}')
+        # return -1

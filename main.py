@@ -6,7 +6,7 @@ import os
 # Fix path FIRST, before any local imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from classes.aircraft_2 import Aircraft, loader, Requirements, Mission, Fuselage, Wing, Engine, Weights, Empennage, HLD_and_AIL
+from classes.aircraft_2 import Aircraft, loader, Requirements, Mission, Fuselage, Wing, Engine, Weights, Empennage, HLD_and_AIL, Landing_Gear
 import numpy as np
 import matplotlib.pyplot as plt
 from classes.isa import Atmosphere
@@ -22,10 +22,11 @@ ac1 = Aircraft('Boosted_piston_taildragger',
                 loader.load('yamls/mission.yaml', Mission),
                 loader.load('yamls/weights.yaml', Weights),
                 loader.load('concepts/wing_courier.yaml', Wing),
-                loader.load('concepts/fuselage_taildragger.yaml', Fuselage),
+                loader.load('concepts/fus_td.yaml', Fuselage),
                 loader.load('concepts/engine_piston_b.yaml', Engine),
                 loader.load('yamls/empennage_config.yaml', Empennage),
-                loader.load('yamls/HLD_and_ailerons.yaml', HLD_and_AIL))
+                loader.load('yamls/HLD_and_ailerons.yaml', HLD_and_AIL),
+                loader.load('concepts/taildragger_gear.yaml', Landing_Gear))
 # ac2 = Aircraft('Piston_hybrid_taildragger',
 #                 loader.load('concepts/reqs_nturb.yaml', Requirements),
 #                 loader.load('yamls/mission.yaml', Mission),
@@ -38,10 +39,11 @@ ac3 = Aircraft('Boosted_turboprop_taildragger',
                 loader.load('yamls/mission.yaml', Mission),
                 loader.load('yamls/weights.yaml', Weights),
                 loader.load('concepts/wing_courier.yaml', Wing),
-                loader.load('concepts/fuselage_taildragger.yaml', Fuselage),
+                loader.load('concepts/fus_td.yaml', Fuselage),
                 loader.load('concepts/engine_tprop_b.yaml', Engine),
                 loader.load('yamls/empennage_config.yaml', Empennage),
-                loader.load('yamls/HLD_and_ailerons.yaml', HLD_and_AIL))
+                loader.load('yamls/HLD_and_ailerons.yaml', HLD_and_AIL),
+                loader.load('concepts/taildragger_gear.yaml', Landing_Gear))
 # ac4 = Aircraft('Turbine_hybrid_taildragger',
 #                 loader.load('concepts/reqs_turb.yaml', Requirements),
 #                 loader.load('yamls/mission.yaml', Mission),
@@ -61,10 +63,11 @@ ac6 = Aircraft('Boosted_piston_tricycle',
                 loader.load('yamls/mission.yaml', Mission),
                 loader.load('yamls/weights.yaml', Weights),
                 loader.load('concepts/wing_electra.yaml', Wing),
-                loader.load('concepts/fuselage_tricycle.yaml', Fuselage),
+                loader.load('concepts/fus_tri.yaml', Fuselage),
                 loader.load('concepts/engine_piston_b.yaml', Engine),
                 loader.load('yamls/empennage_config.yaml', Empennage),
-                loader.load('yamls/HLD_and_ailerons.yaml', HLD_and_AIL))
+                loader.load('yamls/HLD_and_ailerons.yaml', HLD_and_AIL),
+                loader.load('concepts/tricycle_gear.yaml', Landing_Gear))
 # ac7 = Aircraft('Piston_hybrid_tricycle',
 #                 loader.load('concepts/reqs_nturb.yaml', Requirements),
 #                 loader.load('yamls/mission.yaml', Mission),
@@ -77,10 +80,11 @@ ac8 = Aircraft('Boosted_turboprop_tricycle',
                 loader.load('yamls/mission.yaml', Mission),
                 loader.load('yamls/weights.yaml', Weights),
                 loader.load('concepts/wing_electra.yaml', Wing),
-                loader.load('concepts/fuselage_tricycle.yaml', Fuselage),
+                loader.load('concepts/fus_tri.yaml', Fuselage),
                 loader.load('concepts/engine_tprop_b.yaml', Engine),
                 loader.load('yamls/empennage_config.yaml', Empennage),
-                loader.load('yamls/HLD_and_ailerons.yaml', HLD_and_AIL))
+                loader.load('yamls/HLD_and_ailerons.yaml', HLD_and_AIL),
+                loader.load('concepts/tricycle_gear.yaml', Landing_Gear))
 # ac9 = Aircraft('Turbine_hybrid_tricycle',
 #                 loader.load('concepts/reqs_turb.yaml', Requirements),
 #                 loader.load('yamls/mission.yaml', Mission),
@@ -98,14 +102,14 @@ ac8 = Aircraft('Boosted_turboprop_tricycle',
 for ac in [ac1, ac3, ac6, ac8]:
     ''' STEPS:
         - Preliminary drag estimation       DONE
-        - Class I mass
+        - Class I mass                      DONE
         - Matching diagram                  DONE
         - Wing planform                     DONE
-        - HLD and ailerons
+        - HLD and ailerons                  DONE
         - Fuselage                          DONE
         - Empennage sizing                  DONE
         - Landing gear sizing               DONE
-        - Class II drag
+        - Class II drag                     DONE
         - Class II weight                   DONE
         - Loading diagram                   DONE
         - Scissor plot????
@@ -119,11 +123,12 @@ for ac in [ac1, ac3, ac6, ac8]:
     }
     ac.wing.CD0 = prelim_drag.cd0(ac, **DRAG_KWARGS)
     ac.wing.k, ac.wing.e = prelim_drag.k(ac)
-    ac.wing.ld = prelim_drag(ac, **DRAG_KWARGS)
+    ac.wing.ld = prelim_drag.prelim_drag(ac, **DRAG_KWARGS)
     print(f'\n {ac.name}: \t Preliminary drag estimation complete')
 
     # 2. Class I weight estimation
-
+    c1_m.energy_frac_needed(ac, update_ac=True)
+    c1_m.operating_empty_frac(ac, correction=1, source_for_fracs='specific', engine_type=ac.engine.alpha_p_id, gear_type=ac.landing_gear.gear_type, update_ac=True)
     print(f'\n {ac.name}: \t Class I mass estimation complete')
 
     # 3. Matching Diagram
@@ -143,7 +148,6 @@ for ac in [ac1, ac3, ac6, ac8]:
     print(f'\n {ac.name}: \t Planform sizing complete')
 
     # 5. HLD and ailerons
-
     print(f'\n {ac.name}: \t HLD and aileron sizing complete')
 
     # 6. Fuselage
@@ -163,6 +167,8 @@ for ac in [ac1, ac3, ac6, ac8]:
     print(f'\n {ac.name}: \t Landing gear sizing complete')
 
     # 9. Class II drag
+    c2_drag.C_D0(ac, n_engine_operative=ac.engine.count, flight_condition='cruise', update_ac=True)
+    c2_drag.C_D_L(ac, flight_condition='cruise', update_ac=True)
 
     # 10. Class II weight
     pie_chart_folder = Path('outputs/Class_2_mass')
@@ -171,10 +177,8 @@ for ac in [ac1, ac3, ac6, ac8]:
     struc_pie_chart = pie_chart_folder / 'struc_pie_chart_init.png'
     x_le_ht = ac.empennage.horizontal_tail['x_le']
     x_le_vt = ac.empennage.vertical_tail['x_le']
-    m_ff = 
-    m_res =
     c2_m.W_oe_and_cg_from_nose(ac, update_ac=True, pie_chart_output_path=oew_pie_chart, show_pie_chart=True, struc_pie_chart_output_path=struc_pie_chart, struc_show_pie_chart=True)
-    c2_m.W_to_new(ac, m_ff, m_res, W_crew=0, update_ac=True, pie_chart_output_path=mtow_pie_chart, show_pie_chart=True)
+    c2_m.W_to_new(ac, W_crew=0, update_ac=True, pie_chart_output_path=mtow_pie_chart, show_pie_chart=True)
 
     # 11. Loading diagram
     loading_diagram_path = pie_chart_folder / 'Initial_loading_diagram.png'

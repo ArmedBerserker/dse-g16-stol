@@ -19,22 +19,20 @@ slats:
   slat_type: 'slat'
   y_slat_in: 1.125  # m
   y_slat_out: 7.4  # m
-
   cdash_c_to: 1.10  # c'/c
   cdash_c_ld: 1.10  # c'/c
   S_wf: 20.0925
   y_flap_in: 1.125  # m
   y_flap_out: 6.5  # m
 landing_lift:
-  CL_alpha:  # per deg
-  alpha_zero_lift:  # deg
-  CL_max: 
-  alpha_stall:  # deg
-  CL_LD: 
+  CL_alpha: 0.10796 # per deg
+  alpha_zero_lift: -11.8931  # deg
+  CL_max: 2.83615
 take_off_lift:
-  CL_alpha:  # per deg
-  alpha_zero_lift:  # deg
-  CL_max: 
-  alpha_stall:  # deg
-  CL_TO:
+  CL_alpha: 0.10248 # per deg
+  alpha_zero_lift: -8.36205 # deg
+  CL_max: 2.60892
+clean_lift:
+  CL_max: 1.7
+  CL_alpha: 0.097  # per deg
 

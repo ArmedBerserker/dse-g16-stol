@@ -48,7 +48,7 @@ approach:
   ap_altitude: null  # ft
   ap_mass_frac: null
   ap_temp: null  # K
-  ap_speed: null  # kts
+  ap_speed: 65  # kts
 
 general:
   stall_speed: 50  # [kts] stall speed requirement as specified by stakeholders

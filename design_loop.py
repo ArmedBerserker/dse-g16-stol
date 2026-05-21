@@ -183,16 +183,12 @@ def compute_class_I_mass(ac: Aircraft) -> Aircraft:
 def compute_class_II_mass_and_cg(ac: Aircraft, iteration: int) -> Aircraft:
     """Component build-up from actual geometry computed this epoch."""
     x_le_w = 
-    x_le_ht = 
-    x_le_vt = 
-    m_ff = 
     m_tfo = 0.007 * ac.weights.m_takeoff
-    m_res = 
     # pie_chart_output_path = f'outputs/Class_II_weight/OEW_pie_chart_{iteration}.png'
     # struc_pie_chart_output_path = f'outputs/Class_II_weight/Structure_pie_chart_{iteration}.png'
-    W_oe, x_cg_oe, ac = W_oe_and_cg_from_nose(ac, x_le_w, x_le_ht, x_le_vt, update_ac=True)
-    W_to, W_F, ac = W_to_new(ac, x_le_w, x_le_ht, x_le_vt, m_ff=m_ff, m_res=m_res, m_tfo=m_tfo, update_ac=True)
-    x_cg_struc, x_cg_data, ac = x_cg_structural_from_nose(ac, x_le_w, x_le_vt, x_le_ht, update_ac=True)
+    W_oe, x_cg_oe, ac = W_oe_and_cg_from_nose(ac, update_ac=True)
+    W_to, W_F, ac = W_to_new(ac, m_res=0, update_ac=True)
+    x_cg_struc, x_cg_data, ac = x_cg_structural_from_nose(ac, update_ac=True)
     fwd_cg, aft_cg, ac = loading_diagram(x_le_w, ac, update_ac_cgs=True)
     return ac
 
@@ -228,8 +224,7 @@ ITERATION_STEPS: list[Callable[[Aircraft], Aircraft]] = [
     compute_fuselage,
     compute_propulsion,
     compute_landing_gear_positions,
-    compute_empennage,
-    compute_energy_weights
+    compute_empennage
 ]
 
 

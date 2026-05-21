@@ -26,5 +26,8 @@ nac_diameter: 0.63  # m
 length_nac: 1.26  # m 2x diameter
 y_prop: null   # Distance from aircraft centerline to the center of the (outboard) propeller
 z_prop : null  # Height of the lowest (outboard) propeller point. Measured from the bottom of the fuselage
+nac_t_c_max: 0.5
+nac_x_c_t_c_max: 0.5
+i_n: 0
 
 

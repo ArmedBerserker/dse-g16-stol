@@ -45,7 +45,7 @@ landing:
   diversion_range: null  # km
 
 approach:
-  ap_altitude: null  # ft
+  ap_altitude: 65  # ft
   ap_mass_frac: null
   ap_temp: null  # K
   ap_speed: null  # kts

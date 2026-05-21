@@ -26,4 +26,5 @@ x_le: 2.457915811  # CHANGE!!!
 tip_twist: 0  # deg
 dihedral: 0  # deg
 airfoil_name: "NACA 23012"
+x_c_t_c_max: 0.3  # for naca 5 series
 incidence_deg: 0

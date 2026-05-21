@@ -2,6 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from classes.aircraft_2 import loader, Aircraft
+from classes.isa import Atmosphere
 from lookups.consts import *
 import numpy as np
 import pandas as pd
@@ -17,8 +18,10 @@ def size_tires(ac: Aircraft, update_ac = False):
     Ft_mlg = 0.5 * f_mlg * W_to * 1.25  # [N] Main landing gear load requirement
     Ft_nlg = f_nlg * W_to * 1.25  # [N] Nose/tail landing gear load requirement
 
-    tire_to_speed = 1.1 * ac.requirements.take_off['to_speed'] # [Kts]
-    tire_app_speed = 1.2 * ac.requirements.approach['app_speed'] # [Kts]
+    density_to = Atmosphere(ac.requirements.take_off['to_altitude'], ac.requirements.take_off['to_temp_shift']).density
+    to_speed = np.sqrt(ac.weights.m_takeoff / ac.wing.area / (0.5 *density_to * ac.requirements.take_off['as_CL_max_to']))
+    tire_to_speed = 1.1 * to_speed # [Kts]
+    tire_app_speed = 1.2 * ac.requirements.approach['ap_speed'] # [Kts]
     V_max_tire = max(tire_to_speed, tire_app_speed)
 
     V_max_tire = V_max_tire * KTS_TO_MPH  # [Mph]

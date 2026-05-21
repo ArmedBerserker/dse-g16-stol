@@ -98,7 +98,7 @@ def size_empennage_planform(ac: Aircraft):
 
     # 2. Update geometry dependent on the new area
     b_h = np.sqrt(A_h * S_h)
-    c_r_h = 2 * ht.area / (ht.span * (1 + taper_h))
+    c_r_h = 2 * S_h / (b_h * (1 + taper_h))
     c_t_h = c_r_h * taper_h
     
     MAC_h = (2 / 3) * c_r_h * (1 + taper_h + taper_h**2) / (1 + taper_h)

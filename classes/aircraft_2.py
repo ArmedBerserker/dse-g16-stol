@@ -161,6 +161,7 @@ class Wing:
     tip_twist: float | None = None
     dihedral: float | None = None
     airfoil_name: str | None = None
+    x_c_t_c_max: float | None = None
     incidence_deg: float | None = None
 
     # ADD WHATEVER IS NEEDED
@@ -263,6 +264,7 @@ class HLD_and_AIL:
     slats: dict
     landing_lift: dict
     take_off_lift: dict
+    clean_lift: dict
 
     def __str__(self):
         text = "The HLD and ailerons are:\n"
@@ -298,6 +300,9 @@ class Engine:
     prop_diameter: float | None
     nac_diameter: float | None
     length_nac: float | None
+    nac_t_c_max: float | None
+    nac_x_c_t_c_max: float | None
+    i_n: float | None
 
     def __post_init__(self):
         self.eta_1 = m.prod(self.eta_1)
