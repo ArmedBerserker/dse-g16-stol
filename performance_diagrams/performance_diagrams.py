@@ -28,13 +28,13 @@ def calculate_power_required(C_d, rho_0, V, S):
 
 
 def power_curves(P_a_list, P_r_list, V):
-    # delta_t 20 temperature not taken into account
+    #delta_t 20 temperature not taken into account
     # plt.xlabel("Velocity [m/s]")
     # plt.ylabel("Power [W]")
     # plt.grid(True)
     # plt.plot(V, P_a_list)
     # plt.plot(V, P_r_list)
-    #plt.show()
+    # plt.show()
 
     return P_a_list - P_r_list
 
@@ -48,6 +48,7 @@ def RoC_vs_V(excess_power, V, mtow):
 
     print(f"Velocity for maximum RoC: {V_max_RoC}")
     print(f"Maximum RoC: {max_RoC}")
+    return RoC
     # plt.xlabel("Velocity [m/s]")
     # plt.ylabel("Rate of Climb [m/s]")
     # plt.grid(True)
@@ -63,13 +64,14 @@ def AoC_vs_V(P_a_list, P_r_list, mtow, V):
     V_max_AoC = V[idx_max]
     max_AoC = AoC[idx_max]
 
-    print(f"Velocity for maximum AoC: {V_max_AoC}")
-    print(f"Maximum AoC: {max_AoC}")
-    plt.xlabel("Velocity [m/s]")
-    plt.ylabel("Angle of Climb [deg]")
-    plt.grid(True)
-    plt.plot(V, AoC)
-    plt.show()
+    #print(f"Velocity for maximum AoC: {V_max_AoC}")
+    # print(f"Maximum AoC: {max_AoC}")
+    # plt.xlabel("Velocity [m/s]")
+    # plt.ylabel("Angle of Climb [deg]")
+    # plt.grid(True)
+    # plt.plot(V, AoC)
+    # plt.show()
+    return AoC
 
 
 def power_curves_altitude(cd0, e, AR, mtow, rho_0, S, P_a_0, n, delta_T):
@@ -86,7 +88,7 @@ def power_curves_altitude(cd0, e, AR, mtow, rho_0, S, P_a_0, n, delta_T):
         atmos_model = Atmosphere(alt_m, delta_T)
         rho = atmos_model.density[0]
         #V = np.arange(int(1.3*stall_speed(mtow, C_l_max, rho, S)), 110, 1)
-        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho_0, S), 110, 5000)
+        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho, S), 110, 5000)
         V_alts.append(V)
 
         C_l = mtow / (0.5 * rho * V**2 * S)
@@ -99,15 +101,14 @@ def power_curves_altitude(cd0, e, AR, mtow, rho_0, S, P_a_0, n, delta_T):
 
         P_a_alts.append(P_a)
 
-        #line, = plt.plot(V, P_r, label=f"{alt_m: .0f} m")
-        # plt.plot(V, P_a, '--', color=line.get_color())
+        line, = plt.plot(V, P_r, label=f"{alt_m: .0f} m")
+        plt.plot(V, P_a, '--', color=line.get_color())
 
-    # plt.xlabel("Velocity [m/s]")
-    # plt.ylabel("Power [W]")
-    # plt.title("Power Required and Available vs Velocity")
-    # plt.grid(True)
-    # plt.legend()
-    # plt.show()
+    plt.xlabel("Velocity [m/s]")
+    plt.ylabel("Power [W]")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
 
     return P_a_alts, P_r_alts, V_alts
 
@@ -122,13 +123,13 @@ def RoC_multiple_alts(P_a_lists, P_r_lists, V_alts, mtow):
 
         roc = (P_a_lists[i] - P_r_lists[i]) / mtow
 
-        #plt.plot(V, roc, label=f"{alt} ft")
+        plt.plot(V, roc, label=f"{alt} ft")
 
-    # plt.xlabel("Velocity [m/s]")
-    # plt.ylabel("Rate of Climb [m/s]")
-    # plt.grid(True)
-    # plt.legend()
-    # plt.show()
+    plt.xlabel("Velocity [m/s]")
+    plt.ylabel("Rate of Climb [m/s]")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
 
 
 def RoC_altitude(mtow, P_a_0, rho_0, n, cd0, S, AR, e, delta_T):
@@ -163,6 +164,7 @@ def RoC_altitude(mtow, P_a_0, rho_0, n, cd0, S, AR, e, delta_T):
     # plt.grid(True)
     # plt.plot(max_RoCs, alts)
     # plt.show()
+    return max_RoCs, alts
 
 
 def envelope(C_l_max, mtow, S, cd0, AR, e, P_a_0, rho_0, n, delta_T):
@@ -257,38 +259,103 @@ def envelope(C_l_max, mtow, S, cd0, AR, e, P_a_0, rho_0, n, delta_T):
 
 
 if __name__ == '__main__':
-    alt = 0 # [m]
+    alt = 0  # [m]
     delta_T = 20  # [K]
-    cd0 = 0.025 # [-]
-    e = 0.8 # [-]
-    AR = 9 # [-]
-    mtow = 2000 * g # [N]
-    atmos_model = Atmosphere(alt, 20)
-    rho_0 = atmos_model.density[0] # [kg / m^3]
-    C_l_max = 1.7
-    S = 25.675  # [m^2]
-    V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho_0, S), 110, 5000) # [m / s]
-    eta_p = 0.8 # [-]
-    n = 0.8 # 1 for piston / 0.8 for turboprop
-    P_a = 550000 * eta_p * (rho_0 / 1.225) ** n # [W] 202000-piston; 550000-turboprop
-    P_a_list = P_a * np.ones_like(V)
 
-    C_d = calculate_cd(cd0, e, AR, mtow, rho_0, V, S)
+    
+    # ---- Design parameters ----
+    e = 0.8
+    AR = 9
+    mtow = 2000 * g  # [N]
 
-    P_r_list = calculate_power_required(C_d, rho_0, V, S)
+    atmos_model = Atmosphere(alt, delta_T)
+    rho_0 = atmos_model.density[0]
 
-    excess_power = power_curves(P_a_list, P_r_list, V)
+    C_l_max = 1.7 #cruise
+    S = 25.6
 
-    RoC_vs_V(excess_power, V, mtow)
+    V = np.linspace(1.3 * stall_speed(mtow, C_l_max, rho_0, S),110, 5000)
+    eta_p = 0.8
 
-    AoC_vs_V(P_a_list, P_r_list, mtow, V)
+    designs = {
 
-    P_a_lists, P_r_lists, V_alts = power_curves_altitude(cd0, e, AR, mtow, rho_0, S, P_a, n, delta_T)
+    "Taildragger - Piston": {
+        "cd0": 0.0255,
+        "P_a": 202000 * eta_p,
+        "n": 1.0
+    },
 
-    RoC_multiple_alts(P_a_lists, P_r_lists, V_alts, mtow)
+    "Taildragger - Turboprop": {
+        "cd0": 0.0255,
+        "P_a": 550000 * eta_p,
+        "n": 0.8
+    },
 
-    RoC_altitude(mtow, P_a, rho_0, n, cd0, S, AR, e, delta_T)
+    "Tricycle - Piston": {
+        "cd0": 0.0255,
+        "P_a": 202000 * eta_p,
+        "n": 1.0
+    },
 
-    envelope(C_l_max, mtow, S, cd0, AR, e, P_a, rho_0, n, delta_T)
+    "Tricycle - Turboprop": {
+        "cd0": 0.0255,
+        "P_a": 550000 * eta_p,
+        "n": 0.8
+    }
+}
 
-# length, width, height, length of nose cone and tail cone, area of base, X location of seats, X location of cargo, volume of cabin
+    #plt.figure(figsize=(12, 6))
+
+    # ---- Loop through all combinations ----
+    for design_name, data in designs.items():
+
+        cd0 = data["cd0"]
+        P_a_0 = data["P_a"]
+        n = data["n"]
+
+        # Power available
+        P_a = P_a_0 * (rho_0 / 1.225) ** n
+        P_a_list = P_a * np.ones_like(V)
+
+        # Drag coefficient
+        C_d = calculate_cd(cd0, e, AR, mtow, rho_0, V, S)
+
+        # Power required
+        P_r_list = calculate_power_required(C_d, rho_0, V, S)
+        
+        excess_power = power_curves(P_a_list, P_r_list, V)
+        # Rate of climb
+        RoC = RoC_vs_V(excess_power, V, mtow)
+
+        Aoc = AoC_vs_V(P_a_list, P_r_list, mtow,V)
+        
+        P_a_lists, P_r_lists, V_alts = power_curves_altitude(cd0, e, AR, mtow, rho_0, S, P_a, n, delta_T)
+
+        #max_RoCs, alts = RoC_altitude(mtow, P_a_0, rho_0, n, cd0, S, AR, e, delta_T)
+
+        #RoC_multiple_alts(P_a_lists, P_r_lists, V_alts, mtow)
+
+        #envelope(C_l_max, mtow, S, cd0, AR, e, P_a_0, rho_0, n, delta_T)
+
+        
+        #plt.plot(V, RoC, label=design_name)
+    # plt.xlabel("Velocity [m/s]")
+    # plt.ylabel("Rate of Climb [m/s]")
+    # plt.grid(True)
+    # plt.legend()
+    # plt.show()
+    #     plt.plot(V, Aoc, label=design_name)
+    # plt.xlabel("Velocity [m/s]")
+    # plt.ylabel("Angle of Climb [deg]")
+    # plt.grid(True)
+    # plt.legend()
+    # plt.show()
+    #     plt.plot(max_RoCs, alts, label=design_name)
+    # plt.xlabel("Maximum Rate of Climb [m/s]")
+    # plt.ylabel("Altitude [m]")
+    # plt.grid(True)
+    # plt.legend()
+    # plt.show()
+
+
+    
