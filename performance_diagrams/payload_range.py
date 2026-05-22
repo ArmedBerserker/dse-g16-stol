@@ -19,6 +19,8 @@ def calculate_payload_range_parameters(m_pl, m_pl_max, R_design, eta_eng, eta_p,
     m_e = me_mto * m_mto
     m_f = mf_mto * m_mto
 
+    print(f"Fuel mass for {name}: {m_f:.2f} kg")
+    print(f"Empty mass for {name}: {m_e:.2f} kg")
     print(f"Maximum take-off mass for {name}: {m_mto:.2f} kg")
 
     design_point_1 = (0, m_pl_max)
@@ -224,8 +226,8 @@ if __name__ == '__main__':
 
     # Boosted piston taildragger
     eta_eng = 0.25
-    C_d0 = 0.04 # TBC
-    me_mto = 0.587
+    C_d0 = 0.04 # 0.0514 #0.04 # TBC
+    me_mto = 0.591 #0.587
     payload_range_points_boosted_piston_taildragger = calculate_payload_range_parameters(m_pl, m_pl_max, R_design,
                                                                                          eta_eng, eta_p, A, e, C_d0,
                                                                                          h_cr, V_cr, e_f, me_mto,
@@ -233,8 +235,8 @@ if __name__ == '__main__':
 
     # Boosted turboprop taildragger
     eta_eng = 0.2
-    C_d0 = 0.04  # TBC
-    me_mto = 0.502
+    C_d0 = 0.04 # 0.0514 # 0.04  # TBC
+    me_mto = 0.585 #0.502
     payload_range_points_boosted_turboprop_taildragger = calculate_payload_range_parameters(m_pl, m_pl_max, R_design,
                                                                                          eta_eng, eta_p, A, e, C_d0,
                                                                                          h_cr, V_cr, e_f, me_mto,
@@ -242,8 +244,8 @@ if __name__ == '__main__':
 
     # Boosted piston tricycle
     eta_eng = 0.25
-    C_d0 = 0.04  # TBC
-    me_mto = 0.611
+    C_d0 = 0.04 # 0.0953 # 0.04  # TBC
+    me_mto = 0.590 #0.611
     payload_range_points_boosted_piston_tricycle = calculate_payload_range_parameters(m_pl, m_pl_max, R_design,
                                                                                             eta_eng, eta_p, A, e, C_d0,
                                                                                             h_cr, V_cr, e_f, me_mto,
@@ -251,8 +253,8 @@ if __name__ == '__main__':
 
     # Boosted turboprop tricycle
     eta_eng = 0.2
-    C_d0 = 0.04  # TBC
-    me_mto = 0.526
+    C_d0 = 0.04 # 0.0953 # 0.04  # TBC
+    me_mto = 0.584 #0.526
     payload_range_points_boosted_turboprop_tricycle = calculate_payload_range_parameters(m_pl, m_pl_max, R_design,
                                                                                             eta_eng, eta_p, A, e, C_d0,
                                                                                             h_cr, V_cr, e_f, me_mto,
