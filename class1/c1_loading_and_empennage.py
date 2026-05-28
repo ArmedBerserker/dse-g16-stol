@@ -44,6 +44,52 @@ def class_I_loading_cgs(ac: Aircraft, tricycle_condition: bool, update_ac=False)
         ac.weights.x_cg_fwd = fwd_cg
     else:
         return fwd_cg, aft_cg
+    
+def classI_loading_and_cgs_2(ac: Aircraft, update_ac = False):
+    W_e = ac.weights.m_empty
+    components = ['engines', 'nacelles', 'wing', 'empennage', 'lg', 'feq', 'fus']
+    if ac.landing_gear.gear_type == 'taildragger':
+        weight_frac = np.array([0.152, 0.057, 0.365, 0.033, 0.092, 0.186, 0.115])
+        x_cg = np.array([ac.wing.x_le, ac.wing.x_le, ac.wing.x_le + 0.4 * ac.wing.c_root, 0.9 * ac.fuselage.length, 0.35 * ac.fuselage.length, 0.35 * ac.fuselage.length, 0.42 * ac.fuselage.length])
+    else:
+        weight_frac = np.array([0.152, 0.057, 0.365, 0.033, 0.092, 0.186, 0.115])
+        x_cg = np.array([ac.wing.x_le, ac.wing.x_le, ac.wing.x_le + 0.4 * ac.wing.c_root, 0.9 * ac.fuselage.length, 0.28 * ac.fuselage.length, 0.35 * ac.fuselage.length, 0.42 * ac.fuselage.length])
+    oew_cg = weight_frac@x_cg / np.sum(weight_frac)
+    x_cg_pl = (sum(84 * ac.fuselage.x_pos_seats) + ac.fuselage.x_cargo_holds * 200) / ac.weights.m_payload
+    oew_pl_cg = (oew_cg * W_e + x_cg_pl * ac.weights.m_payload) / (W_e + ac.weights.m_payload)
+    oew_f_cg = (oew_cg * W_e + (ac.engine.x_cg_fuel_tanks_c_r * ac.wing.c_root + ac.wing.x_le) * ac.weights.m_fuel) / (W_e + ac.weights.m_fuel)
+    all_cg = (oew_cg * W_e + x_cg_pl * ac.weights.m_payload + (ac.engine.x_cg_fuel_tanks_c_r * ac.wing.c_root + ac.wing.x_le) * ac.weights.m_fuel) / (W_e + ac.weights.m_fuel + ac.weights.m_payload)
+
+    plotting = {
+        "x": [oew_cg, oew_pl_cg, all_cg, oew_f_cg, oew_cg],
+        "m": [W_e, W_e+ac.weights.m_payload, W_e+ac.weights.m_payload + ac.weights.m_fuel, W_e + ac.weights.m_fuel, W_e],
+        "labels": ["OEW", "OEW+WP", "OEW+WP+WF", "OEW+WF", ""]}
+    
+    concepts = {
+
+        "Taildragger Configuration": {
+            "x": [oew_cg, oew_pl_cg, all_cg, oew_f_cg, oew_cg],
+            "m": [W_e, W_e+ac.weights.m_payload, W_e+ac.weights.m_payload + ac.weights.m_fuel, W_e + ac.weights.m_fuel, W_e],
+            "labels": ["OEW", "OEW+WP", "OEW+WP+WF", "OEW+WF", ""]
+        },
+
+        "Tricycle Configuration": {
+            "x": [oew_cg, oew_pl_cg, all_cg, oew_f_cg, oew_cg],
+            "m": [W_e, W_e+ac.weights.m_payload, W_e+ac.weights.m_payload + ac.weights.m_fuel, W_e + ac.weights.m_fuel, W_e],
+            "labels": ["OEW", "OEW+WP", "OEW+WP+WF", "OEW+WF", ""]
+        }
+    }
+    
+    print(f'Most fwd cg for {ac.name}: {min(plotting['x'])}')
+    print(f'Most aft cg for {ac.name}: {max(plotting['x'])}')
+    if update_ac:
+        ac.weights.x_cg_aft = max(plotting['x'])
+        ac.weights.x_cg_fwd = min(plotting['x'])
+
+    return concepts
+
+
+
 
     
 def size_empennage_planform(ac: Aircraft):

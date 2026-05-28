@@ -100,7 +100,7 @@ ac8 = Aircraft('Boosted_turboprop_tricycle',
 #                 loader.load('concepts/fuselage_tricycle.yaml', Fuselage),
 #                 loader.load('concepts/engine_h2.yaml', Engine))
 acs = [ac1, ac3, ac6, ac8]
-for ac in [ac1]:
+for ac in [ac8]:
     ''' STEPS:
         - Preliminary drag estimation       DONE
         - Class I mass                      DONE
@@ -130,6 +130,7 @@ for ac in [ac1]:
     # 2. Class I weight estimation
     c1_m.energy_frac_needed(ac, update_ac=True)
     c1_m.operating_empty_frac(ac, correction=1, source_for_fracs='specific', engine_type=ac.engine.alpha_p_id, gear_type=ac.landing_gear.gear_type, update_ac=True)
+    print(f'Class I estimates: \n empty: {ac.weights.m_empty} \n frac: {ac.weights.oew_frac}')
     print(f'\n {ac.name}: \t Class I mass estimation complete')
 
     # 3. Matching Diagram
@@ -158,7 +159,8 @@ for ac in [ac1]:
     # 7. Empennage
     tricycle_condition = ac.landing_gear.gear_type == 'tricycle'
     # tricycle_condition = ac.name.endswith('tricycle')
-    c1_loading_and_empennage.class_I_loading_cgs(ac, tricycle_condition, update_ac=True)
+    # c1_loading_and_empennage.class_I_loading_cgs(ac, tricycle_condition, update_ac=True)
+    c1_loading_and_empennage.classI_loading_and_cgs_2(ac, update_ac=True)
     c1_loading_and_empennage.size_empennage_planform(ac)
     print(f'\n {ac.name}: \t Initial loading and empennage sizing complete')
     # print(f'Empennage: {ac.empennage}')
@@ -168,10 +170,10 @@ for ac in [ac1]:
     c1_gear_sizing.tire_location(ac, update_ac=True)
     print(f'\n {ac.name}: \t Landing gear sizing complete')
 
-    # 9. Class II drag
-    c2_drag.C_D0(ac, n_engine_operative=ac.engine.count, flight_condition='cruise', update_ac=True)
-    c2_drag.C_D_L(ac, flight_condition='cruise', update_ac=True, wing_tip=False)
-    print(f'\n {ac.name} done (except loading diagram and Class II mass estim)')
+    # # 9. Class II drag
+    # c2_drag.C_D0(ac, n_engine_operative=ac.engine.count, flight_condition='cruise', update_ac=True)
+    # c2_drag.C_D_L(ac, flight_condition='cruise', update_ac=True, wing_tip=False)
+    # print(f'\n {ac.name} done (except loading diagram and Class II mass estim)')
 
     # 10. Class II weight
     pie_chart_folder = Path('outputs/Class_2_mass')
@@ -182,12 +184,23 @@ for ac in [ac1]:
     x_le_vt = ac.empennage.vertical_tail['x_le']
     c2_m.W_oe_and_cg_from_nose(ac, update_ac=True, pie_chart_output_path=oew_pie_chart, show_pie_chart=False, struc_pie_chart_output_path=struc_pie_chart, struc_show_pie_chart=False)
     print(ac.weights.m_empty)
-    c2_m.W_to_new(ac, W_crew=0, update_ac=True, pie_chart_output_path=mtow_pie_chart, show_pie_chart=True)
+    c2_m.W_to_new(ac, W_crew=0, update_ac=True, pie_chart_output_path=mtow_pie_chart, show_pie_chart=False)
     print(ac.weights.m_takeoff)
     # print(ac)
+    print(f'\n Empty mass fraction: {ac.weights.oew_frac} \n ')
+    print(f'Class II estimates: \n empty: {ac.weights.m_empty} \n mtow: {ac.weights.m_takeoff}')
     # print(ac.wing.CD0)
 
-    # # 11. Loading diagram
+    c1_m.energy_frac_needed(ac, update_ac=True)
+    # c1_m.operating_empty_frac(ac, correction=1, source_for_fracs='specific', engine_type=ac.engine.alpha_p_id, gear_type=ac.landing_gear.gear_type, update_ac=True)
+    print(f'\n {ac.name}: \t Class I mass estimation complete')
+    print(f' oew: {ac.weights.m_empty}, mtow: {ac.weights.m_takeoff}, oew frac: {ac.weights.oew_frac}, fuel frac: {ac.weights.m_fuel / ac.weights.m_takeoff}')
+
+    # print(ac.weights)
+    # print(ac.landing_gear)
+    # print(ac)
+
+    # 11. Loading diagram
     # loading_diagram_path = pie_chart_folder / 'Initial_loading_diagram.png'
     # c2_m.loading_diagram(ac.wing.x_le, ac, show_plot=True, output_filepath=loading_diagram_path, update_ac_cgs=True)
 

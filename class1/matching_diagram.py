@@ -530,7 +530,7 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
     plt.tight_layout()
     # plt.savefig(output_filepath, dpi=300)
     if output_filepath is not None:
-        plt.savefig(output_filepath, dpi=300)
+        plt.savefig(output_filepath, dpi=600)
     if show_plot:
         plt.show()
 

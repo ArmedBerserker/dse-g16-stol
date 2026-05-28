@@ -26,16 +26,21 @@ from typing import Callable
 import numpy as np
 
 from classes.aircraft_2 import Aircraft, loader
-from class1 import c1_m, matching_diagram, c2_drag, c1_landing_gear, c1_wing_planform, c1_loading_and_empennage
+from class1 import c1_m, prelim_drag, matching_diagram, c2_drag, c1_landing_gear, c1_wing_planform, c1_loading_and_empennage
 from c2_m import W_oe_and_cg_from_nose, W_to_new, loading_diagram, x_cg_structural_from_nose, overlay_wing_pos_and_scissor_plot
 from lookups.consts import *
 
 ''' TO DO:
-    - Add Non-iterative steps to loop
-    - Fix initial cg calculation
+    - Add Non-iterative steps to loop (probably done)
+    - Checl initial cg calculation
     - Add propulsion
     - Add HLD and lift slope calculations
-    - Change class I mass to use actual drag estimate after epoch 1 '''
+    - Add fuselage calculation
+    - Add proper CII drag (also update CD0, k and L/D)
+    - Add Wing positioning and tail sizing
+    - Add way to save and load aircraft so we can make the plots separately
+    - Add checks in landing gear code to check sqrts are only taken of +ve values and the locations make sense
+    - Check slats are included in mass and drag estimates'''
 
 # 0. Helper function
 def check_power_requirement(ac: Aircraft):
@@ -83,6 +88,18 @@ class DesignLoopConfig:
 #       - Update params of ac object
 #       - Order of execution defined in ITERATION_STEPS
 
+def pre_loop_calculations(ac: Aircraft) -> Aircraft:
+    # Calculate L/D for range eqn
+    if ac.engine.count == 1:
+        type = "Single Engine Propeller Driven"
+    elif ac.engine.count > 1:
+        type = "Twin Engine Propeller Driven"
+    prelim_drag.prelim_drag(ac, type, update_ac=True)
+
+    # Calculate Class I masses:
+    c1_m.energy_frac_needed(ac, Phi=ac.engine.Phi, update_ac=True)
+    c1_m.operating_empty_frac(ac, source_for_fracs='specific', engine_type=ac.engine.alpha_p_id, gear_type=ac.landing_gear.gear_type, update_ac=True)
+
 def compute_aerodynamics(ac: Aircraft) -> Aircraft:
     """
     Step 1 — update aerodynamic coefficients and L/D from current geometry.
@@ -118,19 +135,6 @@ def compute_landing_gear_positions(ac: Aircraft) -> Aircraft:
     ac = c1_landing_gear.tire_location(ac, update_ac=True)
     return ac
 
-def compute_wing_geometry(ac: Aircraft) -> Aircraft:
-    """
-    Step 5 — re-size wing area and span from updated MTOW.
-    Replace the body with your wing sizing model.
-    """
-    # ── placeholder logic ────────────────────────────────────────────────────
-    # wing_loading = your_sizing_module.wing_loading(ac)
-    # ac.wing.area = ac.weights.m_takeoff * 9.81 / wing_loading
-    # ac.wing.span = (ac.wing.aspect_ratio * ac.wing.area) ** 0.5
-    pass
-    # ─────────────────────────────────────────────────────────────────────────
-    return ac
-
 def compute_empennage(ac: Aircraft) -> Aircraft:
     c1_loading_and_empennage.size_empennage_planform(ac)
     return ac
@@ -146,28 +150,28 @@ def compute_fuselage(ac: Aircraft) -> Aircraft:
     return ac
 
 def compute_class_I_mass(ac: Aircraft) -> Aircraft:
-    """Initial mass estimate from wing loading, T/W, statistical methods etc."""
-    ac.weights.m_takeoff = ...  # NOTE: fill this in if needed or remove
-    oew_frac = c1_m.operating_empty_frac(ac)
-
+    """Initial mass estimate for all but first epoch"""
+    oew_mtow = ac.weights.oew_frac
     result = c1_m.energy_frac_needed(ac)
     if isinstance(result, tuple) and len(result) == 2:
         fuel_frac, bat_frac = result
         energy_frac = fuel_frac + bat_frac
-        pl_frac = 1 - oew_frac - bat_frac - fuel_frac
     else:
         bat_frac = result
         fuel_frac = 0.0
-        pl_frac = 1 - oew_frac - bat_frac
         energy_frac = bat_frac
-    
-    ac.weights.m_empty = oew_frac * ac.weights.m_takeoff
-    ac.weights.m_energy = energy_frac * ac.weights.m_takeoff
-    ac.weights.m_fuel = fuel_frac * ac.weights.m_takeoff
-    ac.weights.m_battery = bat_frac * ac.weights.m_takeoff
-    ac.weights.m_payload = pl_frac * ac.weights.m_takeoff
+    mtow = ac.weights.m_payload / (1 - fuel_frac - bat_frac - oew_mtow)
 
-    type_to_use = ...  # NOTE: add this later (check if stored in ac object)
+    ac.weights.m_takeoff = mtow 
+    ac.weights.m_empty = oew_mtow * mtow
+    ac.weights.m_energy = energy_frac * mtow
+    ac.weights.m_fuel = fuel_frac * mtow
+    ac.weights.m_battery = bat_frac * mtow
+    ac.weights.pl_frac = ac.weights.m_payload / mtow
+
+    type_to_use = "Twin Engine Propeller Driven"
+    if ac.engine.count == 1:
+        type_to_use = "Single Engine Propeller Driven"
     # NOTE: check if we need to add tw options for requirements to meet or add W/P result used by Shubhankar for weight est
     data_to = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='to')
     W_P_to = data_to['W/P']
@@ -182,7 +186,7 @@ def compute_class_I_mass(ac: Aircraft) -> Aircraft:
 
 def compute_class_II_mass_and_cg(ac: Aircraft, iteration: int) -> Aircraft:
     """Component build-up from actual geometry computed this epoch."""
-    x_le_w = 
+    x_le_w = ac.wing.x_le
     m_tfo = 0.007 * ac.weights.m_takeoff
     # pie_chart_output_path = f'outputs/Class_II_weight/OEW_pie_chart_{iteration}.png'
     # struc_pie_chart_output_path = f'outputs/Class_II_weight/Structure_pie_chart_{iteration}.png'
@@ -219,12 +223,16 @@ def Class_II_drag(ac: Aircraft):
     # NOTE: add updating values
     return ac
 
-ITERATION_STEPS: list[Callable[[Aircraft], Aircraft]] = [
+ITERATION_STEPS1: list[Callable[[Aircraft], Aircraft]] = [
     compute_aerodynamics,
     compute_fuselage,
-    compute_propulsion,
+    compute_propulsion
+]
+
+ITERATION_STEPS2: list[Callable[[Aircraft], Aircraft]] = [
     compute_landing_gear_positions,
-    compute_empennage
+    compute_empennage,
+    Class_II_drag
 ]
 
 
@@ -239,16 +247,24 @@ def run_iteration(ac: Aircraft,
     """
 
     # Class I mass
-    ac = compute_class_I_mass(ac)
+    if epoch > 1:
+        ac = compute_class_I_mass(ac)
     mtow_class_I = ac.weights.m_takeoff      # snapshot before geometry steps
 
     if epoch == 1:
-        tricycle_condition = ...
+        tricycle_condition = (ac.landing_gear.gear_type == 'tricycle')
         c1_loading_and_empennage.class_I_loading_cgs(ac, tricycle_condition, update_ac=True)
 
     # Geometry / aero / propulsion etc.
     """Execute every registered step in order."""
-    for step in ITERATION_STEPS:
+    for step in ITERATION_STEPS1:
+        ac = step(ac)
+
+    if epoch > 1:
+        # Initial loading
+        c1_loading_and_empennage.classI_loading_and_cgs_2(ac, update_ac=True)
+
+    for step in ITERATION_STEPS2:
         ac = step(ac)
 
     # Class II mass 
@@ -262,7 +278,6 @@ def run_iteration(ac: Aircraft,
 
     # Stability and control and Class II drag
     ac = tail_sizing_wing_positioning(ac, epoch)
-    ac = Class_II_drag(ac)
 
     return ac, inner_converged
 

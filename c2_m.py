@@ -182,7 +182,7 @@ def W_to(ac: Aircraft, w_oe, w_f, w_pl, w_crew = 0, update_ac: bool = False):
         ac.weights.m_takeoff = Wto
     return Wto
 
-def W_oe_and_cg_from_nose(ac: Aircraft, update_ac: bool = False, 
+def W_oe_and_cg_from_nose1(ac: Aircraft, update_ac: bool = False, 
                           pie_chart_output_path: str = None, show_pie_chart: bool = False, 
                           struc_pie_chart_output_path: str = None, struc_show_pie_chart: bool = False) -> tuple:
     w_power, x_cg_pwr = W_pwr_and_x_cg_from_nose(ac)
@@ -251,7 +251,228 @@ def W_oe_and_cg_from_nose(ac: Aircraft, update_ac: bool = False,
             plt.show()
     return W_oe, x_cg_oe, ac
 
+def W_oe_and_cg_from_nose2(ac: Aircraft, update_ac: bool = False, 
+                          pie_chart_output_path: str = None, show_pie_chart: bool = False, 
+                          struc_pie_chart_output_path: str = None, struc_show_pie_chart: bool = False) -> tuple:
+    w_power, x_cg_pwr = W_pwr_and_x_cg_from_nose(ac)
+    w_mlg, w_nlg = W_gear(ac)
+    w_ht, w_vt = W_emp(ac)
+    wwing = W_wing(ac)
+    wfus = W_fus(ac)
+    wnac = W_nac(ac)
+    w_structure = wwing + w_ht + w_vt + wfus + wnac + w_mlg + w_nlg
+    w_fxeq, x_cg_fxeq = W_feq_and_cg_from_nose(ac)
+    W_oe = w_structure + w_power + w_fxeq
+    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr)
+    ac.weights.oew_frac = W_oe / ac.weights.m_takeoff
+    if update_ac:
+        ac.weights.m_empty = W_oe
+        ac.weights.x_cg_oew = x_cg_oe
+    if pie_chart_output_path is not None:
+        categories = ['Structural', 'Power', 'Fixed equipment']
+        raw_values = [w_structure, w_power, w_fxeq]
+        values = np.array(raw_values) / W_oe * 100
+        fig, ax = plt.subplots(figsize=(8, 6))
+        wedges, _ = ax.pie(values, startangle=90)
+        total = sum(values)
+        for i, wedge in enumerate(wedges):
+            angle = (wedge.theta2 + wedge.theta1) / 2
+            x = np.cos(np.radians(angle))
+            y = np.sin(np.radians(angle))
+            percentage = values[i] / total * 100
+
+            ax.annotate(
+                f'{categories[i]}\n{percentage:.1f}%\n({raw_values[i]:.1f} kg)',
+                xy=(x, y),
+                xytext=(1.3 * np.sign(x), 1.3 * y),
+                arrowprops=dict(arrowstyle='->'),
+                ha='left' if x > 0 else 'right'
+            )
+
+        ax.axis('equal')
+        plt.title('Distribution of OEW')
+        plt.savefig(pie_chart_output_path)
+        if show_pie_chart:
+            plt.show()
+    if struc_pie_chart_output_path is not None:
+        categories = ['Wing', 'Horizontal tail', 'Vertical tail', 'Fuselage', 'Nacelles', 'Landing gear']
+        raw_values = [wwing, w_ht, w_vt, wfus, wnac, w_mlg+w_nlg]
+        values = np.array(raw_values) / w_structure * 100
+        fig, ax = plt.subplots(figsize=(8, 6))
+        wedges, _ = ax.pie(values, startangle=90)
+        total = sum(values)
+        for i, wedge in enumerate(wedges):
+            angle = (wedge.theta2 + wedge.theta1) / 2
+            x = np.cos(np.radians(angle))
+            y = np.sin(np.radians(angle))
+            percentage = values[i] / total * 100
+
+            ax.annotate(
+                f'{categories[i]}\n{percentage:.1f}%\n({raw_values[i]:.1f} kg)',
+                xy=(x, y),
+                xytext=(1.3 * np.sign(x), 1.3 * y),
+                arrowprops=dict(arrowstyle='->'),
+                ha='left' if x > 0 else 'right'
+            )
+
+        ax.axis('equal')
+        plt.title('Distribution of structural weight')
+        plt.savefig(struc_pie_chart_output_path)
+        if struc_show_pie_chart:
+            plt.show()
+    return W_oe, x_cg_oe, ac
+
+def W_to_new2(ac: Aircraft,
+             m_res = 0.0, # from class I
+             W_crew = 0.0, # included in PL probably
+             update_ac: bool = False,
+             pie_chart_output_path: str = None,
+             show_pie_chart: bool = False
+             ):
+    W_PL = ac.weights.m_payload
+    W_e = ac.weights.m_empty
+    print(f' New oew: {W_e}')
+    m_ff = 1 - ac.weights.m_fuel / ac.weights.m_takeoff # Insert class I method called
+    m_tfo = ac.weights.m_takeoff * 0.005
+    Wto = W_e / ac.weights.oew_frac
+    Wto = W_e + ac.weights.m_fuel + W_PL + m_tfo
+    print(f'Wto: {Wto}, m_ff: {m_ff}, W_e: {W_e}, W_PL: {W_PL}, W_fuel: {ac.weights.m_fuel}')
+    if update_ac:
+        ac.weights.m_takeoff = Wto
+
+    if pie_chart_output_path is not None:
+        categories = ['Empty weight', 'Payload', 'Trapped fuel and oil', 'Fuel']
+        raw_values = [W_e, W_PL, m_tfo, Wto-W_e-m_tfo-W_PL]
+        values = np.array(raw_values) / Wto * 100
+        print(f'Pie chart values: {values}')
+        fig, ax = plt.subplots(figsize=(8, 6))
+        wedges, _ = ax.pie(values, startangle=90)
+        total = sum(values)
+        for i, wedge in enumerate(wedges):
+            angle = (wedge.theta2 + wedge.theta1) / 2
+            x = np.cos(np.radians(angle))
+            y = np.sin(np.radians(angle))
+            percentage = values[i] / total * 100
+
+            ax.annotate(
+                f'{categories[i]}\n{percentage:.1f}%\n({raw_values[i]:.1f} kg)',
+                xy=(x, y),
+                xytext=(0.9 * np.sign(x), 0.9 * y),
+                arrowprops=dict(arrowstyle='->'),
+                ha='left' if x > 0 else 'right'
+            )
+
+        ax.axis('equal')
+        plt.title('Distribution of MTOW')
+        plt.savefig(pie_chart_output_path)
+        if show_pie_chart:
+            plt.show()
+    return Wto, ac
+
+def W_oe_and_cg_from_nose(ac: Aircraft, update_ac: bool = False,
+                          pie_chart_output_path: str = None, show_pie_chart: bool = False,
+                          struc_pie_chart_output_path: str = None, struc_show_pie_chart: bool = False) -> tuple:
+    w_power, x_cg_pwr = W_pwr_and_x_cg_from_nose(ac)
+    w_mlg, w_nlg = W_gear(ac)
+    w_ht, w_vt = W_emp(ac)
+    wwing = W_wing(ac)
+    wfus = W_fus(ac)
+    wnac = W_nac(ac)
+    w_structure = wwing + w_ht + w_vt + wfus + wnac + w_mlg + w_nlg
+    w_fxeq, x_cg_fxeq = W_feq_and_cg_from_nose(ac)
+    W_oe = w_structure + w_power + w_fxeq
+    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr)
+    ac.weights.oew_frac = W_oe / ac.weights.m_takeoff
+    if update_ac:
+        ac.weights.m_empty = W_oe
+        ac.weights.x_cg_oew = x_cg_oe
+    if pie_chart_output_path is not None:
+        categories = ['Structural', 'Power', 'Fixed equipment']
+        raw_values = [w_structure, w_power, w_fxeq]
+        values = np.array(raw_values) / W_oe * 100
+        fig, ax = plt.subplots(figsize=(8, 6))
+        wedges, _ = ax.pie(values, startangle=90)
+        total = sum(values)
+        for i, wedge in enumerate(wedges):
+            angle = (wedge.theta2 + wedge.theta1) / 2
+            x = np.cos(np.radians(angle)) * 0.7
+            y = np.sin(np.radians(angle)) * 0.7
+            percentage = values[i] / total * 100
+            ax.text(x, y,
+                    f'{categories[i]}\n{percentage:.1f}%\n({raw_values[i]:.1f} kg)',
+                    ha='center', va='center', fontsize=8)
+        ax.axis('equal')
+        plt.title('Distribution of OEW')
+        plt.savefig(pie_chart_output_path, dpi=400)
+        if show_pie_chart:
+            plt.show()
+    if struc_pie_chart_output_path is not None:
+        categories = ['Wing', 'Horizontal tail', 'Vertical tail', 'Fuselage', 'Nacelles', 'Landing gear']
+        raw_values = [wwing, w_ht, w_vt, wfus, wnac, w_mlg+w_nlg]
+        values = np.array(raw_values) / w_structure * 100
+        fig, ax = plt.subplots(figsize=(8, 6))
+        wedges, _ = ax.pie(values, startangle=90)
+        total = sum(values)
+        for i, wedge in enumerate(wedges):
+            angle = (wedge.theta2 + wedge.theta1) / 2
+            x = np.cos(np.radians(angle)) * 0.7
+            y = np.sin(np.radians(angle)) * 0.7
+            percentage = values[i] / total * 100
+            ax.text(x, y,
+                    f'{categories[i]}\n{percentage:.1f}%\n({raw_values[i]:.1f} kg)',
+                    ha='center', va='center', fontsize=8)
+        ax.axis('equal')
+        plt.title('Distribution of structural weight')
+        plt.savefig(struc_pie_chart_output_path, dpi=400)
+        if struc_show_pie_chart:
+            plt.show()
+    return W_oe, x_cg_oe, ac
+
+
 def W_to_new(ac: Aircraft,
+             m_res = 0.0,
+             W_crew = 0.0,
+             update_ac: bool = False,
+             pie_chart_output_path: str = None,
+             show_pie_chart: bool = False
+             ):
+    W_PL = ac.weights.m_payload
+    W_e = ac.weights.m_empty
+    print(f' New oew: {W_e}')
+    m_ff = 1 - ac.weights.m_fuel / ac.weights.m_takeoff
+    m_tfo = ac.weights.m_takeoff * 0.005
+    # Wto = W_e / ac.weights.oew_frac
+    Wto = W_e + ac.weights.m_fuel + W_PL + m_tfo
+    print(f'Wto: {Wto}, m_ff: {m_ff}, W_e: {W_e/Wto}, W_PL: {W_PL}, W_fuel: {ac.weights.m_fuel}, W_fuel/mtow: {ac.weights.m_fuel / Wto}')
+    if update_ac:
+        ac.weights.m_takeoff = Wto
+        ac.weights.oew_frac = W_e / Wto
+    if pie_chart_output_path is not None:
+        categories = ['Empty weight', 'Payload', 'Trapped fuel and oil', 'Fuel']
+        raw_values = [W_e, W_PL, m_tfo, ac.weights.m_fuel]
+        values = np.array(raw_values) # / Wto * 100
+        print(f'Pie chart values: {values}')
+        fig, ax = plt.subplots(figsize=(8, 6))
+        wedges, _ = ax.pie(values, startangle=90)
+        total = sum(values)
+        for i, wedge in enumerate(wedges):
+            angle = (wedge.theta2 + wedge.theta1) / 2
+            x = np.cos(np.radians(angle)) * 0.7
+            y = np.sin(np.radians(angle)) * 0.7
+            if categories[i]=='Trapped fuel and oil':
+                x = np.cos(np.radians(angle))
+            percentage = values[i] / total * 100
+            ax.text(x, y,
+                    f'{categories[i]}\n{percentage:.1f}%\n({raw_values[i]:.1f} kg)',
+                    ha='center', va='center', fontsize=8)
+        ax.axis('equal')
+        plt.title('Distribution of MTOW')
+        plt.savefig(pie_chart_output_path, dpi=400)
+        if show_pie_chart:
+            plt.show()
+    return Wto, ac
+
+def W_to_new1(ac: Aircraft,
              m_res = 0.0, # from class I
              W_crew = 0.0, # included in PL probably
              update_ac: bool = False,
@@ -338,6 +559,8 @@ def W_pwr_and_x_cg_from_nose(ac: Aircraft):
         nac_y = ac.fuselage.width / 2 + ac.engine.eng_y_pos_fuselage
         x_cg_pwr1 = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, nac_y, x_le)
     x_cg = (W_pwr1 * x_cg_pwr1 + W_fs * (x_le + ac.wing.c_root * ac.engine.x_cg_fuel_tanks_c_r) + W_supercap * x_le) / (W_pwr1 + W_supercap + W_fs)
+    ac.weights.power_system = (W_pwr1 + W_supercap + W_fs) * LBS_TO_KG
+    print(f' \nPower system weight: {(W_pwr1 + W_supercap + W_fs) * LBS_TO_KG}kg \n')
     return (W_pwr1 + W_supercap + W_fs) * LBS_TO_KG, x_cg
 
 def W_feq_and_cg_from_nose(ac: Aircraft):
@@ -700,7 +923,7 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     x_cg_fuel_tanks = ac.engine.x_cg_fuel_tanks_c_r * c_r + x_le_w
     x_cg_fuel_tanks = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_fuel_tanks, ac)
     fuel_tanks_mass_fracs = 1
-    n_fuel_tanks = len(x_cg_fuel_tanks)
+    # n_fuel_tanks = len(x_cg_fuel_tanks)
     m_fuel_tanks = fuel_tanks_mass_fracs * m_fuel
 
     x_cg_cargo_holds = ac.fuselage.x_cargo_holds

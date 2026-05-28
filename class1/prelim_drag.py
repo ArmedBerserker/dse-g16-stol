@@ -139,7 +139,8 @@ def k(ac : Aircraft) -> tuple[float, float]:
 def prelim_drag(ac : Aircraft,
                 type_to_use : str = "Single Engine Propeller Driven",
                 friction_source : str = 'lookups/skin_fric.csv',
-                s_wet_source : str = 'lookups/s_wets.csv') -> float:
+                s_wet_source : str = 'lookups/s_wets.csv', 
+                update_ac: bool = False) -> float:
     
     """
     Estimate the maximum lift-to-drag ratio, (L/D)_max, using Roskam CD0 and
@@ -161,5 +162,10 @@ def prelim_drag(ac : Aircraft,
     float
         Estimated maximum lift-to-drag ratio.
     """
-
-    return 0.5 * np.sqrt(1 / k(ac)[0] / cd0(ac, type_to_use, friction_source, s_wet_source))
+    l_d = 0.5 * np.sqrt(1 / k(ac)[0] / cd0(ac, type_to_use, friction_source, s_wet_source))
+    if update_ac: 
+        ac.wing.ld = l_d
+        ac.wing.CD0 = cd0(ac, type_to_use, friction_source, s_wet_source)
+        ac.wing.k = k(ac)[0]
+        ac.wing.e = k(ac)[1]
+    return l_d
