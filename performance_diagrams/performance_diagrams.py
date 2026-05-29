@@ -292,13 +292,13 @@ if __name__ == '__main__':
     # },
 
     "Boosted Piston": {
-        "cd0": 0.0255,
+        "cd0": 0.04,
         "P_a": 202000 * eta_p,
         "n": 1.0
     },
 
     "Boosted Turboprop": {
-        "cd0": 0.0255,
+        "cd0": 0.04,
         "P_a": 550000 * eta_p,
         "n": 0.8
     }
@@ -327,11 +327,11 @@ if __name__ == '__main__':
         # Rate of climb
         #RoC = RoC_vs_V(excess_power, V, mtow)
 
-        #Aoc = AoC_vs_V(P_a_list, P_r_list, mtow,V)
+        Aoc = AoC_vs_V(P_a_list, P_r_list, mtow,V)
         
         #P_a_lists, P_r_lists, V_alts = power_curves_altitude(cd0, e, AR, mtow, rho_0, S, P_a, n, delta_T)
 
-        max_RoCs, alts = RoC_altitude(mtow, P_a_0, rho_0, n, cd0, S, AR, e, delta_T)
+        #max_RoCs, alts = RoC_altitude(mtow, P_a_0, rho_0, n, cd0, S, AR, e, delta_T)
 
         #RoC_multiple_alts(P_a_lists, P_r_lists, V_alts, mtow)
 
@@ -344,18 +344,18 @@ if __name__ == '__main__':
     # plt.grid(True)
     # plt.legend()
     # plt.show()
-    #     plt.plot(V, Aoc, label=design_name)
-    # plt.xlabel("Velocity [m/s]")
-    # plt.ylabel("Angle of Climb [deg]")
-    # plt.grid(True)
-    # plt.legend()
-    # plt.show()
-        plt.plot(max_RoCs, alts, label=design_name)
-    plt.xlabel("Maximum Rate of Climb [m/s]")
-    plt.ylabel("Altitude [m]")
+        plt.plot(V, Aoc, label=design_name)
+    plt.xlabel("Velocity [m/s]")
+    plt.ylabel("Angle of Climb [deg]")
     plt.grid(True)
     plt.legend()
     plt.show()
+    #     plt.plot(max_RoCs, alts, label=design_name)
+    # plt.xlabel("Maximum Rate of Climb [m/s]")
+    # plt.ylabel("Altitude [m]")
+    # plt.grid(True)
+    # plt.legend()
+    # plt.show()
 
 
     

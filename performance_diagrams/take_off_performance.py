@@ -85,7 +85,7 @@ def take_off_alt_temp(mtow, S, C_l_max, eta_p, P_s, n):
             s_g = (1.21 * (mtow / S)) / (g * rho * C_l_max * (T_a / mtow))
             s_g_list.append(s_g)
 
-        plt.plot(s_g_list, alts, label=f"ΔT = {dT} K")
+        plt.plot(s_g_list, alts, label=f"ΔT = {dT}$^\circ$C")
     alt_req = 2000 * FT_TO_M  # m
 
     x_line = np.linspace(0, max([max(s) for s in [s_g_list]]), 200)
@@ -154,6 +154,6 @@ s_g_list, alts = take_off_vs_alt(delta_T,mtow, S, C_l_max,eta_p, P_st, n_t)
 #print(s_g_list)
 s_g_list, temps = take_off_vs_temp(mtow, S, C_l_max, eta_p, P_st, n_t)
 
-take_off_alt_temp(mtow, S, C_l_max, eta_p, P_sp, n_p)
+take_off_alt_temp(mtow, S, C_l_max, eta_p, P_st, n_t)
 take_off_dist_mass(delta_T, mtow, S, C_l_max, eta_p, P_st, P_sp,n_t, n_p)
     
