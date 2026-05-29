@@ -1,53 +1,53 @@
 # Cross-section
-wall_thickness: 0.1 # [m]
-
+wall_thickness: 0.05 # [m]
 floor_thickness: 0.1 # [m]
-aisle_height: 65 # [in]
-top_compartment_height: 0.3 # [m]
-
+aisle_height: 1.5 # [m]
 clearance: 0.1 # [m]
 arm_rest_width: 0.05 # [m]
-seat_width: 18 # [in]
-aisle_width: 0.53 # [m]
-top_compartment_width: 0.6 # [m]
+seat_width: 0.4 # [m]
+aisle_width: 0.35 # [m]
 
-cargo_width: 1.3 # [m]
+# Cargo volume
+cargo_width: 1.0 # [m]
 cargo_height: 1.3 # [m]
-cargo_length: 1.15 # [m]
+cargo_length: 1.0 # [m]
 
-tail_cone_fuselage_ratio: 0.6 # [-]
-approach_angle: 6 #[deg]
+# External dimensions
+effective_diameter: 0 # [m]
+nose_length: 1 # [m]
+nose_cone_fineness_ratio: 1.2 # [-]
+nose_cone_length: 0
+tail_cone_fineness_ratio: 2.8125 # [-]
+tail_cone_length: 0
+tail_to_cabin: 3.87
+tail_to_tail_cone_ratio: 0.86 # [-]
+approach_angle: 6 # [deg] determines over-nose angle
+over_nose_angle: 0
+window_angle: 45 # [deg]
+tail_upsweep: 13 # [deg]
 
+# Internal dimensions
 seat_pitch: 32 # [in]
 cockpit_length: 60 # [in]
-
-tail_upsweep_taildragger: 9 # [deg]
-tail_upsweep_tricycle: 13 # [deg]
-
-nose_cone_length: 1 # [m]
-window_angle: 45 # [deg]
-
 emergency_exit_width: 20 # [in]
 emergency_exit_height: 36 # [in]
+door_width: 0 # [m]
+door_height: 0 # [m]
 
-door_width: 1.25 # [m]
-door_height: 1.3 # [m]
-
-length: 9.0  # m
-height: 2.15  # m
-width: 1.85  # m
-base_area: null  # m2
-tail_cone_length: 5.3  # m
-upsweep_angle: 9  # deg
-max_cross_section_area: 3.94   # m2
-max_perimeter: 7.66  # m
-start_cabin: 1.0 #m
-l_cabin: 4.5  # m
-vol_cabin_and_cargo:  # m
-x_pos_seats: [1.75,4.07,4.88]  # m
-x_cargo_holds: 6.08 # list if multiple, if multiple uncomment the line below for lift of mass fractions (sum to 1)
-#mass_frac_cargo_holds: null
-n_pax: 6
-n_window_seats: 2
-n_middle_seats: 0
-n_aisle_seats: 0
+# Total dimensions
+length: 0  # [m] 
+height: 0  # m 
+width: 0  # m 
+base_area: null  # m2 
+max_cross_section_area: 0 # m2 
+max_perimeter: 0  # m
+start_cabin: 1.7 # [m] 
+l_cabin: 3.8  # m 
+vol_cabin_and_cargo: # m ? 
+x_pos_seats: [0, 0, 0]  # m 
+x_cargo_holds: 0 # list if multiple, if multiple uncomment the line below for lift of mass fractions (sum to 1) 
+# mass_frac_cargo_holds: null
+n_pax: 6 # 
+n_window_seats: 2 # 
+n_middle_seats: 0 # 
+n_aisle_seats: 0 # 

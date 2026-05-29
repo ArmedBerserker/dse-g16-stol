@@ -35,7 +35,6 @@ class loader:
     
     def _read_file(self) -> dict:
         '''reads a yaml file and returns a dictionary'''
-        print(self.filepath)
         with open(self.filepath, 'r') as f:
             d = yaml.safe_load(f)
 
@@ -150,58 +149,58 @@ class Wing:
 
 @dataclass
 class Fuselage:
+    # Cross-section
     wall_thickness: float
-
     floor_thickness: float
     aisle_height: float
-    top_compartment_height: float
-
     clearance: float
-    arm_rest_width:float
+    arm_rest_width: float
     seat_width: float
     aisle_width: float
-    top_compartment_width: float
 
+    # Cargo volume
     cargo_width: float
     cargo_height: float
     cargo_length: float
 
-    tail_cone_fuselage_ratio: float
+    # External dimensions
+    effective_diameter: float
+    nose_length: float
+    nose_cone_fineness_ratio: float
+    nose_cone_length: float
+    tail_cone_fineness_ratio: float
+    tail_cone_length: float
+    tail_to_cabin: float
+    tail_to_tail_cone_ratio: float
     approach_angle: float
+    over_nose_angle: float
+    window_angle: float
+    tail_upsweep: float
 
+    # Internal dimensions
     seat_pitch: float
     cockpit_length: float
-
-    tail_upsweep_taildragger: float
-    tail_upsweep_tricycle: float
-
-    nose_cone_length: float
-    window_angle: float
-
     emergency_exit_width: float
     emergency_exit_height: float
-
     door_width: float
     door_height: float
 
-    length: float 
+    # Total dimensions
+    length: float
     height: float
     width: float
     base_area: float
-    tail_cone_length: float
-    upsweep_angle: float
     max_cross_section_area: float
     max_perimeter: float
+    start_cabin: float
     l_cabin: float
     vol_cabin_and_cargo: float
-    x_pos_seats: list
-    x_cargo_holds: list
-    #mass_frac_cargo_holds: list
+    x_pos_seats: float
+    x_cargo_holds: float
     n_pax: int
     n_window_seats: int
     n_middle_seats: int
     n_aisle_seats: int
-
 
     def __str__(self):
         text = "The fuselage is:\n"
