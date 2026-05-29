@@ -293,13 +293,21 @@ if __name__ == '__main__':
 
     "Boosted Piston": {
         "cd0": 0.04,
+<<<<<<< HEAD
         "P_a": 202000 * eta_p,
+=======
+        "P_a": 202000 * eta_p, # take-off power: 234000
+>>>>>>> 551a89e8042005417413b60b16c5aa70aed9b175
         "n": 1.0
     },
 
     "Boosted Turboprop": {
         "cd0": 0.04,
+<<<<<<< HEAD
         "P_a": 550000 * eta_p,
+=======
+        "P_a": 550000 * eta_p,  # take-off power: 626000
+>>>>>>> 551a89e8042005417413b60b16c5aa70aed9b175
         "n": 0.8
     }
 }
@@ -325,15 +333,15 @@ if __name__ == '__main__':
         
         excess_power = power_curves(P_a_list, P_r_list, V)
         # Rate of climb
-        #RoC = RoC_vs_V(excess_power, V, mtow)
+        # RoC = RoC_vs_V(excess_power, V, mtow)
 
         Aoc = AoC_vs_V(P_a_list, P_r_list, mtow,V)
         
-        #P_a_lists, P_r_lists, V_alts = power_curves_altitude(cd0, e, AR, mtow, rho_0, S, P_a, n, delta_T)
+        # P_a_lists, P_r_lists, V_alts = power_curves_altitude(cd0, e, AR, mtow, rho_0, S, P_a, n, delta_T)
 
         #max_RoCs, alts = RoC_altitude(mtow, P_a_0, rho_0, n, cd0, S, AR, e, delta_T)
 
-        #RoC_multiple_alts(P_a_lists, P_r_lists, V_alts, mtow)
+        # RoC_multiple_alts(P_a_lists, P_r_lists, V_alts, mtow)
 
         #envelope(C_l_max, mtow, S, cd0, AR, e, P_a_0, rho_0, n, delta_T)
 
