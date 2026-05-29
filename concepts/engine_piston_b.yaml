@@ -29,5 +29,7 @@ z_prop : null  # Height of the lowest (outboard) propeller point. Measured from 
 nac_t_c_max: 0.5
 nac_x_c_t_c_max: 0.5
 i_n: 0
+SHP_max: null
+n_prop_blades: 3
 
 

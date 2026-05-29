@@ -111,8 +111,8 @@ def scissor_plot_intersection_points(x1, x2, y1, y2):
         print("No intersections found")
         return None
 
-def closest_value(x, values = [2, 4, 6, 8, 10]):
-    return int(min(values, key=lambda v: abs(v - x)))
+def closest_value(x, values=[2, 4, 6, 8, 10]):
+    return min(values, key=lambda v: abs(v - x))
 
 def LE_sweep_deg(sweep_c_4: float, # degrees
              c_r: float, #root chord length [m]
@@ -160,7 +160,7 @@ def lift_slope(A, beta, sweep_c_2_deg, eta=0.95):
     return 2 * np.pi * A / (2 + np.sqrt(4 + (A * beta / eta)**2 * (1 + np.tan(np.deg2rad(sweep_c_2_deg))**2 / beta**2)))
 
 def D_Cl_max(flap_type: str, # 'plain' or 'split' or 'slotted' or 'fowler' or 'double slotted'or 'triple slotted' or 'fowler'
-             cdash_c: float):
+             cdash_c: float) -> float:
     flap_values = {
         'plain': 0.9,
         'split': 0.9,
