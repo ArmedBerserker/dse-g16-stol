@@ -293,21 +293,15 @@ if __name__ == '__main__':
 
     "Boosted Piston": {
         "cd0": 0.04,
-<<<<<<< HEAD
         "P_a": 202000 * eta_p,
-=======
         "P_a": 202000 * eta_p, # take-off power: 234000
->>>>>>> 551a89e8042005417413b60b16c5aa70aed9b175
         "n": 1.0
     },
 
     "Boosted Turboprop": {
         "cd0": 0.04,
-<<<<<<< HEAD
         "P_a": 550000 * eta_p,
-=======
         "P_a": 550000 * eta_p,  # take-off power: 626000
->>>>>>> 551a89e8042005417413b60b16c5aa70aed9b175
         "n": 0.8
     }
 }
