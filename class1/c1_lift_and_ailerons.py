@@ -53,9 +53,10 @@ def CLmax(ac: Aircraft):            #CL max of clean wing, needs to be made usab
             CL_max_w = high_AR_method()                 #functions inputs
         else:
             CL_max_w = low_AR_method()                  #function inputs
-    else: 
-        print('Airfoil changed, so redefine sharpness factor to proceed.')
-        break
+    else:
+        raise ValueError(
+            'Airfoil changed, so redefine sharpness factor to proceed.'
+        )
     return CL_max_w
 
 
@@ -84,7 +85,7 @@ def cdash_c_TO(ac: Aircraft, flap_type: str):
 
 
 def D_CL_max_TO(ac: Aircraft, flap_type: str, y_start_f, y_end_f, taper, c_r, b, LE_sweep, x_c_hinge):         #Naomi x_c_hinge needs to be defined somewhere
-    return 0.8 * 0.9 * D_Cl_max(flap_type) * (S_wf(y_start_f, y_end_f, taper, c_r, b)/ac.wing['area']) * np.cos(sweep_at_x_c_deg(LE_sweep, c_r, b, taper, x_c_hinge))             # Naomi fill in functions arguements
+    return 0.8 * 0.9 * D_Cl_max(flap_type) * (S_wf(y_start_f, y_end_f, taper, c_r, b)/ac.wing['area']) * np.cos(sweep_at_x_c_deg(LE_sweep, c_r, b, taper, x_c_hinge))             # Naomi fill in functions arguements, also this function is the same for slats...jsut output in yaml is under different heading
 
 
 ##### Landing
@@ -127,6 +128,7 @@ def D_CL_max_LA(ac: Aircraft, flap_type: str, y_start_f, y_end_f, taper, c_r, b,
 # cf_c
 # alieron max deflect - check what value we want
 # does the roll rate make sense, which req
+# define x_c_hinge line
 
 
 def aileron_control_derivative(ac: Aircraft,
@@ -206,3 +208,13 @@ def Sdash_S(ac: Aircraft, S, cdash_c):
 def lift_slope_flapped(ac: Aircraft):
     return Sdash_S() * lift_slope()                                 #maybe want to put Sdash_S as a yaml output, same wiht lfit slope?
 
+def delta_zerolift(ac: Aircraft, flight_condition, LE_sweep, c_r, b, taper, x_c_hinge):
+    if flight_condition == "landing":
+        d_0lift_airfoil = - 15
+    elif flight_condition == "take_off":
+        d_0lift_airfoil = - 10
+    else:
+        raise ValueError(
+            'Invalid flight condition for this function, please select another one.'
+        )
+    return d_0lift_airfoil * (ac.hld_and_ailerons.flaps['S_wf']/ac.wing['area']) * np.cos(sweep_at_x_c_deg(LE_sweep, c_r, b, taper, x_c_hinge))         #check inputs, last part is sweep at hinge line
