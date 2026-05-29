@@ -61,7 +61,7 @@ def CLmax(ac: Aircraft):            #CL max of clean wing, needs to be made usab
 
 ######## Flaps #########
 
-#### TO
+#### Take off
 def flap_dc_cf_TO(flap_type: str, # 'plain' or 'slotted' or 'fowler' or 'double slotted'or 'triple slotted' or 'fowler'
              ):
     flap_values = {
@@ -116,8 +116,8 @@ def D_CL_max_LA(ac: Aircraft, flap_type: str, y_start_f, y_end_f, taper, c_r, b,
     return 0.9 * D_Cl_max(flap_type) * (S_wf(y_start_f, y_end_f, taper, c_r, b)/ac.wing['area']) * np.cos(sweep_at_x_c_deg(LE_sweep, c_r, b, taper, x_c_hinge))             # Naomi fill in functions arguements
 
 
-# Now how to check if it meets the CLmax depands
-#make it iterate or so?
+# Now how to check if it meets the CLmax demands, implement that
+#make a matrix to pick and choose combination
 
 ######## Aileron #############
 
@@ -125,7 +125,8 @@ def D_CL_max_LA(ac: Aircraft, flap_type: str, y_start_f, y_end_f, taper, c_r, b,
 # y_start_a
 # y_end_a
 # cf_c
-# alieron max deflect
+# alieron max deflect - check what value we want
+# does the roll rate make sense, which req
 
 
 def aileron_control_derivative(ac: Aircraft,
@@ -189,4 +190,19 @@ def roll_damping_derivative(ac: Aircraft,
 
 
 def AC_roll_rate(ac: Aircraft,):
-    P = - (aileron_control_derivative()/roll_damping_derivative()) * ... * (2 * ... /ac.wing['span'])
+    P = - (aileron_control_derivative()/roll_damping_derivative()) * ... * (2 * ... /ac.wing['span']) #input max aileron deflection and chosen speeds
+    return P
+
+#check is meets the roll rate requirements, for different speeds
+
+
+##### CL-a curve for flapped wing
+
+
+def Sdash_S(ac: Aircraft, S, cdash_c):
+    return 1 + (ac.hld_and_ailerons.flaps['S_wf']/S) * (cdash_c - 1)            #check if inputs make sense to call from yamls or not
+
+
+def lift_slope_flapped(ac: Aircraft):
+    return Sdash_S() * lift_slope()                                 #maybe want to put Sdash_S as a yaml output, same wiht lfit slope?
+
