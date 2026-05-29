@@ -32,15 +32,17 @@ from lookups.consts import *
 
 ''' TO DO:
     - Add Non-iterative steps to loop (probably done)
-    - Checl initial cg calculation
+    - Check initial cg calculation
     - Add propulsion
     - Add HLD and lift slope calculations
     - Add fuselage calculation
     - Add proper CII drag (also update CD0, k and L/D)
+    - Add different CD0 for flight condition and engines operative to matching diagram lines 
     - Add Wing positioning and tail sizing
     - Add way to save and load aircraft so we can make the plots separately
     - Add checks in landing gear code to check sqrts are only taken of +ve values and the locations make sense
-    - Check slats are included in mass and drag estimates'''
+    - Check slats are included in mass and drag estimates
+    - Add wing tip to C_D_L in drag'''
 
 # 0. Helper function
 def check_power_requirement(ac: Aircraft):

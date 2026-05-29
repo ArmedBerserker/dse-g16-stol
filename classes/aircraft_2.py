@@ -305,6 +305,8 @@ class Engine:
     nac_t_c_max: float | None
     nac_x_c_t_c_max: float | None
     i_n: float | None
+    SHP_max: float | None
+    n_prop_blades: int | None
 
     def __post_init__(self):
         self.eta_1 = m.prod(self.eta_1)

@@ -7,9 +7,9 @@ m_cargo: 200
 m_energy: null
 m_fuel: null
 m_battery: null
-m_piston: 111.2 
+m_piston: 91.2
 m_supercap: 36 
-m_turboprop: 112
+m_turboprop: 96.2
 m_propeller: 10
 oew_frac: null
 x_cg_aft: 3.23  # Taildragger

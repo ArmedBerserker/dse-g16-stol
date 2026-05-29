@@ -6,7 +6,7 @@ take_off:
   to_distance: 200  # [m]
   dist_balance_fl: False  # Check if the distance given is total or not
   runway_type: unprepared
-  to_mass_frac: null
+  to_mass_frac: 0.99
 
 climb:
   engine_placement: wing # fuselage or wing

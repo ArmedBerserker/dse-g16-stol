@@ -1,0 +1,33 @@
+# empennage_config.yaml
+cg_and_positioning:
+  x_h: 8.01      # Aerodynamic center of horizontal tail [m]
+  x_v: 8.01      # Aerodynamic center of vertical tail [m]
+
+horizontal_tail:
+  volume_coefficient: 0.786
+  aspect_ratio: 4.5
+  taper_ratio: 0.7
+  x_h_frac_lf: 0.9
+  sweep: 0  # deg
+  sweep_LE_deg: null
+  t_c_max: 0.14  # CHANGE ONCE AIRFOIL SELECTED
+  loc_t_c_max: 0.3
+  l_h: null
+  x_le: null
+  c_r_h: null
+  c_t_h: null
+
+vertical_tail:
+  volume_coefficient: 0.06275
+  aspect_ratio: 1.4
+  taper_ratio: 0.5
+  x_v_frac_lf: 0.9
+  sweep: null  # deg
+  sweep_LE_deg: 30
+  t_c_max: 0.14 # CHANGE ONCE AIRFOIL SELECTED
+  loc_t_c_max: 0.3
+  x_le: null
+  c_r_v: null
+  c_t_v: null
+
+t_tail_condition: False
