@@ -189,6 +189,7 @@ def compute_class_II_mass_and_cg(ac: Aircraft, iteration: int) -> Aircraft:
     return ac
 
 def tail_sizing_wing_positioning(ac: Aircraft, epoch: int) -> Aircraft:
+    loading_diagram(ac.wing.x_le, ac, show_plot=True, output_filepath='outputs/init_loading_diagram.png', update_ac_cgs=False)
     wing_pos_arr = np.arange(0,1.01,0.01)
     print(f'wing positions: {wing_pos_arr}')
     stability_output = overlay_wing_pos_and_scissor_plot(ac, x_le_w_fus_length_arr=wing_pos_arr, output_filepath=f'outputs/Stability_and_Control/Scissor_plot_{epoch}', show_plot=True, update_ac=False)
