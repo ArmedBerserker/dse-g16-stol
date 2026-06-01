@@ -34,9 +34,9 @@ def calculate_characteristic_speeds(ac: Aircraft, rho: float, weight: float):
 
     # Stall Speeds
     #V_s_la = ac.requirements.general['stall_speed'] * KTS_TO_MS * np.sqrt(rho/1.225)
-    V_s_la = np.sqrt((2 * weight)/(rho * ac.wing.area * ac.requirements.landing['as_CL_max_la']))
-    V_s_to = np.sqrt((2 * weight)/(rho * ac.wing.area * ac.requirements.take_off['as_CL_max_to']))
-    V_s_clean = np.sqrt((2 * weight)/(rho * ac.wing.area * ac.requirements.climb['as_CL_max']))
+    V_s_la = np.sqrt((2 * weight)/(rho * ac.wing.area * ac.requirements.landing['as_CL_max_la'])) * np.sqrt(rho/1.225)
+    V_s_to = np.sqrt((2 * weight)/(rho * ac.wing.area * ac.requirements.take_off['as_CL_max_to'])) * np.sqrt(rho/1.225)
+    V_s_clean = np.sqrt((2 * weight)/(rho * ac.wing.area * ac.requirements.climb['as_CL_max'])) * np.sqrt(rho/1.225)
 
     # Design Speeds
     # Ensures V_c is at least 33 * sqrt(W/S)
@@ -51,9 +51,11 @@ def calculate_characteristic_speeds(ac: Aircraft, rho: float, weight: float):
     V_d_min2 = 1.4 * V_c_min
     V_d = max(V_d_min1, V_d_min2) #From CS 23.335 reqs
 
+    V_ne = 0.9 * V_d
+
     V_a = V_s_clean * np.sqrt(n_max)
 
-    return V_s_clean, V_c, V_d, V_a, V_s_la, V_s_to
+    return V_s_clean, V_c, V_d, V_a, V_s_la, V_s_to, V_ne
 
 
 # ============================================================
@@ -65,7 +67,7 @@ def generate_vn_envelope(ac: Aircraft, altitude_m: float, weight: float):
     atmos = Atmosphere(altitude_m)
     rho = atmos.density
 
-    V_s_clean, V_c, V_d, V_a, V_s_la, V_s_to = calculate_characteristic_speeds(ac, rho, weight)
+    V_s_clean, V_c, V_d, V_a, V_s_la, V_s_to, V_ne = calculate_characteristic_speeds(ac, rho, weight)
 
     # Airspeed Vector
     V_vec = np.linspace(0, V_d, 500)
@@ -102,7 +104,7 @@ def generate_vn_envelope(ac: Aircraft, altitude_m: float, weight: float):
         "n_neg": n_neg,
         "n_flap_la": n_flap_la,
         "n_flap_to": n_flap_to,
-        "speeds": {"Vsla": V_s_la, "Vsto": V_s_to, "Vsclean": V_s_clean, "Vc": V_c, "Vd": V_d, "Va": V_a}
+        "speeds": {"Vsla": V_s_la, "Vsto": V_s_to, "Vsclean": V_s_clean, "Vc": V_c, "Vd": V_d, "Va": V_a, "Vne": V_ne}
     }
 
 
@@ -172,6 +174,8 @@ def plot_vn_diagram(ac: Aircraft, altitude_ft: float, condition: str, show_plot:
     ax.plot([speeds["Vc"], speeds["Vc"]], [n_max, n_min], 'g--', alpha=0.5, label=f'$V_C$ ({speeds["Vc"]:.1f} m/s)')
     ax.plot([speeds["Vd"], speeds["Vd"]], [n_max, 0], color='black', linestyle='--', alpha=0.5,
             label=f'$V_D$ ({speeds["Vd"]:.1f} m/s)')
+    ax.plot([speeds["Vne"], speeds["Vne"]], [n_max, 0], color='black', linestyle='--', alpha=0.5,
+            label=f'$V_{{NE}}$ ({speeds["Vne"]:.1f} m/s)')
 
     # Labels below axis
     y_text = -0.2
@@ -179,6 +183,7 @@ def plot_vn_diagram(ac: Aircraft, altitude_ft: float, condition: str, show_plot:
     ax.text(speeds["Va"], y_text, r"$V_A$", ha='center', va='top', fontsize=11, color='m')
     ax.text(speeds["Vc"] + 1.5, y_text, r"$V_C$", ha='center', va='top', fontsize=11, color='g')
     ax.text(speeds["Vd"], y_text, r"$V_D$", ha='center', va='top', fontsize=11, color='black')
+    ax.text(speeds["Vne"], y_text, r"$V_{NE}$", ha='center', va='top', fontsize=11, color='black')
 
     # Flap speed labels
     y_text1 = -0.1

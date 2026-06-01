@@ -47,12 +47,28 @@ def calculate_characteristic_speeds(ac: Aircraft, rho: float, weight: float):
     V_d_min2 = 1.4 * V_c_min
     V_d = max(V_d_min1, V_d_min2) #From CS 23.335 reqs
 
-    V_ne = 0.9 * V_d
-
     V_a = V_s_clean * np.sqrt(n_max)
 
-    return V_s_clean, V_c, V_d, V_a, V_s_la, V_s_to, V_ne
+    return V_s_clean, V_c, V_d, V_a, V_s_la, V_s_to
 
+
+def compute_gust_lines(ac: Aircraft, V, rho, weight, Ude):
+    """
+    Returns gust envelopes for VB, VC, VD.
+    """
+
+    # Gust alleviation factor (CS-23 approximation)
+    mu_g = (2 * (weight / ac.wing.area)) / (
+            rho * np.rad2deg(ac.requirements.climb['lift_slope']) * g * ac.requirements.general['mac'])
+
+    Kg = (0.88 * mu_g) / (5.3 + mu_g)
+
+    dn = (Kg * 1.225 * V * np.rad2deg(ac.requirements.climb['lift_slope']) * Ude) / (2 * (weight / ac.wing.area))
+
+    n_upper = 1 + dn
+    n_lower = 1 - dn
+
+    return n_upper, n_lower
 
 def generate_vn_envelope(ac: Aircraft, flight: str = 'cruise', condition: str = 'MTOW'):
     """
@@ -70,7 +86,7 @@ def generate_vn_envelope(ac: Aircraft, flight: str = 'cruise', condition: str = 
         else ac.weights.m_empty * g
     )
 
-    V_s_clean, V_c, V_d, V_a, V_s_la, V_s_to, V_ne = calculate_characteristic_speeds(ac, rho, weight)
+    V_s_clean, V_c, V_d, V_a, V_s_la, V_s_to = calculate_characteristic_speeds(ac, rho, weight)
 
     # Airspeed Vector
     V_vec = np.linspace(0, V_d, 500)
@@ -100,18 +116,42 @@ def generate_vn_envelope(ac: Aircraft, flight: str = 'cruise', condition: str = 
     mask = V_vec > V_c
     n_neg[mask] = n_min * ( 1 - (V_vec[mask] - V_c) / (V_d - V_c))
 
+    # -----------------------------
+    # GUST ENVELOPES (CS-23.341)
+    # -----------------------------
+
+    # Design gust velocities (simplified CS-23 values)
+    Ude_Vc = 50 * FT_TO_M    # 50 ft/s at VC
+    Ude_Vd = 25 * FT_TO_M    # reduced at VD (25 ft/s)
+    Ude_Vb = 66 * FT_TO_M    # intermediate (66 ft/s)
+
+    # Compute gust curves
+    n_g_vc_up, n_g_vc_low = compute_gust_lines(ac, V_vec, rho, weight, Ude_Vc)
+    n_g_vd_up, n_g_vd_low = compute_gust_lines(ac, V_vec, rho, weight, Ude_Vd)
+    n_g_vb_up, n_g_vb_low = compute_gust_lines(ac, V_vec, rho, weight, Ude_Vb)
+
 
     return {
         "V": V_vec,
+
+        #Gusts
+        "n_g_vc_up": n_g_vc_up,
+        "n_g_vc_low": n_g_vc_low,
+        "n_g_vd_up": n_g_vd_up,
+        "n_g_vd_low": n_g_vd_low,
+        "n_g_vb_up": n_g_vb_up,
+        "n_g_vb_low": n_g_vb_low,
+
+
         "n_pos": n_pos,
         "n_neg": n_neg,
         "n_flap_la": n_flap_la,
         "n_flap_to": n_flap_to,
-        "speeds": {"Vsla": V_s_la, "Vsto": V_s_to, "Vsclean": V_s_clean, "Vc": V_c, "Vd": V_d, "Va": V_a, "Vne": V_ne}
+        "speeds": {"Vsla": V_s_la, "Vsto": V_s_to, "Vsclean": V_s_clean, "Vc": V_c, "Vd": V_d, "Va": V_a}
     }
 
 
-def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_Diagram.png', show_plot: bool = False):
+def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Gust_Diagram.png', show_plot: bool = False):
     """
     Generates and saves the V-n Diagram plot.
     """
@@ -129,6 +169,17 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_Diagram.png
     #Plot Envelopes
     ax.plot(V, results["n_pos"], 'k-', linewidth=2.5, label='Maneuvering Envelope', zorder=10)
     ax.plot(V, results["n_neg"], 'k-', linewidth=2.5, zorder=10)
+
+
+    # Plot gust envelopes
+    ax.plot(V, results["n_g_vc_up"], 'c--', label='Gust VC')
+    ax.plot(V, results["n_g_vc_low"], 'c--')
+
+    ax.plot(V, results["n_g_vd_up"], 'm--', label='Gust VD')
+    ax.plot(V, results["n_g_vd_low"], 'm--')
+
+    ax.plot(V, results["n_g_vb_up"], 'g--', label='Gust VB')
+    ax.plot(V, results["n_g_vb_low"], 'g--')
 
     # Plot Flaps (Limited to Vf)
     # Landing flaps
@@ -167,7 +218,6 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_Diagram.png
     ax.plot([speeds["Va"], speeds["Va"]], [n_max, 0], 'm--', alpha=0.5, label=f'$V_A$ ({speeds["Va"]:.1f} m/s)')
     ax.plot([speeds["Vc"], speeds["Vc"]],[n_max, n_min],'g--', alpha=0.5, label=f'$V_C$ ({speeds["Vc"]:.1f} m/s)')
     ax.plot([speeds["Vd"], speeds["Vd"]], [n_max, 0], color='black', linestyle='--', alpha=0.5, label=f'$V_D$ ({speeds["Vd"]:.1f} m/s)')
-    ax.plot([speeds["Vne"], speeds["Vne"]], [n_max, 0], color='black', linestyle='--', alpha=0.5, label=f'$V_{{NE}}$ ({speeds["Vne"]:.1f} m/s)')
 
 
     # Labels below axis
@@ -176,7 +226,6 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_Diagram.png
     ax.text(speeds["Va"], y_text, r"$V_A$", ha='center', va='top', fontsize=11, color='m')
     ax.text(speeds["Vc"] + 1.5, y_text, r"$V_C$", ha='center', va='top', fontsize=11, color='g')
     ax.text(speeds["Vd"], y_text,r"$V_D$", ha='center', va='top', fontsize=11, color='black')
-    ax.text(speeds["Vne"], y_text, r"$V_{NE}$", ha='center', va='top', fontsize=11, color='black')
 
     # Flap speed labels
     y_text1 = -0.1
@@ -189,7 +238,7 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_Diagram.png
     ax.set_xlabel('Equivalent Airspeed (EAS) [m/s]')
     ax.set_ylabel('Load Factor (n)')
     #ax.set_title(f'V-n Diagram: MTOW={ac.weights.m_takeoff:.0f} kg')
-    ax.legend()
+    #ax.legend()
     ax.grid(True, linestyle='--', alpha=0.5)
 
     plt.tight_layout()
