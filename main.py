@@ -1,4 +1,4 @@
-from class1 import c1_m, c1_loading_and_empennage, matching_diagram, prelim_drag, c1_planform_sizing, c2_drag, c1_gear_sizing, c1_fuselage, c2_drag_new
+from class1 import c1_m, c1_loading_and_empennage, matching_diagram, prelim_drag, c1_planform_sizing, c2_drag, c1_gear_sizing, c1_fuselage, c2_drag_new, c1_lift_and_ailerons
 import c2_m
 import sys
 import os
@@ -150,11 +150,13 @@ for ac in [ac8]:
     print(f'\n {ac.name}: \t Planform sizing complete')
 
     # 5. HLD and ailerons
+    c1_lift_and_ailerons.size_ailerons(ac, update_ac=True)
+    c1_lift_and_ailerons.size_HLD(ac, update_ac=True)
     print(f'\n {ac.name}: \t HLD and aileron sizing complete')
 
-    # 6. Fuselage
-    c1_fuselage.size_fuselage(ac)
-    print(f'\n {ac.name}: \t Fuselage sizing complete')
+    # # 6. Fuselage
+    # c1_fuselage.size_fuselage(ac)
+    # print(f'\n {ac.name}: \t Fuselage sizing complete')
 
     # 7. Empennage
     tricycle_condition = ac.landing_gear.gear_type == 'tricycle'

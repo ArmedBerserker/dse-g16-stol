@@ -92,7 +92,7 @@ def classI_loading_and_cgs_2(ac: Aircraft, update_ac = False):
 
 
     
-def size_empennage_planform(ac: Aircraft):
+def size_empennage_planform(ac: Aircraft, epoch: int):
     """ 
     Empennage planform sizing:
     Inputs (from YAML config):
@@ -122,8 +122,11 @@ def size_empennage_planform(ac: Aircraft):
     x_v = vt['x_v_frac_lf'] * l_f
     
     # Calculate moment arms dynamically
-    ht_moment_arm = x_h - x_cgaft
-    vt_moment_arm = x_v - x_cgaft
+    # ht_moment_arm = x_h - x_cgaft
+    # vt_moment_arm = x_v - x_cgaft
+    # ht['l_h'] = ht_moment_arm
+    ht_moment_arm = 0.5 * l_f
+    vt_moment_arm = 0.5 * l_f
     ht['l_h'] = ht_moment_arm
     
     # Extract fixed constants from YAML
@@ -140,7 +143,10 @@ def size_empennage_planform(ac: Aircraft):
     # HORIZONTAL STABILIZER SIZING
     # ---------------------------------------------------------
     # 1. Calculate new area based on volume coefficient and calculated moment arm
-    S_h = (V_h * S * w.MAC) / ht_moment_arm
+    if epoch == 1:
+        S_h = (V_h * S * w.MAC) / ht_moment_arm
+    else:
+        S_h = ac.empennage.horizontal_tail['area div S'] * ac.wing.area
 
     # 2. Update geometry dependent on the new area
     b_h = np.sqrt(A_h * S_h)

@@ -16,6 +16,7 @@ horizontal_tail:
   x_le: null
   c_r_h: null
   c_t_h: null
+  type: fully moving
 
 vertical_tail:
   volume_coefficient: 0.06275

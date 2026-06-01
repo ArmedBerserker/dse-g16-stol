@@ -28,5 +28,13 @@ tip_twist: 0 # deg
 dihedral: 0  # deg
 airfoil_name: "NACA 23012"
 x_c_t_c_max: 0.3  # for naca 5 series
+t_c_max: 0.12
 incidence_deg: 0
+cd0: 0.007
+alpha_0L: -1.09  # deg
+camber_c: 0.018
+cl_max_2d: 1.60
+cm_c4: -0.015
+drag_bucket_cl: [0.1, 0.4]
+stall_type: Sharp
 

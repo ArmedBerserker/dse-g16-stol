@@ -164,7 +164,16 @@ class Wing:
     dihedral: float | None = None
     airfoil_name: str | None = None
     x_c_t_c_max: float | None = None
+    t_c_max: float | None = None
     incidence_deg: float | None = None
+    cd0: float | None = None
+    alpha_0L: float | None = None
+    camber_c: float | None = None
+    cl_max_2d: float | None = None
+    cm_c4: float | None = None
+    drag_bucket_cl: list | None = None
+    stall_type: str | None = None
+
 
     # ADD WHATEVER IS NEEDED
 

@@ -21,6 +21,11 @@ import matplotlib.pyplot as plt
     '''
 
 # Data and interpolation functions
+def read_csv(path):
+    df = pd.read_csv(path)
+    df.columns = df.columns.str.strip()
+    return df
+
 def interp_value(df : pd.DataFrame,
                  x_query,
                  x_col : str,
@@ -45,12 +50,12 @@ def mu_air(T):
 def R_wf(M, R_N_fus):
     M = closest_value(M, values=[0.25, 0.4])
     if M == 0.25:
-        return interp_value(pd.read_csv('lookups/roskam_p6_fig_4_1_rwf.csv'), R_N_fus, x_col='Fuselage Reynolds Number (M = 0.25)', y_col='Wing-Fuse Interference Factor (M = 0.25)', log_x=True)
+        return interp_value(read_csv('lookups/roskam_p6_fig_4_1_rwf.csv'), R_N_fus, x_col='Fuselage Reynolds Number (M = 0.25)', y_col='Wing-Fuse Interference Factor (M = 0.25)', log_x=True)
     else:
-        return interp_value(pd.read_csv('lookups/roskam_p6_fig_4_1_rwf_2.csv'), R_N_fus, x_col='Fuselage Reynolds Number (M = 0.4)', y_col='Wing-Fuse Interference Factor (M = 0.4)', log_x=True)
+        return interp_value(read_csv('lookups/roskam_p6_fig_4_1_rwf_2.csv'), R_N_fus, x_col='Fuselage Reynolds Number (M = 0.4)', y_col='Wing-Fuse Interference Factor (M = 0.4)', log_x=True)
 
 def R_LS(sweep_t_c_max_deg):
-    return interp_value(pd.read_csv('lookups/roskam_p6_fig_4_2_rls.csv'), np.cos(np.deg2rad(sweep_t_c_max_deg)), 'cos(quarter chord)', 'lifting surface correction', log_x=False)
+    return interp_value(read_csv('lookups/roskam_p6_fig_4_2_rls.csv'), np.cos(np.deg2rad(sweep_t_c_max_deg)), 'cos(quarter chord)', 'lifting surface correction', log_x=False)
 
 def R_N(rho, V, l, mu):
     return rho * V * l / mu
@@ -61,7 +66,7 @@ def C_f(R_N, M):  # DATCOM fig 4.1.5.1-26
     # CF0 = 4.12963e-6 * x**5 -1.36204e-4 * x**4 + 1.71620e-3 * x**3 -9.88935e-3 * x**2 +2.23641e-2 * x
     if M > 0.15:
         CF3 = x * (2.18366e-2 + x * (-9.59519e-3 + x * (1.65388e-3 + x * (-1.30370e-4 + x * 3.92725e-6))))
-        print(f' R_N: {R_N}, CF3: {CF3}')
+        # print(f' R_N: {R_N}, CF3: {CF3}')
         return CF3
     else: 
         CF0 = x * (2.23641e-2 + x * (-9.88935e-3 + x * (1.7162e-3 + x * (-1.36204e-4 + x * 4.12963e-6))))
@@ -105,16 +110,21 @@ def D_CD_flap_stuff(ac: Aircraft, flap_type, t_c_max, flap_deflection, wing_drag
     cf_c = ac.hld_and_ailerons.flaps['cf_c']  # flap chord length / chord length
     if flap_type == 'split':  # 'split' or 'plain' or 'slotted' 'fowler' or 'krueger'
         fd = closest_value(t_c_max, values=[10, 20, 30])
-        D_CD_flap_stuff = interp_value(pd.read_csv(f'lookups/t_c_0.{fd}.csv'), cf_c, f'cf/c ({flight_condition})', f'dCdp ({flight_condition})', log_x=False)
+        D_CD_flap_stuff = interp_value(read_csv(f'lookups/t_c_0.{fd}.csv'), cf_c, f'cf/c ({flight_condition})', f'dCdp ({flight_condition})', log_x=False)
     elif flap_type == 'plain':
         fd = closest_value(flap_deflection, values=[15, 60])
-        D_CD_flap_stuff = interp_value(pd.read_csv(f'lookups/d_f_{fd}.csv'), cf_c, 'cf/c', 'dCdp', log_x=False)
+        D_CD_flap_stuff = interp_value(read_csv(f'lookups/d_f_{fd}.csv'), cf_c, 'cf/c', 'dCdp', log_x=False)
     elif flap_type == 'slotted':
         fd = closest_value(cf_c, values=[0.1, 0.2, 0.3])
-        D_CD_flap_stuff = interp_value(pd.read_csv('lookups/cf_c_comb2.csv'), flap_deflection, 'df', f'dCdp (cf={fd}0)', log_x=False)
+        D_CD_flap_stuff = interp_value(read_csv('lookups/cf_c_comb2.csv'), flap_deflection, 'df', f'dCdp (cf={fd}0)', log_x=False)
     elif flap_type == 'fowler':
-        fd = closest_value(cf_c, values=[0.1, 0.2, 0.3, 0.4])
-        D_CD_flap_stuff = interp_value(pd.read_csv('lookups/roskam_p6_fig_4_48.csv'), flap_deflection, f'df(cf/c={fd})', f'dCdp(cf/c={fd})', log_x=False)
+        fd = f"{closest_value(cf_c, values=[0.1, 0.2, 0.3, 0.4]):.1f}"
+        # fd = closest_value(cf_c, values=[0.1, 0.2, 0.3, 0.4])
+        df = read_csv('lookups/roskam_p6_fig_4_48.csv')
+        print(df.columns.tolist())
+        print(f'df(cf/c={fd})', f'dCdp(cf/c={fd})')
+        D_CD_flap_stuff = interp_value(read_csv('lookups/roskam_p6_fig_4_48.csv'), flap_deflection, f'df(cf/c={fd})', f'dCdp(cf/c={fd})', log_x=False)
+        # D_CD_flap_stuff = interp_value(read_csv('lookups/roskam_p6_fig_4_48.csv'), flap_deflection, f'df({fd})', f'dCdp(cf/c={fd})', log_x=False)
     elif flap_type == 'kruger':
         D_CD_flap_stuff = wing_drag * cdash_c   # (cf_c * np.cos(np.deg2rad(flap_deflection)) + 1)
     elif flap_type == 'slat':
@@ -146,7 +156,7 @@ def CD0_wing(M, R_N_fus, sweep_t_c_max_deg, R_N_w, t_c_max, x_c_t_c_max, S_exp, 
     Cfw = C_f(R_N_w, M)
     Ldash = L_dash(x_c_t_c_max)
     Swet = S_wet_w(S_exp, surface_type)
-    print(f' \n Wing stuff: \n Rwf: {Rwf}, RLS: {RLS}, Cfw: {Cfw}, Ldash: {Ldash}, Swet: {Swet}')
+    # print(f' \n Wing stuff: \n Rwf: {Rwf}, RLS: {RLS}, Cfw: {Cfw}, Ldash: {Ldash}, Swet: {Swet}')
     return Rwf * RLS * Cfw * (1 + Ldash * t_c_max + 100 * t_c_max**4) * Swet / S
 
 def CD0_fuselage(M, R_N_fus, l_fus, d_fus_max, l_nosecone, l_tailcone, S, d_b, S_fus_max, surface_type:str = 'fuselage'):
@@ -157,7 +167,7 @@ def CD0_fuselage(M, R_N_fus, l_fus, d_fus_max, l_nosecone, l_tailcone, S, d_b, S
     elif surface_type == 'nacelle':
         S_wet = np.pi * (d_fus_max * l_fus + d_b**2 / 4)
     CD0_f_less_b = Rwf * Cf * (1 + 60 / ((l_fus / d_fus_max)**3) + 0.0025 * (l_fus / d_fus_max)) * S_wet / S
-    print(f'CD0_f_less_b: {CD0_f_less_b} \n Rwf: {Rwf}, Cf: {Cf}, S_wet: {S_wet}')
+    # print(f'CD0_f_less_b: {CD0_f_less_b} \n Rwf: {Rwf}, Cf: {Cf}, S_wet: {S_wet}')
     CD0_b = (0.029 * (d_b / d_fus_max)**3 / (CD0_f_less_b * (S / S_fus_max))**0.5) * S_fus_max / S
     return CD0_f_less_b + CD0_b
 
@@ -379,7 +389,7 @@ def CD0(ac: Aircraft,
                     S=S)
 
     CD0 = wing + fuselage + h_tail + v_tail + nacelle_isolated + nacelle_interference + propeller + flap_drag + slat_drag + gear
-    print(f' Speed: {speed}, density: {density}, dynamic pressure: {0.5*density*speed**2}')
+    # print(f' Speed: {speed}, density: {density}, dynamic pressure: {0.5*density*speed**2}')
     print(f' \n CD0 overview: \n wing: {wing} \n fuselage: {fuselage} \n ht: {h_tail} \n vt: {v_tail} \n isolated nacelle: {nacelle_isolated} \n nacelle interference: {nacelle_interference} \n propeller: {propeller} \n flap drag: {flap_drag} \n slat drag: {slat_drag} \n landing gear: {gear} \n \n total: {CD0}')
     if update_ac:
         w.CD0 = CD0
@@ -401,12 +411,12 @@ def C_D_L(ac: Aircraft,
         C_L = mass_frac * ac.weights.m_takeoff * g / (0.5 * density * speed**2 * S)
         flap_deflection = 0
     if flight_condition == 'take-off':
-        C_L = ac.hld_and_ailerons.take_off_lift['CL_TO']
+        C_L = ac.hld_and_ailerons.take_off_lift['CL_max']
         temp_shift = ac.requirements.take_off['to_temp_shift']
         alt = ac.requirements.take_off['to_altitude'] * FT_TO_M
         Atm = Atmosphere(alt, temp_shift)
         density = Atm.density
-        mass_frac = ac.requirements.cruise['to_mass_frac']
+        mass_frac = ac.requirements.take_off['to_mass_frac']
         speed = np.sqrt(mass_frac * ac.weights.m_takeoff / (0.5 * density * C_L * S))
         flap_deflection = ac.hld_and_ailerons.flaps['to_deflection']
     if flight_condition == 'landing':

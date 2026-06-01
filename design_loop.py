@@ -21,27 +21,21 @@ from __future__ import annotations
 import copy
 import json
 import os
+import sys
 from dataclasses import asdict, dataclass, field
 from typing import Callable
 import numpy as np
 
-from classes.aircraft_2 import Aircraft, loader
-from class1 import c1_m, prelim_drag, matching_diagram, c2_drag, c1_landing_gear, c1_wing_planform, c1_loading_and_empennage
+from classes.aircraft_2 import Aircraft, loader, Requirements, Mission, Fuselage, Wing, Engine, Weights, Empennage, HLD_and_AIL, Landing_Gear
+
+from class1 import c1_m, prelim_drag, matching_diagram, c2_drag, c1_gear_sizing, c1_planform_sizing, c1_loading_and_empennage, c1_fuselage, c2_drag_new, c1_lift_and_ailerons
 from c2_m import W_oe_and_cg_from_nose, W_to_new, loading_diagram, x_cg_structural_from_nose, overlay_wing_pos_and_scissor_plot
 from lookups.consts import *
 
 ''' TO DO:
-    - Add Non-iterative steps to loop (probably done)
-    - Check initial cg calculation
-    - Add propulsion
-    - Add HLD and lift slope calculations
-    - Add fuselage calculation
-    - Add proper CII drag (also update CD0, k and L/D)
-    - Add different CD0 for flight condition and engines operative to matching diagram lines 
-    - Add Wing positioning and tail sizing
+    - Position ht on vt right for t-tail
     - Add way to save and load aircraft so we can make the plots separately
     - Add checks in landing gear code to check sqrts are only taken of +ve values and the locations make sense
-    - Check slats are included in mass and drag estimates
     - Add wing tip to C_D_L in drag'''
 
 # 0. Helper function
@@ -102,53 +96,49 @@ def pre_loop_calculations(ac: Aircraft) -> Aircraft:
     c1_m.energy_frac_needed(ac, Phi=ac.engine.Phi, update_ac=True)
     c1_m.operating_empty_frac(ac, source_for_fracs='specific', engine_type=ac.engine.alpha_p_id, gear_type=ac.landing_gear.gear_type, update_ac=True)
 
+    # print(f' Fuel weight: {ac.weights.m_fuel}')
+    # Matching diagram:
+    type_to_use = "Twin Engine Propeller Driven"
+    if ac.engine.count == 1:
+        type_to_use = "Single Engine Propeller Driven"
+    data_to = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='to')
+    W_P_to = data_to['W/P']
+    W_S = data_to['W/S']
+    ac.engine.power_to = ac.weights.m_takeoff * g / W_P_to
+    ac.wing.area = ac.weights.m_takeoff * g / W_S
+    data_cr = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='cruise')
+    W_P_cr = data_cr['W/P']
+    ac.engine.power_cr = ac.weights.m_takeoff * g / W_P_cr
+
+    # Fuselage sizing:
+    c1_fuselage.calculate_fuselage_parameters
+
 def compute_aerodynamics(ac: Aircraft) -> Aircraft:
     """
     Step 1 — update aerodynamic coefficients and L/D from current geometry.
     Replace the body with your aero model.
     """
     # Wing planform
-    c1_wing_planform.size_wing_planform(ac)
+    c1_planform_sizing.size_wing_planform(ac)
     # HLD sizing
+    c1_lift_and_ailerons.size_ailerons(ac, update_ac=True)
+    c1_lift_and_ailerons.size_HLD(ac, update_ac=True)
 
     # Lift and drag params?
 
-    # ── placeholder logic ────────────────────────────────────────────────────
-    # e.g. ac.wing.ld = your_aero_module.compute_ld(ac.wing, ac.mission)
-    # e.g. ac.wing.c_f = your_aero_module.compute_cf(ac.wing)
-    pass
-    # ─────────────────────────────────────────────────────────────────────────
     return ac
 
-def compute_propulsion(ac: Aircraft) -> Aircraft:
-    """
-    Step 2 — update engine/propulsion parameters.
-    Replace the body with your propulsion model.
-    """
-    # ── placeholder logic ────────────────────────────────────────────────────
-    # e.g. required_power = your_prop_module.shaft_power(ac)
-    # e.g. ac.engine.Phi   = your_prop_module.hybridisation_ratio(ac)
-    pass
-    # ─────────────────────────────────────────────────────────────────────────
+def compute_landing_gear_positions(ac: Aircraft, epoch) -> Aircraft:
+    ac = c1_gear_sizing.size_tires(ac, update_ac=True)
+    ac = c1_gear_sizing.tire_location(ac, update_ac=True)
+    Z1 = ac.landing_gear.height_mlg
+    Z2 = ac.landing_gear.height_nlg
+    ac.landing_gear.height_mlg = max(Z1, ac.landing_gear.selected_mlg_tire["Outside Diameter Max (In)"] * 2.54 / 100)
+    ac.landing_gear.height_nlg = max(Z2, ac.landing_gear.selected_nlg_tire["Outside Diameter Max (In)"] * 2.54 / 100)
     return ac
 
-def compute_landing_gear_positions(ac: Aircraft) -> Aircraft:
-    ac = c1_landing_gear.size_tires(ac, update_ac=True)
-    ac = c1_landing_gear.tire_location(ac, update_ac=True)
-    return ac
-
-def compute_empennage(ac: Aircraft) -> Aircraft:
-    c1_loading_and_empennage.size_empennage_planform(ac)
-    return ac
-
-def compute_fuselage(ac: Aircraft) -> Aircraft:
-    """
-    Step 6 — update fuselage geometry if driven by weights / payload.
-    Replace the body with your fuselage model.
-    """
-    # ── placeholder logic ────────────────────────────────────────────────────
-    pass
-    # ─────────────────────────────────────────────────────────────────────────
+def compute_empennage(ac: Aircraft, epoch) -> Aircraft:
+    c1_loading_and_empennage.size_empennage_planform(ac, epoch)
     return ac
 
 def compute_class_I_mass(ac: Aircraft) -> Aircraft:
@@ -175,13 +165,13 @@ def compute_class_I_mass(ac: Aircraft) -> Aircraft:
     if ac.engine.count == 1:
         type_to_use = "Single Engine Propeller Driven"
     # NOTE: check if we need to add tw options for requirements to meet or add W/P result used by Shubhankar for weight est
-    data_to = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='to')
+    data_to = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='to', initial_est=False)
     W_P_to = data_to['W/P']
     W_S = data_to['W/S']
     # NOTE: check if we need to update multiple power values and if they exist already
     ac.engine.power_to = ac.weights.m_takeoff * g / W_P_to
     ac.wing.area = ac.weights.m_takeoff * g / W_S
-    data_cr = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='cruise')
+    data_cr = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='cruise', initial_est=False)
     W_P_cr = data_cr['W/P']
     ac.engine.power_cr = ac.weights.m_takeoff * g / W_P_cr
     return ac
@@ -193,42 +183,43 @@ def compute_class_II_mass_and_cg(ac: Aircraft, iteration: int) -> Aircraft:
     # pie_chart_output_path = f'outputs/Class_II_weight/OEW_pie_chart_{iteration}.png'
     # struc_pie_chart_output_path = f'outputs/Class_II_weight/Structure_pie_chart_{iteration}.png'
     W_oe, x_cg_oe, ac = W_oe_and_cg_from_nose(ac, update_ac=True)
-    W_to, W_F, ac = W_to_new(ac, m_res=0, update_ac=True)
+    W_to, ac = W_to_new(ac, m_res=0, update_ac=True)
     x_cg_struc, x_cg_data, ac = x_cg_structural_from_nose(ac, update_ac=True)
     fwd_cg, aft_cg, ac = loading_diagram(x_le_w, ac, update_ac_cgs=True)
     return ac
 
 def tail_sizing_wing_positioning(ac: Aircraft, epoch: int) -> Aircraft:
     wing_pos_arr = np.arange(0,1.01,0.01)
-    stability_output = overlay_wing_pos_and_scissor_plot(ac, x_le_w_fus_length_arr=wing_pos_arr, output_filepath=f'outputs/Stability_and_Control/Scissor_plot_{epoch}', show_plot=True)
+    print(f'wing positions: {wing_pos_arr}')
+    stability_output = overlay_wing_pos_and_scissor_plot(ac, x_le_w_fus_length_arr=wing_pos_arr, output_filepath=f'outputs/Stability_and_Control/Scissor_plot_{epoch}', show_plot=True, update_ac=False)
     if stability_output is not None:
+        print(f' \n Sh_S: {stability_output[0]}, x_lemac/mac: {stability_output[1]}, aft_cg: {stability_output[2]}, fwd_cg: {stability_output[3]}, x_le: {stability_output[4]}')
         # NOTE: add updating Sh_S and wing_pos stored in stability output, add option to not update value if not happy with value
-    return ac
+        update_ac = int(input('Enter 0 if you want to update these parameters into the aircraft, else 1'))
+        if update_ac == 0:
+            ac.weights.x_cg_aft = stability_output[2]
+            ac.weights.x_cg_fwd = stability_output[3]
+            ac.empennage.horizontal_tail['area div S'] = stability_output[0]
+            ac.wing.x_le =  stability_output[4]
+    else: 
+        print('Scissor plot doesnt match!!!')
+        epochs += 1000
+    return ac, epochs
 
-def Class_II_drag(ac: Aircraft):
+def Class_II_drag(ac: Aircraft, epoch):
     # Cruise
-    flap_type =  # 'split' or 'plain' or 'slotted' 'fowler' or 'krueger'
-    nacelle_above_wing: bool = ac.engine.eng_above_wing
-    C_D0_clean = c2_drag.C_D0(ac, n_engine_operative=ac.engine.count, flap_type=flap_type, flight_condition='cruise', nacelle_on_top_of_wing=nacelle_above_wing)
-    CDi_cr, e, K  = c2_drag.C_D_L(ac, flap_deflection=0, flight_condition='cruise')
-
+    CD0 = c2_drag_new.CD0(ac, n_engine_inoperative=0, flight_condition='cruise', update_ac=True)
+    c2_drag_new.C_D_L(ac, CD0, flight_condition='cruise', update_ac=True, wing_tip=False)
     # Take-off
-    to_flap_deflection_deg = 
-    C_D0_to = c2_drag.C_D0(ac, n_engine_operative=ac.engine.count, flap_type=flap_type, flight_condition='take-off', nacelle_on_top_of_wing=nacelle_above_wing)
-    CDi_to, e_to, K_to  = c2_drag.C_D_L(ac, flap_deflection=to_flap_deflection_deg, flight_condition='take-off')
-
+    ac.wing.CD0_to = c2_drag_new.CD0(ac, n_engine_inoperative=0, flight_condition='take-off', update_ac=True)
+    CDi, ac.wing.e_to, ac.wing.k_to, ac.wing.ld_to = c2_drag_new.C_D_L(ac, ac.wing.CD0_to, flight_condition='take-off', update_ac=True, wing_tip=False)
     # Landing
-    ld_flap_deflection_deg = 
-    C_D0_ld = c2_drag.C_D0(ac, n_engine_operative=ac.engine.count, flap_type=flap_type, flight_condition='landing', nacelle_on_top_of_wing=nacelle_above_wing)
-    CDi_ld, e_ld, K_ld  = c2_drag.C_D_L(ac, flap_deflection=ld_flap_deflection_deg, flight_condition='landing')
-
-    # NOTE: add updating values
+    ac.wing.CD0_ld = c2_drag_new.CD0(ac, n_engine_inoperative=0, flight_condition='landing', update_ac=False)
+    CDi, ac.wing.e_ld, ac.wing.k_ld, ac.wing.ld_landing = c2_drag_new.C_D_L(ac, ac.wing.CD0_ld, flight_condition='landing', update_ac=True, wing_tip=False)
     return ac
 
 ITERATION_STEPS1: list[Callable[[Aircraft], Aircraft]] = [
-    compute_aerodynamics,
-    compute_fuselage,
-    compute_propulsion
+    compute_aerodynamics
 ]
 
 ITERATION_STEPS2: list[Callable[[Aircraft], Aircraft]] = [
@@ -252,7 +243,6 @@ def run_iteration(ac: Aircraft,
     if epoch > 1:
         ac = compute_class_I_mass(ac)
     mtow_class_I = ac.weights.m_takeoff      # snapshot before geometry steps
-
     if epoch == 1:
         tricycle_condition = (ac.landing_gear.gear_type == 'tricycle')
         c1_loading_and_empennage.class_I_loading_cgs(ac, tricycle_condition, update_ac=True)
@@ -267,7 +257,7 @@ def run_iteration(ac: Aircraft,
         c1_loading_and_empennage.classI_loading_and_cgs_2(ac, update_ac=True)
 
     for step in ITERATION_STEPS2:
-        ac = step(ac)
+        ac = step(ac, epoch)
 
     # Class II mass 
     ac = compute_class_II_mass_and_cg(ac, epoch)
@@ -279,9 +269,9 @@ def run_iteration(ac: Aircraft,
     ) < INNER_TOLERANCE
 
     # Stability and control and Class II drag
-    ac = tail_sizing_wing_positioning(ac, epoch)
+    ac, epoch = tail_sizing_wing_positioning(ac, epoch)
 
-    return ac, inner_converged
+    return ac, inner_converged, epoch
 
 
 # 4. Check convergence
@@ -401,13 +391,14 @@ def run_design_loop(
 
     insufficient_to_power_counter = 0
     insufficient_cr_power_counter = 0
+    pre_loop_calculations(ac)
     for epoch in range(1, config.max_epochs + 1):
 
         # Deep-copy BEFORE the iteration so we can diff afterwards
         prev = copy.deepcopy(ac)
 
         # Run one full design cycle
-        ac, inner_converged = run_iteration(ac, epoch, INNER_TOLERANCE)
+        ac, inner_converged, epoch = run_iteration(ac, epoch, INNER_TOLERANCE)
 
         # Power requirement check
         enough_cr_power, enough_to_power =  check_power_requirement(ac)
@@ -534,14 +525,19 @@ def summarise_convergence(history_file: str = "aircraft_history.json") -> None:
 
 
 if __name__ == "__main__":
-    import sys
-
-    yaml_path = sys.argv[1] if len(sys.argv) > 1 else "aircraft.yaml"
-
-    ac = loader.load(yaml_path, Aircraft)
+    ac = Aircraft('Boosted_turboprop_tricycle',
+                loader.load('concepts/reqs_turb.yaml', Requirements),
+                loader.load('yamls/mission.yaml', Mission),
+                loader.load('yamls/weights.yaml', Weights),
+                loader.load('concepts/wing_electra.yaml', Wing),
+                loader.load('concepts/fus_tri.yaml', Fuselage),
+                loader.load('concepts/engine_tprop_b.yaml', Engine),
+                loader.load('concepts/tricycle_empennage.yaml', Empennage),
+                loader.load('yamls/HLD_and_ailerons.yaml', HLD_and_AIL),
+                loader.load('concepts/tricycle_gear.yaml', Landing_Gear))
 
     config = DesignLoopConfig(
-        max_epochs   = 30,
+        max_epochs   = 2,
         history_file = "aircraft_history.json",
         convergence_params = [
             ConvergenceParam("weights.m_empty", 1.0),

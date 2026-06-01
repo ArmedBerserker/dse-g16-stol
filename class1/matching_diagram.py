@@ -26,22 +26,10 @@ from pathlib import Path
 from typing import Any
 from numpy import dtype, ndarray
 import pandas as pd
+from class1 import c2_drag_new
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 BASE_DIR = Path(__file__).resolve().parent
-
-# def Range(ac: Aircraft):
-#     max_L_D_cr = 
-#     R_lost = 1 / 0.7 * max_L_D_cr * (ac.requirements.cruise['cr_altitude'] * FT_TO_M + (ac.requirements.cruise['cr_speed'] * KTS_TO_MS) ** 2 / (2 * g))
-#     R_des = ac.mission.range*1000
-#     f_con = 0.05
-#     R_div = 
-#     t_e = 
-#     V_cr = ac.requirements.cruise['cr_speed'] * KTS_TO_MS
-#     R_eq_res = 1.2 * R_div + t_e * V_cr
-#     R_eq = (R_des + R_lost) * (1 + f_con) + R_eq_res
-#     return R_eq
-
 
 def stall_speed_matching(ac: Aircraft,  # Change units
                          W_P: np.ndarray = np.arange(1,10000)
@@ -59,7 +47,6 @@ def stall_speed_matching(ac: Aircraft,  # Change units
     W_S = (CL_max_landing * 0.5 * rho * V_s0 ** 2) * np.ones_like(W_P)
 
     return W_P, W_S
-
 
 def landing_dist_matching(ac: Aircraft,
                           W_P: np.ndarray = np.arange(1,10000)
@@ -89,7 +76,6 @@ def landing_dist_matching(ac: Aircraft,
 
     return W_P, W_S
 
-
 def cruise_speed_matching(ac: Aircraft,
                           type_to_use : str = "Single Engine Propeller Driven",
                           W_S: np.ndarray = np.arange(1,10000)
@@ -106,10 +92,12 @@ def cruise_speed_matching(ac: Aircraft,
     sigma = atmos_model.density_ratio
 
     cruise_mass_frac = ac.requirements.cruise['cr_mass_frac']
-    CD0 = cd0(ac, type_to_use, friction_source, s_wet_source)
+    CD0 = ac.wing.CD0
+    # CD0 = cd0(ac, type_to_use, friction_source, s_wet_source)
 
     A = ac.wing.aspect_ratio
-    _, e = k(ac)
+    e = ac.wing.e
+    # _, e = k(ac)
 
     eta_p = ac.engine.eta_3
 
@@ -131,7 +119,6 @@ def cruise_speed_matching(ac: Aircraft,
     W_P = eta_p * alpha_p / cruise_mass_frac / (CD0 * 0.5 * rho * V_cr ** 3 / (cruise_mass_frac * W_S) + cruise_mass_frac * W_S / (np.pi * A * e * 0.5 * rho * V_cr))
 
     return W_P, W_S
-
 
 def takeoff_dist_matching(ac: Aircraft,  # Change units
                           W_S: np.ndarray = np.arange(1, 10000)
@@ -161,10 +148,8 @@ def takeoff_dist_matching(ac: Aircraft,  # Change units
 
     return W_P, W_S / PA_TO_LBSpFT2
 
-
 def C_L3_2_C_D_max(C_D0, A, e):
     return 1.345 * (A * e) ** (3 / 4) / (C_D0 ** (1 / 4))
-
 
 def delta_e(ac: Aircraft, flap_deflection):
     if ac.requirements.climb['engine_placement'] == 'fuselage':
@@ -176,20 +161,17 @@ def delta_e(ac: Aircraft, flap_deflection):
     else:
         return None
 
-
 def delta_cd0(flap_deflection):
     delta_from_flaps = 0.0013 * flap_deflection
     delta_from_lg = 0.0250
 
     return delta_from_flaps + delta_from_lg
 
-
 def W_P_for_ROC(RC, eta_p, W_S, C_L_C_D_param, sigma):
     W_P = eta_p / (RC / 33000 + np.sqrt(W_S) / (19 * C_L_C_D_param * np.sqrt(sigma)))  # lbs/hp
     W_P = W_P * LBSpHP_TO_NpW
 
     return W_P
-
 
 def W_P_for_CGR(CGR, L_D, C_L_climb, eta_p, sigma, W_S):
     CGRP = (CGR + 1 / L_D) / (np.sqrt(C_L_climb))
@@ -198,10 +180,10 @@ def W_P_for_CGR(CGR, L_D, C_L_climb, eta_p, sigma, W_S):
 
     return W_P
 
-
 def all_engine_operative(ac : Aircraft,
-                         type_to_use : str = "Single Engine Propeller Driven",
-                         W_S: np.ndarray = np.arange(1, 10000)
+                         type_to_use : str = "Twin Engine Propeller Driven",
+                         W_S: np.ndarray = np.arange(1, 10000),
+                         initial_est: bool = True
                          ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     friction_source = BASE_DIR / "../lookups/skin_fric.csv"
     s_wet_source = BASE_DIR / "../lookups/s_wets.csv"
@@ -213,13 +195,20 @@ def all_engine_operative(ac : Aircraft,
     atmos_model = Atmosphere(take_off_altitude, take_off_temperature_shift)
     sigma = atmos_model.density_ratio
 
-    CD0 = cd0(ac, type_to_use, friction_source, s_wet_source)
     A = ac.wing.aspect_ratio
-    ind_drag_factor, e = k(ac)
-
     take_off_flap_deflection = ac.requirements.climb['take_off_flap_deflection']
-    e = e + delta_e(ac, take_off_flap_deflection)
-    CD0 = CD0 + delta_cd0(take_off_flap_deflection)
+
+    if initial_est:
+        CD0 = ac.wing.CD0
+        CD0 = cd0(ac, type_to_use, friction_source, s_wet_source)
+        ind_drag_factor = ac.wing.k
+        e = ac.wing.e
+        # ind_drag_factor, e = k(ac)
+        e = e + delta_e(ac, take_off_flap_deflection)
+        CD0 = CD0 + delta_cd0(take_off_flap_deflection)
+    else:
+        CD0 = c2_drag_new.CD0(ac, n_engine_inoperative=0, flight_condition='take-off', update_ac=False)
+        CDi, e, ind_drag_factor, ld = c2_drag_new.C_D_L(ac, CD0, flight_condition='take-off', update_ac=False, wing_tip=False)
     C_L_C_D_param = C_L3_2_C_D_max(CD0, A, e)
 
     C_L_max_take_off = ac.requirements.take_off['as_CL_max_to']
@@ -246,10 +235,10 @@ def all_engine_operative(ac : Aircraft,
 
     return W_P_AEO_turbine_and_non_turbine_ROC, W_P_AEO_turbine_and_non_turbine_CGR, W_P_AEO_turbine_additional_condition_CGR, W_S / PA_TO_LBSpFT2
 
-
 def one_engine_inoperative(ac : Aircraft,
                            type_to_use : str = "Single Engine Propeller Driven",
-                           W_S: np.ndarray = np.arange(1, 10000)
+                           W_S: np.ndarray = np.arange(1, 10000),
+                           initial_est: bool = True
                            ):
     friction_source = BASE_DIR / "../lookups/skin_fric.csv"
     s_wet_source = BASE_DIR / "../lookups/s_wets.csv"
@@ -268,12 +257,20 @@ def one_engine_inoperative(ac : Aircraft,
         atmos_model = Atmosphere(take_off_altitude_turbine, 0)
         sigma = atmos_model.density_ratio
 
-        CD0 = cd0(ac, type_to_use, friction_source, s_wet_source)
         A = ac.wing.aspect_ratio
-        ind_drag_factor, e = k(ac)
         take_off_flap_deflection = ac.requirements.climb['take_off_flap_deflection']
-        e = e + delta_e(ac, take_off_flap_deflection)
-        CD0 = CD0 + delta_cd0(take_off_flap_deflection)
+
+        if initial_est:
+            CD0 = ac.wing.CD0
+            CD0 = cd0(ac, type_to_use, friction_source, s_wet_source)
+            ind_drag_factor = ac.wing.k
+            e = ac.wing.e
+            # ind_drag_factor, e = k(ac)
+            e = e + delta_e(ac, take_off_flap_deflection)
+            CD0 = CD0 + delta_cd0(take_off_flap_deflection)
+        else:
+            CD0 = c2_drag_new.CD0(ac, n_engine_inoperative=1, flight_condition='take-off', update_ac=False)
+            CDi, e, ind_drag_factor, ld = c2_drag_new.C_D_L(ac, CD0, flight_condition='take-off', update_ac=False, wing_tip=False)
         C_L_C_D_param = C_L3_2_C_D_max(CD0, A, e)
 
         C_L_max_TO = ac.requirements.take_off['as_CL_max_to']
@@ -299,10 +296,10 @@ def one_engine_inoperative(ac : Aircraft,
 
     return W_P_OEI_turbine_condition_1_ROC, W_P_OEI_turbine_condition_1_CGR, W_P_OEI_turbine_condition_2_ROC, W_P_OEI_turbine_condition_2_CGR, W_S / PA_TO_LBSpFT2
 
-
 def balked_landing(ac : Aircraft,
                    type_to_use : str = "Single Engine Propeller Driven",
-                   W_S: np.ndarray = np.arange(1, 10000)
+                   W_S: np.ndarray = np.arange(1, 10000),
+                   initial_est: bool = True
                    ):
     friction_source = BASE_DIR / "../lookups/skin_fric.csv"
     s_wet_source = BASE_DIR / "../lookups/s_wets.csv"
@@ -315,12 +312,20 @@ def balked_landing(ac : Aircraft,
     atmos_model = Atmosphere(take_off_altitude, take_off_temperature_shift)
     sigma = atmos_model.density_ratio
 
-    CD0 = cd0(ac, type_to_use, friction_source, s_wet_source)
     A = ac.wing.aspect_ratio
-    ind_drag_factor, e = k(ac)
     landing_flap_deflection = ac.requirements.climb['landing_flap_deflection']
-    e = e + delta_e(ac, landing_flap_deflection)
-    CD0 = CD0 + delta_cd0(landing_flap_deflection)
+
+    if initial_est:
+        CD0 = ac.wing.CD0
+        CD0 = cd0(ac, type_to_use, friction_source, s_wet_source)
+        ind_drag_factor = ac.wing.k
+        e = ac.wing.e
+        # ind_drag_factor, e = k(ac)
+        e = e + delta_e(ac, landing_flap_deflection)
+        CD0 = CD0 + delta_cd0(landing_flap_deflection)
+    else:
+        CD0 = c2_drag_new.CD0(ac, n_engine_inoperative=0, flight_condition='landing', update_ac=False)
+        CDi, e, ind_drag_factor, ld = c2_drag_new.C_D_L(ac, CD0, flight_condition='landing', update_ac=False, wing_tip=False)
     C_L_C_D_param = C_L3_2_C_D_max(CD0, A, e)
 
     C_L_max_landing = ac.requirements.landing['as_CL_max_la']
@@ -424,7 +429,8 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         requirement_to_meet: str = 'all',  # options: 'all', 'cruise', 'to'
         other_design_points_x: np.ndarray = None,
         other_design_points_y: np.ndarray = None,
-        other_design_points_labels: list[str] = None
+        other_design_points_labels: list[str] = None,
+        initial_est: bool = True
         ) -> dict:
     
     type_to_use = ac.requirements.general['type_to_use']
@@ -435,9 +441,9 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
     ld_W_P, ld_W_S = landing_dist_matching(ac, W_P_plot)
     cr_W_P, cr_W_S = cruise_speed_matching(ac, type_to_use, W_S_plot)
 
-    AEO1_W_P, AEO2_W_P, AEO3_turb_W_P, AEO_W_S = all_engine_operative(ac, type_to_use, W_S_plot)
-    OEI1a_W_P, OEI1b_W_P, OEI2a_W_P, OEI2b_W_P, OEI_W_S = one_engine_inoperative(ac, type_to_use, W_S_plot)
-    BL_W_P, BL_turb_W_P, BL_W_S = balked_landing(ac, type_to_use, W_S_plot)
+    AEO1_W_P, AEO2_W_P, AEO3_turb_W_P, AEO_W_S = all_engine_operative(ac, type_to_use, W_S_plot, initial_est=initial_est)
+    OEI1a_W_P, OEI1b_W_P, OEI2a_W_P, OEI2b_W_P, OEI_W_S = one_engine_inoperative(ac, type_to_use, W_S_plot, initial_est=initial_est)
+    BL_W_P, BL_turb_W_P, BL_W_S = balked_landing(ac, type_to_use, W_S_plot, initial_est=initial_est)
 
     OEI1_W_P = np.minimum(OEI1a_W_P, OEI1b_W_P)
     OEI2_W_P = np.minimum(OEI2a_W_P, OEI2b_W_P)

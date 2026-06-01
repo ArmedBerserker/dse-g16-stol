@@ -69,6 +69,7 @@ def size_wing_planform(ac: Aircraft):
         w.cm_c4 = airfoil.cm_c4
         w.drag_bucket_cl = airfoil.drag_bucket_cl
         w.stall_type = airfoil.stall_type
+        w.alpha_0L = airfoil.alpha_0L
     else:
         print(f'Error: airfoil {airfoil_name} not found in database')
 

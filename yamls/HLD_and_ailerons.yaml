@@ -12,9 +12,11 @@ flaps:
   y_flap_out: 6.5  # m
   ld_deflection: 40  # deg
   to_deflection: 20  # deg
+  hinge_line_x_c: 0.6
 ailerons:
   y_aileron_in: 6.75  # m
   y_aileron_out: 7.4  # m
+  deflection: 15  # deg
 slats:
   slat_type: 'slat'
   y_slat_in: 1.125  # m
@@ -22,8 +24,6 @@ slats:
   cdash_c_to: 1.10  # c'/c
   cdash_c_ld: 1.10  # c'/c
   S_wf: 20.0925
-  y_flap_in: 1.125  # m
-  y_flap_out: 6.5  # m
 landing_lift:
   CL_alpha: 0.10796 # per deg
   alpha_zero_lift: -11.8931  # deg

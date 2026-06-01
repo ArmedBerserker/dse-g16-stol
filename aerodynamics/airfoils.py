@@ -18,6 +18,7 @@ class Airfoil:
     cm_c4: float             # Pitching moment at the quarter-chord
     drag_bucket_cl: Tuple[float, float] # Cl range for low-drag bucket
     stall_type: str          # "Gentle", "Moderate", or "Sharp"
+    alpha_0L: float
 
 # ==========================================================
 # AIRFOIL DATABASE
@@ -33,7 +34,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.70,
         cm_c4=-0.150,
         drag_bucket_cl=(0.5, 1.2),
-        stall_type="Gentle"
+        stall_type="Gentle",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 2412",
@@ -42,7 +44,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.60,
         cm_c4=-0.045,
         drag_bucket_cl=(0.1, 0.5),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NASA LS(1)-0413 (GAW-2)",
@@ -51,7 +54,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.80,
         cm_c4=-0.100,
         drag_bucket_cl=(0.2, 0.8),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 4412",
@@ -60,7 +64,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.67,
         cm_c4=-0.095,
         drag_bucket_cl=(0.2, 0.7),
-        stall_type="Gentle"
+        stall_type="Gentle",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 4415",
@@ -69,7 +74,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.60,
         cm_c4=-0.095,
         drag_bucket_cl=(0.2, 0.7),
-        stall_type="Gentle"
+        stall_type="Gentle",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="Clark Y",
@@ -78,7 +84,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.55,
         cm_c4=-0.080,
         drag_bucket_cl=(0.1, 0.6),
-        stall_type="Gentle"
+        stall_type="Gentle",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NASA LS(1)-0417 (GAW-1)",
@@ -87,7 +94,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.85,
         cm_c4=-0.110,
         drag_bucket_cl=(0.3, 0.9),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="USA 35B",
@@ -96,7 +104,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.55,
         cm_c4=-0.090,
         drag_bucket_cl=(0.1, 0.7),
-        stall_type="Gentle"
+        stall_type="Gentle",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="Riblett GA30-413.5",
@@ -105,7 +114,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.70,
         cm_c4=-0.080,
         drag_bucket_cl=(0.2, 0.8),
-        stall_type="Gentle"
+        stall_type="Gentle",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 63(3)-418",
@@ -114,7 +124,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.55,
         cm_c4=-0.070,
         drag_bucket_cl=(0.2, 0.6),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="Selig S1223",
@@ -123,7 +134,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=2.10,          
         cm_c4=-0.200,         
         drag_bucket_cl=(0.8, 1.6),  
-        stall_type="Moderate"    
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="Eppler 423",
@@ -132,7 +144,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.90,
         cm_c4=-0.120,
         drag_bucket_cl=(0.5, 1.2),
-        stall_type="Gentle"
+        stall_type="Gentle",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 23012",
@@ -141,7 +154,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.60,
         cm_c4=-0.015,                
         drag_bucket_cl=(0.1, 0.4),
-        stall_type="Sharp"           
+        stall_type="Sharp",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 63A418",
@@ -150,7 +164,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.55,
         cm_c4=-0.070,
         drag_bucket_cl=(0.2, 0.6),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 64-514",
@@ -159,7 +174,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.60,
         cm_c4=-0.090,
         drag_bucket_cl=(0.3, 0.7),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 63A516",
@@ -168,7 +184,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.55,
         cm_c4=-0.090,
         drag_bucket_cl=(0.3, 0.7),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
 
     Airfoil(
@@ -178,7 +195,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.45,
         cm_c4=-0.040,
         drag_bucket_cl=(0.0, 0.4),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 65(3)-415",
@@ -187,7 +205,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.50,
         cm_c4=-0.075,
         drag_bucket_cl=(0.1, 0.7),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 63(2)-215",
@@ -196,7 +215,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.45,
         cm_c4=-0.040,
         drag_bucket_cl=(0.0, 0.4),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 63-415",
@@ -205,7 +225,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.55,
         cm_c4=-0.070,
         drag_bucket_cl=(0.2, 0.6),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 2413",
@@ -214,7 +235,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.60,
         cm_c4=-0.045,
         drag_bucket_cl=(0.1, 0.5),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     ),
     Airfoil(
         name="NACA 63(3)-615",
@@ -223,7 +245,8 @@ AIRFOIL_DB: List[Airfoil] = [
         cl_max_2d=1.65,
         cm_c4=-0.110,
         drag_bucket_cl=(0.3, 0.9),
-        stall_type="Moderate"
+        stall_type="Moderate",
+        alpha_0L=0.0
     )
 ]
 
