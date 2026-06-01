@@ -21,7 +21,7 @@ climb:
   cl_altitude: null  # ft
   cl_temperature_shift: null  # K
   cl_mass_frac: null
-  as_CL_max: null  # assumed C_L_max during cruise, will be updated after first class I/II iteration
+  as_CL_max: 2.1  # assumed C_L_max during cruise, will be updated after first class I/II iteration
   n_eng: 1
 
 cruise:
@@ -55,3 +55,14 @@ general:
   standard_type: 'Single Engine Propeller Driven'  # string (to use with Roskam)
   engine_type: ''
   max_wing_loading: 90  # kg/m2
+  n_max: 3.8  # [-] structural load limits
+  n_min: -1.5 # [-] structural load limits
+
+
+
+envelope:
+  n_max: 3.8  # [-] structural load limits
+  n_min: -1.5 # [-] structural load limits
+  area: 17.10
+  m_takeoff: 2000
+  m_empty: 1200
