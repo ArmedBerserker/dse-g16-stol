@@ -19,8 +19,8 @@ nose_cone_fineness_ratio: 1.2 # [-]
 nose_cone_length: 0
 tail_cone_fineness_ratio: 2.8125 # [-]
 tail_cone_length: 0
-tail_to_cabin: 3.87
-tail_to_tail_cone_ratio: 0.86 # [-]
+# tail_to_cabin: 3.87
+# tail_to_tail_cone_ratio: 0.86 # [-]
 approach_angle: 6 # [deg] determines over-nose angle
 over_nose_angle: 0
 window_angle: 45 # [deg]
@@ -33,6 +33,9 @@ emergency_exit_width: 20 # [in]
 emergency_exit_height: 36 # [in]
 door_width: 0 # [m]
 door_height: 0 # [m]
+seat_length: 0.5 # [m]
+upper_corner_radii: 0.55
+lower_corner_radii: 0.4
 
 # Total dimensions
 length: 0  # [m] 
@@ -41,13 +44,14 @@ width: 0  # m
 base_area: null  # m2 
 max_cross_section_area: 0 # m2 
 max_perimeter: 0  # m
-start_cabin: 1.7 # [m] 
-l_cabin: 3.8  # m 
-vol_cabin_and_cargo: # m ? 
+start_cabin: 0 # [m]
+l_cabin: 0  # m
+vol_cabin_and_cargo: 0 # m
 x_pos_seats: [0, 0, 0]  # m 
 x_cargo_holds: 0 # list if multiple, if multiple uncomment the line below for lift of mass fractions (sum to 1) 
 # mass_frac_cargo_holds: null
 n_pax: 6 # 
 n_window_seats: 2 # 
 n_middle_seats: 0 # 
-n_aisle_seats: 0 # 
+n_aisle_seats: 0 #
+

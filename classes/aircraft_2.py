@@ -170,8 +170,8 @@ class Fuselage:
     nose_cone_length: float
     tail_cone_fineness_ratio: float
     tail_cone_length: float
-    tail_to_cabin: float
-    tail_to_tail_cone_ratio: float
+    # tail_to_cabin: float
+    # tail_to_tail_cone_ratio: float
     approach_angle: float
     over_nose_angle: float
     window_angle: float
@@ -184,6 +184,7 @@ class Fuselage:
     emergency_exit_height: float
     door_width: float
     door_height: float
+    seat_length: float
 
     # Total dimensions
     length: float
@@ -201,6 +202,8 @@ class Fuselage:
     n_window_seats: int
     n_middle_seats: int
     n_aisle_seats: int
+    upper_corner_radii: float
+    lower_corner_radii: float
 
     def __str__(self):
         text = "The fuselage is:\n"
