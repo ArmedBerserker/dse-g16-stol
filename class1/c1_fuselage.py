@@ -21,8 +21,8 @@ def fuselage_external_dimensions(ac: Aircraft):
 
     fus.length = 9
     fus.base_area = 0.0875
-    fus.start_cabin = 1.7
-    fus.l_cabin = 3.8
+    fus.start_cabin = 1.92
+    fus.l_cabin = 4.5-1.92
     fus.n_pax = 6
     fus.n_window_seats = 2
     fus.n_middle_seats = 0
@@ -30,9 +30,9 @@ def fuselage_external_dimensions(ac: Aircraft):
     fus.max_perimeter = math.pi * 0.55 + math.pi * 0.4 + 0.65 + 0.35 + 2 * 0.75
     fus.max_cross_section_area = math.pi * 0.55 ** 2 / 2 + math.pi * 0.4 ** 2 / 2 + 1.35 * 0.75 + 0.65 * 0.4 + 0.35 * 0.55
     internal_area = math.pi * 0.5 ** 2 / 2 + math.pi * 0.35 ** 2 / 2 + 1.35 * 0.75 + 0.65 * 0.4 + 0.35 * 0.55
-    fus.vol_cabin_and_cargo = 1.3 + internal_area * fus.l_cabin
-    fus.x_pos_seats = [1.9, 3, 3.6]
-    fus.x_cargo_holds = 5
+    fus.vol_cabin_and_cargo = fus.max_cross_section_area * fus.l_cabin
+    fus.x_pos_seats = [1.92, 3.5, 4.5]  
+    fus.x_cargo_holds = (5.5*1 + 6.25*0.25)/1.25 # 5
 
 
 def calculate_fuselage_parameters(ac:Aircraft):

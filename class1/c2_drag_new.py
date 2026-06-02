@@ -127,7 +127,7 @@ def D_CD_flap_stuff(ac: Aircraft, flap_type, t_c_max, flap_deflection, wing_drag
         # D_CD_flap_stuff = interp_value(read_csv('lookups/roskam_p6_fig_4_48.csv'), flap_deflection, f'df({fd})', f'dCdp(cf/c={fd})', log_x=False)
     elif flap_type == 'kruger':
         D_CD_flap_stuff = wing_drag * cdash_c   # (cf_c * np.cos(np.deg2rad(flap_deflection)) + 1)
-    elif flap_type == 'slat':
+    elif flap_type in ['slat', 'fixed slot', 'leading edge flap']:
         D_CD_flap_stuff = wing_drag * cdash_c
     else: 
         raise ValueError(f"Flap type give: {flap_type}, check possible entries for D_CD_flap_stuff variable")

@@ -384,8 +384,9 @@ def W_oe_and_cg_from_nose(ac: Aircraft, update_ac: bool = False,
     w_structure = wwing + w_ht + w_vt + wfus + wnac + w_mlg + w_nlg
     w_fxeq, x_cg_fxeq = W_feq_and_cg_from_nose(ac)
     W_oe = w_structure + w_power + w_fxeq
-    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr)
+    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr) / W_oe
     ac.weights.oew_frac = W_oe / ac.weights.m_takeoff
+    # print(f'\nstructure cg: {x_cg_structural_from_nose(ac, update_ac=False)[0]} \n power: {x_cg_pwr} \n feq: {x_cg_fxeq}')
     if update_ac:
         ac.weights.m_empty = W_oe
         ac.weights.x_cg_oew = x_cg_oe
@@ -914,7 +915,7 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     # x_le_vt = ac.empennage.vertical_tail['x_v_frac_lf'] * ac.fuselage.length - ac.empennage.vertical_tail['MAC_v']* np.tan(np.deg2rad(vt_sweep_le_deg)) - 0.4 * ac.empennage.vertical_tail['y_MAC_v']  # ac.empennage.vertical_tail['x_v_frac_lf'] * ac.fuselage.length
     x_cg_seats = ac.fuselage.x_pos_seats  # Front to back cg positions of seats (length 3)
     assert len(x_cg_seats) == 3, f"There must be 3 seat cg positions, {len(x_cg_seats)} were given"
-    x_cg_seats = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_seats, ac)
+    # x_cg_seats = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_seats, ac)
     n_pax = ac.fuselage.n_pax
     m_pax = ac.weights.m_pax
     n_rows = n_pax / len(x_cg_seats)
@@ -923,7 +924,7 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     n_middle = ac.fuselage.n_middle_seats
     m_fuel = ac.weights.m_fuel
     x_cg_fuel_tanks = ac.engine.x_cg_fuel_tanks_c_r * c_r + x_le_w
-    x_cg_fuel_tanks = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_fuel_tanks, ac)
+    # x_cg_fuel_tanks = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_fuel_tanks, ac)
     if isinstance(x_cg_fuel_tanks, (list, np.ndarray, tuple)):
         # if len(x_cg_cargo_holds)>1:
         n_fuel_tanks = len(x_cg_fuel_tanks)
@@ -936,7 +937,7 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     x_cg_fuel_tanks_reverse = x_cg_fuel_tanks[::-1]
 
     x_cg_cargo_holds = ac.fuselage.x_cargo_holds
-    x_cg_cargo_holds = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_cargo_holds, ac)
+    # x_cg_cargo_holds = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_cargo_holds, ac)
     cargo_mass_frac = 1.0
     if isinstance(x_cg_cargo_holds, (list, np.ndarray, tuple)):
         if len(x_cg_cargo_holds)>1:
@@ -951,17 +952,21 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
         x_cg_cargo_reverse = x_cg_cargo_holds
 
     # Initiate lists to plot:
-    x_cg_lemac_plot_ftb = []
+    x_cg_nose_plot_ftb = []
     W_plot_ftb = []
-    x_cg_lemac_plot_btf = []
+    x_cg_nose_plot_btf = []
     W_plot_btf = []
 
     # OEW
     W_oe, x_cg_oe, ac = W_oe_and_cg_from_nose(ac)
+    x_cg_oe = ac.weights.x_cg_oew
+    W_oe = ac.weights.m_empty
     W_plot_ftb.append(W_oe)
-    x_cg_lemac_plot_ftb.append(convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_oe, ac))
+    # x_cg_nose_plot_ftb.append(convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_oe, ac))
+    x_cg_nose_plot_ftb.append(x_cg_oe)
     W_plot_btf.append(W_oe)
-    x_cg_lemac_plot_btf.append(convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_oe, ac))
+    # x_cg_nose_plot_btf.append(convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_oe, ac))
+    x_cg_nose_plot_btf.append(x_cg_oe)
 
     # Cargo/PL
     # cargo_masses = cargo_mass_frac * m_cargo
@@ -969,40 +974,45 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     # x_cg_cargo_reverse = x_cg_cargo_holds[::-1]
 
     for i, x_cg in enumerate(x_cg_cargo_holds):
-        new_m, new_cg = update_m_and_cg(W_plot_ftb[-1], x_cg_lemac_plot_ftb[-1], cargo_masses[i], x_cg)
+        new_m, new_cg = update_m_and_cg(W_plot_ftb[-1], x_cg_nose_plot_ftb[-1], cargo_masses[i], x_cg)
         W_plot_ftb.append(new_m)
-        x_cg_lemac_plot_ftb.append(new_cg)
-        new_m, new_cg = update_m_and_cg(W_plot_btf[-1], x_cg_lemac_plot_btf[-1], cargo_masses_reverse[i], x_cg_cargo_reverse[i])
+        x_cg_nose_plot_ftb.append(new_cg)
+        new_m, new_cg = update_m_and_cg(W_plot_btf[-1], x_cg_nose_plot_btf[-1], cargo_masses_reverse[i], x_cg_cargo_reverse[i])
         W_plot_btf.append(new_m)
-        x_cg_lemac_plot_btf.append(new_cg)
+        x_cg_nose_plot_btf.append(new_cg)
     assert W_plot_btf[-1] == W_plot_ftb[-1], f"After loading all cargo holds total weights should match. \n ftb weight = {W_plot_ftb[-1]} \t btf weight = {W_plot_btf[-1]}"
-    assert x_cg_lemac_plot_btf[-1] == x_cg_lemac_plot_ftb[-1], f"After loading all cargo holds total cg should match. \n ftb cg = {x_cg_lemac_plot_ftb[-1]} \t btf cg = {x_cg_lemac_plot_btf[-1]}"
+    assert x_cg_nose_plot_btf[-1] == x_cg_nose_plot_ftb[-1], f"After loading all cargo holds total cg should match. \n ftb cg = {x_cg_nose_plot_ftb[-1]} \t btf cg = {x_cg_nose_plot_btf[-1]}"
     
     # Passengers
     if n_aisle == 0 and n_middle == 0:
-        pax_row_mass = m_pax / n_rows
+        pax_row_mass = m_pax / len(x_cg_seats)
         x_cg_seats_reverse = x_cg_seats[::-1]
 
         for i, x_cg in enumerate(x_cg_seats):
-            new_m, new_cg = update_m_and_cg(W_plot_ftb[-1], x_cg_lemac_plot_ftb[-1], pax_row_mass, x_cg)
+            new_m, new_cg = update_m_and_cg(W_plot_ftb[-1], x_cg_nose_plot_ftb[-1], pax_row_mass, x_cg)
             W_plot_ftb.append(new_m)
-            x_cg_lemac_plot_ftb.append(new_cg)
-            new_m, new_cg = update_m_and_cg(W_plot_btf[-1], x_cg_lemac_plot_btf[-1], pax_row_mass, x_cg_seats_reverse[i])
+            x_cg_nose_plot_ftb.append(new_cg)
+            new_m, new_cg = update_m_and_cg(W_plot_btf[-1], x_cg_nose_plot_btf[-1], pax_row_mass, x_cg_seats_reverse[i])
             W_plot_btf.append(new_m)
-            x_cg_lemac_plot_btf.append(new_cg)
+            x_cg_nose_plot_btf.append(new_cg)
         assert W_plot_btf[-1] == W_plot_ftb[-1], f"After loading all passengers total weights should match. \n ftb weight = {W_plot_ftb[-1]} \t btf weight = {W_plot_btf[-1]}"
-        assert x_cg_lemac_plot_btf[-1] == x_cg_lemac_plot_ftb[-1], f"After loading all passengers total cg should match. \n ftb cg = {x_cg_lemac_plot_ftb[-1]} \t btf cg = {x_cg_lemac_plot_btf[-1]}"
+        assert abs(x_cg_nose_plot_btf[-1] - x_cg_nose_plot_ftb[-1])<0.01, f"After loading all passengers total cg should match. \n ftb cg = {x_cg_nose_plot_ftb[-1]} \t btf cg = {x_cg_nose_plot_btf[-1]}"
     
     # Fuel
     for i, x_cg in enumerate(x_cg_fuel_tanks):
-        new_m, new_cg = update_m_and_cg(W_plot_ftb[-1], x_cg_lemac_plot_ftb[-1], m_fuel_tanks[i], x_cg)
+        new_m, new_cg = update_m_and_cg(W_plot_ftb[-1], x_cg_nose_plot_ftb[-1], m_fuel_tanks[i], x_cg)
         W_plot_ftb.append(new_m)
-        x_cg_lemac_plot_ftb.append(new_cg)
-        new_m, new_cg = update_m_and_cg(W_plot_btf[-1], x_cg_lemac_plot_btf[-1], m_fuel_tanks_reverse[i], x_cg_fuel_tanks_reverse[i])
+        x_cg_nose_plot_ftb.append(new_cg)
+        new_m, new_cg = update_m_and_cg(W_plot_btf[-1], x_cg_nose_plot_btf[-1], m_fuel_tanks_reverse[i], x_cg_fuel_tanks_reverse[i])
         W_plot_btf.append(new_m)
-        x_cg_lemac_plot_btf.append(new_cg)
-    assert W_plot_btf[-1] == W_plot_ftb[-1], f"After loading all fuel tanks total weights should match. \n ftb weight = {W_plot_ftb[-1]} \t btf weight = {W_plot_btf[-1]}"
-    assert x_cg_lemac_plot_btf[-1] == x_cg_lemac_plot_ftb[-1], f"After loading all fuel tanks total cg should match. \n ftb cg = {x_cg_lemac_plot_ftb[-1]} \t btf cg = {x_cg_lemac_plot_btf[-1]}"
+        x_cg_nose_plot_btf.append(new_cg)
+    assert abs(W_plot_btf[-1] - W_plot_ftb[-1])<0.01, f"After loading all fuel tanks total weights should match. \n ftb weight = {W_plot_ftb[-1]} \t btf weight = {W_plot_btf[-1]}"
+    assert abs(x_cg_nose_plot_btf[-1] - x_cg_nose_plot_ftb[-1])<0.01, f"After loading all fuel tanks total cg should match. \n ftb cg = {x_cg_nose_plot_ftb[-1]} \t btf cg = {x_cg_nose_plot_btf[-1]}"
+    
+    # print(f'front to back loading cgs: {x_cg_nose_plot_ftb}')
+    # print(f'back to front loading cgs: {x_cg_nose_plot_btf}')
+    x_cg_lemac_plot_btf = convert_x_cg_from_nose_to_lemac_frac_mac(ac.wing.x_le, x_cg_nose_plot_btf, ac)
+    x_cg_lemac_plot_ftb = convert_x_cg_from_nose_to_lemac_frac_mac(ac.wing.x_le, x_cg_nose_plot_ftb, ac)
     
     # Plotting
     min_x = min(min(x_cg_lemac_plot_btf), min(x_cg_lemac_plot_ftb))
@@ -1016,12 +1026,14 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.set_xlim(min_x - 0.1 * range_x, max_x + 0.1 * range_x)
         ax.set_ylim(min_y, max_y + 0.1 * range_y)
-        ax.scatter(x_cg_lemac_plot_btf, W_plot_btf, color='green', label='loading back to front', marker = 'x', linewidth=2)
-        ax.scatter(x_cg_lemac_plot_ftb, W_plot_ftb, color='purple', label='loading front to back', marker = 'x', linewidth=2)
-        for i, val in enumerate((min_x, max_x)):
-            ax.vline(val, color='grey', linestyle='--')
-        for i, val in enumerate((min_x-0.05*range_x, max_x+0.05*range_x)):
-            ax.vline(val, color='black', label='cg range (including 5% margin)')
+        ax.plot(x_cg_lemac_plot_btf, W_plot_btf, color='green', label='loading back to front', linewidth=2)
+        ax.plot(x_cg_lemac_plot_ftb, W_plot_ftb, color='purple', label='loading front to back', linewidth=2)
+        vals = [min_x, max_x]
+        for i, val in enumerate(vals):
+            ax.vlines(val, min_y, max_y, color='grey', linestyle='--')
+        vals = [min_x-0.05*range_x, max_x+0.05*range_x]
+        for i, val in enumerate(vals):
+            ax.vlines(val, min_y, max_y, color='black', label='cg range (including 5% margin)')
 
         # Labels and shit
         ax.set_xlabel(f"x$_{{cg}}$/mac from lemac")
@@ -1035,13 +1047,18 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
         if show_plot:
             plt.show()
         print(f'Loading diagram saved to {output_filepath}')
+
+    # Return from nose
+    min_x = min(min(x_cg_nose_plot_btf), min(x_cg_nose_plot_ftb))
+    max_x = max(max(x_cg_nose_plot_btf), max(x_cg_nose_plot_ftb))
+    range_x = np.abs(max_x - min_x)
     
     fwd_cg = min_x - 0.05 * range_x
     aft_cg = max_x + 0.05 * range_x
     if update_ac_cgs:
         ac.weights.x_cg_fwd = fwd_cg
         ac.weights.x_cg_aft = aft_cg
-    return fwd_cg, aft_cg, ac
+    return fwd_cg, aft_cg, ac, x_cg_nose_plot_ftb, x_cg_nose_plot_btf
 
 def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, output_filepath=None, show_plot: bool = False)->np.ndarray:
     n_eng = ac.engine.count
@@ -1063,6 +1080,7 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     # Wing params
     x_le = ac.wing.x_le  # wing le distance from nose
     A = ac.wing.aspect_ratio
+    print(f' Aspect ratio seen by scissor plot: {A}')
     b = ac.wing.span
     S = ac.wing.area
     c_r = ac.wing.c_root
@@ -1073,7 +1091,7 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     sweep_LE_deg = ac.wing.sweep_LE_deg  # LE_sweep_deg(sweep_c_4_deg, c_r, b, taper)
     C_m0_airfoil = ac.wing.cm_c4
     C_L_0 = np.abs(ac.hld_and_ailerons.landing_lift['alpha_zero_lift']) * ac.hld_and_ailerons.landing_lift['CL_alpha']  # CL of flapped wing at alpha = 0
-    C_L_LD = ac.hld_and_ailerons.landing_lift['CL_max'] / 1.21
+    C_L_LD = ac.requirements.landing['as_CL_max_la'] / 1.21
     mac = ac.wing.MAC
     mgc = S/b
 
@@ -1162,7 +1180,6 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     C_m_ac_w = C_m0_airfoil * (A * np.cos(np.deg2rad(sweep_c_4_deg))**2 / (A + 2 * np.cos(np.deg2rad(sweep_c_4_deg))))
     C_m_ac_fus_ld = -1.8 * (1 - 2.5 * b_f / l_f) * np.pi * b_f * h_f * l_f / (4 * S * mac) * C_L_0 / C_L_alpha_A_less_h_LD
     C_m_ac_flap_ld = mu2 * (-mu1 * Delta_Cl_max_ld * ext_flap_chord_ratio_ld - (C_L_LD + Delta_Cl_max_ld * (1 - Swf / S)) / 8 * ext_flap_chord_ratio_ld * (ext_flap_chord_ratio_ld - 1)) + 0.7 * A / (1 + 2 / A) * mu3 * Delta_Cl_max_ld * np.tan(np.deg2rad(sweep_c_4_deg))
-    C_m_ac_flap_ld += C_L_A_less_h_ld * -0.15
     C_m_ac_ld = C_m_ac_w + C_m_ac_flap_ld + C_m_ac_fus_ld
     print(f' Cm aerodynamic cente stuff: \n C_m_ac_w: {C_m_ac_w} \n C_m_ac_fus_ld: {C_m_ac_fus_ld} \n C_m_ac_flap_ld: {C_m_ac_flap_ld} \n total: {C_m_ac_ld}')
 
@@ -1171,8 +1188,6 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     Sh_S_n_stab = (x_cg_lemac_mac - x_ac_cr) / (C_L_alpha_h_cr / C_L_alpha_A_less_h_cr * (1 - depsilon_dalpha_cr) * l_h / mac * V_h_V2)
     Sh_S_stab = (x_cg_lemac_mac - (x_ac_cr - SM)) / (C_L_alpha_h_cr / C_L_alpha_A_less_h_cr * (1 - depsilon_dalpha_cr) * l_h / mac * V_h_V2)
 
-    print(f'x_cg_lemac_mac: {x_cg_lemac_mac}, \nx_ac_cr: {x_ac_cr}, \nSM: {SM}, \nC_L_alpha_h_cr: {C_L_alpha_h_cr}, \nC_L_alpha_A_less_h_cr: {C_L_alpha_A_less_h_cr}, \ndepsilon_dalpha_cr:{depsilon_dalpha_cr}, \nl_h: {l_h}, \nmac: {mac}, \nV_h_V2: {V_h_V2}')
-    print(f'\nx_ac_ld: {x_ac_ld}, \nC_m_ac_ld: {C_m_ac_ld}, \nC_L_A_less_h_ld: {C_L_A_less_h_ld}, \nC_L_h: {C_L_h}, \nC_L_A_less_h_ld: {C_L_A_less_h_ld}')
     # PLotting
     min_x = min(x_cg_lemac_mac)
     max_x = max(x_cg_lemac_mac)
@@ -1205,14 +1220,15 @@ def overlay_wing_pos_and_scissor_plot(ac: Aircraft,
                                       update_ac: bool = False):
     x_cg_lemac_mac_plot = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length_arr * ac.fuselage.length, x_le_w_fus_length_arr * ac.fuselage.length, ac)
     x_cg_lemac_mac_plot = np.arange(-1.5, 1.5, 0.01)
-    print(f'x_Cg_lemac_mac_plot: {x_cg_lemac_mac_plot}')
     fwd_cg = np.zeros_like(x_le_w_fus_length_arr)
     aft_cg = np.zeros_like(x_le_w_fus_length_arr)
     for i, x_le_w_fus_length in enumerate(x_le_w_fus_length_arr):
-        fwd_cg[i], aft_cg[i], ac1 = loading_diagram(x_le_w_fus_length * ac.fuselage.length, ac, update_ac_cgs=False)
+        fwd_cg_nose, aft_cg_nose, ac1, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w_fus_length * ac.fuselage.length, ac, update_ac_cgs=False)
+        fwd_cg[i] = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length * ac.fuselage.length, fwd_cg_nose, ac)
+        aft_cg[i] = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length * ac.fuselage.length, aft_cg_nose, ac)
     x_le_w_l_fus = x_le_w_fus_length_arr
     Sh_S_cont, Sh_S_n_stab, Sh_S_stab = scissor_plot(ac, x_cg_lemac_mac_plot, output_filepath='outputs/Initial_scissor_plot.png', show_plot=True)
-    print(f'fwd_cg: {fwd_cg}, aft cg: {aft_cg}')
+    # print(f'fwd_cg: {fwd_cg}, aft cg: {aft_cg}')
     # Plotting
 
     # Shared x-axis
@@ -1238,14 +1254,14 @@ def overlay_wing_pos_and_scissor_plot(ac: Aircraft,
     ax2.set_ylabel(r'$X_{LE}/L_{fus}$', color='steelblue')
     ax2.tick_params(axis='y', labelcolor='steelblue')
 
-    print(f'x1={x_cg_lemac_mac_plot}, x2={fwd_cg}, y1={Sh_S_cont}, y2={x_le_w_l_fus}')
     intersection1 = scissor_plot_intersection_points(x1=x_cg_lemac_mac_plot, x2=fwd_cg, y1=Sh_S_cont, y2=x_le_w_l_fus)
     intersection2 = scissor_plot_intersection_points(x1=x_cg_lemac_mac_plot, x2=aft_cg, y1=Sh_S_stab, y2=x_le_w_l_fus)
     if intersection1 is not None and intersection2 is not None:
         ax1.plot(intersection1[0], intersection1[1], 'ko')
         ax1.plot(intersection2[0], intersection2[1], 'ko')
         ax1.axhline(max(intersection1[1], intersection2[1]), linestyle='--', color='gray', alpha=0.7)
-
+    ax1.legend(loc='upper right')
+    ax2.legend(loc='lower right')
     plt.title('Tail sizing and wing position plot')
     plt.savefig(output_filepath)
     if show_plot:
@@ -1255,15 +1271,17 @@ def overlay_wing_pos_and_scissor_plot(ac: Aircraft,
         if intersection1[1] > intersection2[1]:
             Sh_S = intersection1[1]
             x_cg_lemac_mac = intersection1[0]
+            wing_pos = float(np.interp(x_cg_lemac_mac, fwd_cg, x_le_w_l_fus))
         else:
             Sh_S = intersection2[1]
             x_cg_lemac_mac = intersection2[0]
-        wing_pos = float(np.interp(x_cg_lemac_mac, x_cg_lemac_mac_plot, x_le_w_l_fus))
+            wing_pos = float(np.interp(x_cg_lemac_mac, aft_cg, x_le_w_l_fus))
         fwd_cg = float(np.interp(Sh_S, Sh_S_cont, x_cg_lemac_mac_plot))
         aft_cg = float(np.interp(Sh_S, Sh_S_stab, x_cg_lemac_mac_plot))
         if update_ac:
-            ac.weights.x_cg_aft = aft_cg
-            ac.weights.x_cg_fwd = fwd_cg
+            lemac = ...
+            ac.weights.x_cg_aft = aft_cg + lemac
+            ac.weights.x_cg_fwd = fwd_cg + lemac
             ac.empennage.horizontal_tail['area div S'] = Sh_S
             ac.wing.x_le = x_le_from_x_lemac(wing_pos * ac.wing.MAC, ac.wing.y_MAC, ac.wing.sweep_LE_deg)
         return Sh_S, wing_pos, aft_cg, fwd_cg, x_le_from_x_lemac(wing_pos * ac.wing.MAC, ac.wing.y_MAC, ac.wing.sweep_LE_deg)

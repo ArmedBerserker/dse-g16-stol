@@ -126,6 +126,8 @@ def size_empennage_planform(ac: Aircraft, epoch: int):
     # vt_moment_arm = x_v - x_cgaft
     # ht['l_h'] = ht_moment_arm
     ht_moment_arm = 0.5 * l_f
+    # if epoch > 1:
+    #     ht_moment_arm = x_h -  ac.wing.x_le + ac.wing.y_MAC * np.tan(np.deg2rad(ac.wing.sweep_LE_deg)) + 0.25 * ac.wing.MAC
     vt_moment_arm = 0.5 * l_f
     ht['l_h'] = ht_moment_arm
     

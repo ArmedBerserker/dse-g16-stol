@@ -5,9 +5,9 @@ cg_and_positioning:
 
 horizontal_tail:
   volume_coefficient: 0.786
-  aspect_ratio: 4.5
+  aspect_ratio: 6
   taper_ratio: 0.7
-  x_h_frac_lf: 0.9
+  x_h_frac_lf: 0.95
   sweep: 0  # deg
   sweep_LE_deg: null
   t_c_max: 0.14  # CHANGE ONCE AIRFOIL SELECTED

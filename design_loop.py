@@ -185,10 +185,11 @@ def compute_class_II_mass_and_cg(ac: Aircraft, iteration: int) -> Aircraft:
     W_oe, x_cg_oe, ac = W_oe_and_cg_from_nose(ac, update_ac=True)
     W_to, ac = W_to_new(ac, m_res=0, update_ac=True)
     x_cg_struc, x_cg_data, ac = x_cg_structural_from_nose(ac, update_ac=True)
-    fwd_cg, aft_cg, ac = loading_diagram(x_le_w, ac, update_ac_cgs=True)
+    fwd_cg, aft_cg, ac, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w, ac, update_ac_cgs=True)
     return ac
 
 def tail_sizing_wing_positioning(ac: Aircraft, epoch: int) -> Aircraft:
+    loading_diagram(ac.wing.x_le, ac, show_plot=False, output_filepath='outputs/init_loading_diagram.png', update_ac_cgs=False)
     wing_pos_arr = np.arange(0,1.01,0.01)
     print(f'wing positions: {wing_pos_arr}')
     stability_output = overlay_wing_pos_and_scissor_plot(ac, x_le_w_fus_length_arr=wing_pos_arr, output_filepath=f'outputs/Stability_and_Control/Scissor_plot_{epoch}', show_plot=True, update_ac=False)
@@ -203,8 +204,8 @@ def tail_sizing_wing_positioning(ac: Aircraft, epoch: int) -> Aircraft:
             ac.wing.x_le =  stability_output[4]
     else: 
         print('Scissor plot doesnt match!!!')
-        epochs += 1000
-    return ac, epochs
+        epoch += 1000
+    return ac, epoch
 
 def Class_II_drag(ac: Aircraft, epoch):
     # Cruise

@@ -430,34 +430,26 @@ def size_HLD(ac: Aircraft, update_ac: bool = False):
     
     if update_ac:
         ac.hld_and_ailerons.flaps['flap_type'] = flap_types[flap_index]
-        if flap_types != 'slat':
-            ac.hld_and_ailerons.flaps['Delta_c_cf_to'] = deltaC_Cf(flap_types[flap_index], flap_deflections_to_ld(flap_types[flap_index], 'take-off'))
-            ac.hld_and_ailerons.flaps['Delta_c_cf_ld'] = deltaC_Cf(flap_types[flap_index], flap_deflections_to_ld(flap_types[flap_index], 'landing'))
-            ac.hld_and_ailerons.flaps['cdash_cf_to'] = ac.hld_and_ailerons.flaps['Delta_c_cf_to'] + 1 / ac.hld_and_ailerons.flaps['cf_c']
-            ac.hld_and_ailerons.flaps['cdash_cf_ld'] = ac.hld_and_ailerons.flaps['Delta_c_cf_ld'] + 1 / ac.hld_and_ailerons.flaps['cf_c']
-            ac.hld_and_ailerons.flaps['cdash_c_to'] = ac.hld_and_ailerons.flaps['cdash_cf_to'] * ac.hld_and_ailerons.flaps['cf_c']
-            ac.hld_and_ailerons.flaps['cdash_c_ld'] = ac.hld_and_ailerons.flaps['cdash_cf_ld'] * ac.hld_and_ailerons.flaps['cf_c']
-        else:
-            ac.hld_and_ailerons.flaps['Delta_c_cf_to'] = 0
-            ac.hld_and_ailerons.flaps['Delta_c_cf_ld'] = 0
-            ac.hld_and_ailerons.flaps['cdash_c_to'] = 1.05
-            ac.hld_and_ailerons.flaps['cdash_c_ld'] = 1.05
-            ac.hld_and_ailerons.flaps['cdash_cf_to'] = 0
-            ac.hld_and_ailerons.flaps['cdash_cf_ld'] = 0
+        
+        ac.hld_and_ailerons.flaps['Delta_c_cf_to'] = deltaC_Cf(flap_types[flap_index], flap_deflections_to_ld(flap_types[flap_index], 'take-off'))
+        ac.hld_and_ailerons.flaps['Delta_c_cf_ld'] = deltaC_Cf(flap_types[flap_index], flap_deflections_to_ld(flap_types[flap_index], 'landing'))
+        ac.hld_and_ailerons.flaps['cdash_cf_to'] = ac.hld_and_ailerons.flaps['Delta_c_cf_to'] + 1 / ac.hld_and_ailerons.flaps['cf_c']
+        ac.hld_and_ailerons.flaps['cdash_cf_ld'] = ac.hld_and_ailerons.flaps['Delta_c_cf_ld'] + 1 / ac.hld_and_ailerons.flaps['cf_c']
+        ac.hld_and_ailerons.flaps['cdash_c_to'] = ac.hld_and_ailerons.flaps['cdash_cf_to'] * ac.hld_and_ailerons.flaps['cf_c']
+        ac.hld_and_ailerons.flaps['cdash_c_ld'] = ac.hld_and_ailerons.flaps['cdash_cf_ld'] * ac.hld_and_ailerons.flaps['cf_c']
         ac.hld_and_ailerons.flaps['S_wf'] = Swf
         ac.hld_and_ailerons.flaps['y_flap_in'] = y_in
         ac.hld_and_ailerons.flaps['y_flap_out'] = y_out_slat
         ac.hld_and_ailerons.flaps['ld_deflection'] = flap_deflections_to_ld(flap_types[flap_index], 'landing')
-        ac.hld_and_ailerons.flaps['to_deflection'] = flap_deflections_to_ld(flap_types[flap_index], 'take-off')
+        ac.hld_and_ailerons.flaps['to_deflection'] = flap_deflections_to_ld(flap_types[slat_index], 'take-off')
         ac.hld_and_ailerons.slats['slat_type'] = slat_types[slat_index]
         ac.hld_and_ailerons.slats['y_slat_in'] = y_in
         ac.hld_and_ailerons.slats['y_slat_out'] = y_out_slat
-        if slat_types[slat_index] == 'slat':
-            ac.hld_and_ailerons.slats['cdash_c_to'] = 1.05
-            ac.hld_and_ailerons.slats['cdash_c_ld'] = 1.05
-        else:
-            ac.hld_and_ailerons.slats['cdash_c_to'] = (deltaC_Cf(slat_types[slat_index], flap_deflections_to_ld(slat_types[slat_index], 'take-off')) + 1 / ac.hld_and_ailerons.flaps['cf_c']) * ac.hld_and_ailerons.flaps['cf_c']
-            ac.hld_and_ailerons.slats['cdash_c_ld'] = (deltaC_Cf(slat_types[slat_index], flap_deflections_to_ld(slat_types[slat_index], 'landing')) + 1 / ac.hld_and_ailerons.flaps['cf_c']) * ac.hld_and_ailerons.flaps['cf_c']
+        ac.hld_and_ailerons.slats['cdash_c_to'] = 1.05
+        ac.hld_and_ailerons.slats['cdash_c_ld'] = 1.05
+        # else:
+        #     ac.hld_and_ailerons.slats['cdash_c_to'] = (deltaC_Cf(slat_types[slat_index], flap_deflections_to_ld(slat_types[slat_index], 'take-off')) + 1 / ac.hld_and_ailerons.flaps['cf_c']) * ac.hld_and_ailerons.flaps['cf_c']
+        #     ac.hld_and_ailerons.slats['cdash_c_ld'] = (deltaC_Cf(slat_types[slat_index], flap_deflections_to_ld(slat_types[slat_index], 'landing')) + 1 / ac.hld_and_ailerons.flaps['cf_c']) * ac.hld_and_ailerons.flaps['cf_c']
         ac.hld_and_ailerons.slats['S_wf'] = Swf_slat
         ac.hld_and_ailerons.landing_lift['CL_alpha'] = wing_lift_slope_flapped_ld
         ac.hld_and_ailerons.landing_lift['alpha_zero_lift'] = alpha_stall_ld + Dalpha0L_fld + Dalpha0L_sld
