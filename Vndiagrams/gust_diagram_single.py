@@ -168,6 +168,7 @@ def plot_gust_diagram(ac: Aircraft, output_filepath: str = 'outputs/Gust_Diagram
 
     poly_x = [0, Vc, Vd, Vd, Vc, 0]
     poly_y = [1, nCp, nDp, nDm, nCm, 1]
+    n_max_env = max(poly_y)
 
     ax.plot(poly_x, poly_y, color='black', linewidth=2, label='Gust Envelope', zorder=10)
 
@@ -185,6 +186,12 @@ def plot_gust_diagram(ac: Aircraft, output_filepath: str = 'outputs/Gust_Diagram
     # Negative gust rays
     #ax.plot([0, Vc],[1, nCm],'k--',alpha=0.7)
     #ax.plot([0, Vd],[1, nDm],'k--',alpha=0.7)
+
+    ax.axhline(y=n_max_env,color='black',linestyle=':',linewidth=1.5)
+
+    ax.text(0.98 * Vd, # x-position
+            n_max_env + 0.05,  # y-position
+            fr'$n_{{max}} = {n_max_env:.2f}$',color='black',ha='right',va='bottom')
 
 
     # Vertical line at Vd
