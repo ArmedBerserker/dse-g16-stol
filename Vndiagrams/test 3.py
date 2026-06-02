@@ -84,8 +84,7 @@ def generate_gust_envelope(ac: Aircraft, flight: str = 'cruise', condition: str 
 
     V_vec = np.linspace(0, V_d, 500)
 
-    #n_max = ac.requirements.general['n_max']
-    n_max = 5
+    n_max = ac.requirements.general['n_max']
     n_min = ac.requirements.general['n_min']
 
     # -----------------------------
@@ -126,27 +125,15 @@ def generate_gust_envelope(ac: Aircraft, flight: str = 'cruise', condition: str 
     def n_gust_vb(V):
         return 1 + C_vb * V
 
-    # ------------------------------------------------
-    # Stall curve / 66 ft/s gust intersection
-    # n_stall = (V/Vs)^2
-    # n_gust  = 1 + C_vb * V
-    # ------------------------------------------------
-
-    A = 1.0
-    B = -C_vb * V_s_clean ** 2
-    Cq = -V_s_clean ** 2
+    A = 1 / V_s_clean ** 2
+    B = -C_vb
+    Cq = -1
 
     roots = np.roots([A, B, Cq])
 
-    V_intersections = [
-        r.real for r in roots
-        if np.isreal(r) and r > 0
-    ]
+    V_b_candidates = [r.real for r in roots if np.isreal(r) and r > 0]
 
-    V_stall_gust = min(V_intersections) if V_intersections else V_a
-
-    # CS-23 design gust speed VB
-    V_b = V_stall_gust
+    V_b = min(V_b_candidates) if V_b_candidates else V_a
 
     vb_mask = V_vec <= V_b
 
@@ -193,8 +180,7 @@ def generate_gust_envelope(ac: Aircraft, flight: str = 'cruise', condition: str 
             "Va": V_a,
             "Vb": V_b,
             "Vc": V_c,
-            "Vd": V_d,
-            "V_stall_gust": V_stall_gust
+            "Vd": V_d
         }
     }
 
@@ -207,117 +193,197 @@ def plot_gust_diagram(ac, output_filepath='outputs/Gust_Diagram.png', show_plot=
     speeds = results["speeds"]
     gp = results["gust_points"]
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    Vs = speeds["Vs"]
+    Va = speeds["Va"]
+    Vb = speeds["Vb"]
+    Vc = speeds["Vc"]
+    Vd = speeds["Vd"]
 
     n_max = ac.requirements.general['n_max']
     n_min = ac.requirements.general['n_min']
 
-    # Gust curves
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # -------------------------------------------------
+    # Reference gust lines
+    # -------------------------------------------------
+
     ax.plot(V, results["n_g_vc_up"], 'c--')
     ax.plot(V, results["n_g_vc_low"], 'c--')
 
     ax.plot(V, results["n_g_vd_up"], 'm--')
     ax.plot(V, results["n_g_vd_low"], 'm--')
 
-    ax.plot(results["V_vb"], results["n_g_vb_up_plot"], 'g--', lw=2)
-    ax.plot(results["V_vb"], results["n_g_vb_low_plot"], 'g--', lw=2)
+    ax.plot(V, results["n_g_vb_up"], 'g--')
+    ax.plot(V, results["n_g_vb_low"], 'g--')
 
-    # ---------------------------
-    # CERTIFICATION ENVELOPE (CLOSED)
-    # ---------------------------
+    # -------------------------------------------------
+    # POSITIVE STALL CURVE
+    # -------------------------------------------------
 
-    gp = results["gust_points"]
-    V = results["V"]
-    speeds = results["speeds"]
+    V_stall_pos = np.linspace(Vs, Va, 300)
+    n_stall_pos = (V_stall_pos / Vs) ** 2
 
-    Vb = speeds["Vb"]
-    Vc = speeds["Vc"]
-    Vd = speeds["Vd"]
-    Vs = speeds["Vs"]
+    # -------------------------------------------------
+    # NEGATIVE STALL CURVE
+    # -------------------------------------------------
 
-    n_max = ac.requirements.general['n_max']
-    n_min = ac.requirements.general['n_min']
+    V_neg_limit = Vs * np.sqrt(abs(n_min))
 
-    # ---------------------------
-    # STALL CURVE (ONLY TO VB)
-    # ---------------------------
-    V_stall_gust = speeds["V_stall_gust"]
+    V_stall_neg = np.linspace(Vs, V_neg_limit, 300)
+    n_stall_neg = -(V_stall_neg / Vs) ** 2
 
-    mask_stall = V <= V_stall_gust
-    V_stall = V[mask_stall]
-    n_stall = results["n_stall_pos"][mask_stall]
+    # -------------------------------------------------
+    # GUST POINTS
+    # -------------------------------------------------
 
-    # ---------------------------
-    # UPPER ENVELOPE
-    # ---------------------------
+    Bp = gp["B+"]
+    Bm = gp["B-"]
 
-    # VB → VC → VD (gust-controlled)
-    n_stall_end = (V_stall_gust / Vs) ** 2
+    Cp = gp["C+"]
+    Cm = gp["C-"]
 
-    V_upper_2 = [
-        V_stall_gust,
-        gp["C+"][0],
-        gp["D+"][0],
-        Vd
-    ]
+    Dp = gp["D+"]
+    Dm = gp["D-"]
 
-    n_upper_2 = [
-        n_stall_end,
-        gp["C+"][1],
-        gp["D+"][1],
-        0.0
-    ]
+    # -------------------------------------------------
+    # UPPER MANOEUVRE + GUST ENVELOPE
+    # -------------------------------------------------
 
-    # ---------------------------
-    # LOWER ENVELOPE
-    # ---------------------------
-
-    V_lower = [
-        gp["B-"][0],
-        gp["C-"][0],
-        gp["D-"][0],
-        Vd
-    ]
-
-    n_lower = [
-        gp["B-"][1],
-        gp["C-"][1],
-        gp["D-"][1],
-        0.0
-    ]
-
-    # ---------------------------
-    # PLOT ALL IN BLACK
-    # ---------------------------
-
-    ax.plot(V_stall, n_stall, 'k', lw=2, label='Stall Boundary')
-
-    ax.plot(V_upper_2, n_upper_2, 'k', lw=2, label='Upper Gust Envelope')
-    ax.plot(V_lower, n_lower, 'k', lw=2, label='Lower Gust Envelope')
-
-    # Mark key points
-    ax.scatter(
-        V_upper_2[:-1] + V_lower[:-1],
-        n_upper_2[:-1] + n_lower[:-1],
-        color='black',
-        s=40
+    ax.plot(
+        V_stall_pos,
+        n_stall_pos,
+        'k',
+        lw=2,
+        label='Upper Envelope'
     )
 
-    # ---------------------------
-    # SPEED MARKERS (optional subtle)
-    # ---------------------------
-    ax.axvline(Vb, color='black', ls='--', alpha=0.5)
-    ax.axvline(Vc, color='black', ls='--', alpha=0.5)
-    ax.axvline(Vd, color='black', ls='--', alpha=0.5)
+    ax.plot(
+        [Va, Bp[0]],
+        [n_max, Bp[1]],
+        'k',
+        lw=2
+    )
 
-    # Speed markers
-    #ax.axvline(speeds["Vb"], color='orange', ls='--')
-    #ax.axvline(speeds["Vc"], color='g', ls='--')
-    #ax.axvline(speeds["Vd"], color='k', ls='--')
+    ax.plot(
+        [Bp[0], Cp[0], Dp[0]],
+        [Bp[1], Cp[1], Dp[1]],
+        'k',
+        lw=2
+    )
+
+    # -------------------------------------------------
+    # LOWER MANOEUVRE + GUST ENVELOPE
+    # -------------------------------------------------
+
+    ax.plot(
+        V_stall_neg,
+        n_stall_neg,
+        'k',
+        lw=2,
+        label='Lower Envelope'
+    )
+
+    ax.plot(
+        [V_neg_limit, Bm[0]],
+        [n_min, Bm[1]],
+        'k',
+        lw=2
+    )
+
+    ax.plot(
+        [Bm[0], Cm[0], Dm[0]],
+        [Bm[1], Cm[1], Dm[1]],
+        'k',
+        lw=2
+    )
+
+    # -------------------------------------------------
+    # CLOSE ENVELOPE AT VD
+    # -------------------------------------------------
+
+    ax.plot(
+        [Vd, Vd],
+        [Dm[1], Dp[1]],
+        'k',
+        lw=2
+    )
+
+    # -------------------------------------------------
+    # FILL ENVELOPE
+    # -------------------------------------------------
+
+    poly_x = np.concatenate([
+        V_stall_pos,
+        [Bp[0], Cp[0], Dp[0]],
+        [Vd],
+        [Dm[0], Cm[0], Bm[0]],
+        [V_neg_limit],
+        V_stall_neg[::-1]
+    ])
+
+    poly_y = np.concatenate([
+        n_stall_pos,
+        [Bp[1], Cp[1], Dp[1]],
+        [Dm[1]],
+        [Dm[1], Cm[1], Bm[1]],
+        [n_min],
+        n_stall_neg[::-1]
+    ])
+
+    ax.fill(
+        poly_x,
+        poly_y,
+        color='lightgrey',
+        alpha=0.3
+    )
+
+    # -------------------------------------------------
+    # CERTIFICATION POINTS
+    # -------------------------------------------------
+
+    ax.scatter(
+        [
+            Bp[0], Cp[0], Dp[0],
+            Bm[0], Cm[0], Dm[0]
+        ],
+        [
+            Bp[1], Cp[1], Dp[1],
+            Bm[1], Cm[1], Dm[1]
+        ],
+        color='black',
+        zorder=5
+    )
+
+    # -------------------------------------------------
+    # SPEED MARKERS
+    # -------------------------------------------------
+
+    for speed, label in [
+        (Va, "VA"),
+        (Vb, "VB"),
+        (Vc, "VC"),
+        (Vd, "VD")
+    ]:
+        ax.axvline(
+            speed,
+            color='black',
+            ls='--',
+            alpha=0.5
+        )
+
+        ax.text(
+            speed,
+            ax.get_ylim()[1] * 0.95,
+            label,
+            ha='center'
+        )
 
     ax.set_xlabel("EAS [m/s]")
     ax.set_ylabel("Load factor n")
+
     ax.grid(True, ls='--', alpha=0.4)
+
     ax.legend()
 
     plt.tight_layout()
