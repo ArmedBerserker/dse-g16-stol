@@ -27,8 +27,6 @@ def calculate_characteristic_speeds(ac: Aircraft, rho: float, weight: float):
     m = ac.weights.m_takeoff * (1/LBS_TO_KG)
     S = ac.wing.area * M2_TO_F2
 
-    #Stall Speeds
-    V_s_clean = np.sqrt((2 * weight) / (rho * ac.wing.area * ac.requirements.climb['as_CL_max'])) * np.sqrt(rho / 1.225)
 
     # Design Speeds
     # Ensures V_c is at least 33 * sqrt(W/S)
@@ -44,7 +42,7 @@ def calculate_characteristic_speeds(ac: Aircraft, rho: float, weight: float):
     V_d = max(V_d_min1, V_d_min2) #From CS 23.335 reqs
 
 
-    return  V_c, V_d, V_s_clean
+    return  V_c, V_d
 
 
 def compute_gust_lines(ac: Aircraft, V, rho, weight, Ude):
@@ -65,6 +63,19 @@ def compute_gust_lines(ac: Aircraft, V, rho, weight, Ude):
 
     return n_upper, n_lower
 
+def gust_load_at_speed(ac, V, rho, weight, Ude):
+    """
+    Returns upper and lower gust load factor at a single speed.
+    """
+    mu_g = (2 * (weight / ac.wing.area)) / (
+            rho * np.rad2deg(ac.requirements.climb['lift_slope']) * g * ac.requirements.general['mac'])  #lift slope given in 1/deg
+
+    Kg = (0.88 * mu_g) / (5.3 + mu_g)
+
+    dn = (Kg * 1.225 * V * np.rad2deg(ac.requirements.climb['lift_slope']) * Ude) / (2 * (weight / ac.wing.area))
+
+    return 1 + dn, 1 - dn
+
 def generate_gust_envelope(ac: Aircraft, flight: str = 'cruise', condition: str = 'MTOW'):
     """
     Computes the load factor limits for the maneuvering envelope.
@@ -81,11 +92,10 @@ def generate_gust_envelope(ac: Aircraft, flight: str = 'cruise', condition: str 
         else ac.weights.m_empty * g
     )
 
-    V_c, V_d, V_s_clean =  calculate_characteristic_speeds(ac, rho, weight)
+    V_c, V_d =  calculate_characteristic_speeds(ac, rho, weight)
 
     # Airspeed Vector
     V_vec = np.linspace(0, V_d, 500)
-
 
     # Maneuvering limit loads
     n_max = ac.requirements.general['n_max']
@@ -98,67 +108,14 @@ def generate_gust_envelope(ac: Aircraft, flight: str = 'cruise', condition: str 
     # Design gust velocities (simplified CS-23 values)
     Ude_Vc = 50 * FT_TO_M    # 50 ft/s at VC
     Ude_Vd = 25 * FT_TO_M    # reduced at VD (25 ft/s)
-    Ude_Vb = 66 * FT_TO_M    # intermediate (66 ft/s)
+    #Ude_Vb = 66 * FT_TO_M    # intermediate (66 ft/s)
 
     # Compute gust curves
     n_g_vc_up, n_g_vc_low = compute_gust_lines(ac, V_vec, rho, weight, Ude_Vc)
     n_g_vd_up, n_g_vd_low = compute_gust_lines(ac, V_vec, rho, weight, Ude_Vd)
-    n_g_vb_up, n_g_vb_low = compute_gust_lines(ac, V_vec, rho, weight, Ude_Vb)
-
-    # ------------------------------------------------
-    # MANEUVER ENVELOPE
-    # ------------------------------------------------
-
-    n_stall_pos = (V_vec / V_s_clean) ** 2
-
-    # Positive maneuvering speed
-    V_a = V_s_clean * np.sqrt(n_max)
-
-    # ------------------------------------------------
-    # VB = intersection of positive stall boundary
-    #      and 66 ft/s gust line
-    # ------------------------------------------------
-
-    diff = n_stall_pos - n_g_vb_up
-
-    crossings = np.where(np.diff(np.sign(diff)))[0]
-
-    if len(crossings) > 0:
-        idx = crossings[0]
-
-        # Linear interpolation for better accuracy
-        V1 = V_vec[idx]
-        V2 = V_vec[idx + 1]
-
-        d1 = diff[idx]
-        d2 = diff[idx + 1]
-
-        V_b = V1 - d1 * (V2 - V1) / (d2 - d1)
-
-    else:
-        # Fallback if no crossing is found
-        V_b = min(V_c, V_a)
-
-    # Regulatory bound
-    V_b = np.clip(V_b, V_s_clean, V_c)
-
-    vb_mask = V_vec <= V_b
-
-    V_vb = V_vec[vb_mask]
-
-    n_g_vb_up_plot = n_g_vb_up[vb_mask]
-    n_g_vb_low_plot = n_g_vb_low[vb_mask]
-
+    #n_g_vb_up, n_g_vb_low = compute_gust_lines(ac, V_vec, rho, weight, Ude_Vb)
 
     return {
-        "V_vb": V_vb,
-
-        "n_stall_pos": n_stall_pos,
-
-        "n_g_vb_up_plot": n_g_vb_up_plot,
-        "n_g_vb_low_plot": n_g_vb_low_plot,
-
-
         "V": V_vec,
 
         #Gusts
@@ -166,10 +123,8 @@ def generate_gust_envelope(ac: Aircraft, flight: str = 'cruise', condition: str 
         "n_g_vc_low": n_g_vc_low,
         "n_g_vd_up": n_g_vd_up,
         "n_g_vd_low": n_g_vd_low,
-        "n_g_vb_up": n_g_vb_up,
-        "n_g_vb_low": n_g_vb_low,
 
-         "speeds": {"Vs": V_s_clean, "Va": V_a, "Vb": V_b, "Vc": V_c, "Vd": V_d}
+         "speeds": {"Vc": V_c, "Vd": V_d}
     }
 
 
@@ -182,46 +137,58 @@ def plot_gust_diagram(ac: Aircraft, output_filepath: str = 'outputs/Gust_Diagram
     V = results["V"]
     speeds = results["speeds"]
 
+    # Atmosphere
+    altitude = ac.requirements.cruise['cr_altitude'] * FT_TO_M
+    atmos = Atmosphere(altitude)
+    rho = atmos.density
+
+    weight = ac.weights.m_takeoff * g
+
+    Vc = speeds["Vc"]
+    Vd = speeds["Vd"]
+
+    Ude_Vc = 50 * FT_TO_M
+    Ude_Vd = 25 * FT_TO_M
+
+    nCp, nCm = gust_load_at_speed(
+        ac, Vc, rho, weight, Ude_Vc)
+
+    nDp, nDm = gust_load_at_speed(
+        ac, Vd, rho, weight, Ude_Vd)
+
     fig, ax = plt.subplots(figsize=(10, 6))
 
     #Plot Envelopes
     n_max = ac.requirements.general['n_max']
     n_min = ac.requirements.general['n_min']
 
-    # -----------------------------
-    # MANEUVER ENVELOPE
-    # -----------------------------
 
-    Va_idx = np.argmin(np.abs(V - speeds["Va"]))
 
-    ax.plot(
-        V[:Va_idx + 1],
-        results["n_stall_pos"][:Va_idx + 1],
-        'b',
-        linewidth=2,
-        label='Positive stall boundary'
-    )
+    # A-C'-D'-E'-F'-A envelope
 
-    ax.plot(
-        [speeds["Va"], speeds["Vd"]],
-        [n_max, n_max],
-        'b',
-        linewidth=2
-    )
+    poly_x = [0, Vc, Vd, Vd, Vc, 0]
+    poly_y = [1, nCp, nDp, nDm, nCm, 1]
+
+    ax.plot(poly_x, poly_y, color='black', linewidth=2, label='Gust Envelope', zorder=10)
 
     # Plot gust envelopes
-    ax.plot(V, results["n_g_vc_up"], 'c--', label='Gust VC')
+    ax.plot(V, results["n_g_vc_up"], 'c--', label=f'Gust line ({Ude_Vc} m/s ; 50 ft/s)')
     ax.plot(V, results["n_g_vc_low"], 'c--')
 
-    ax.plot(V, results["n_g_vd_up"], 'm--', label='Gust VD')
+    ax.plot(V, results["n_g_vd_up"], 'm--', label=f'Gust line ({Ude_Vd} m/s ; 25 ft/s)')
     ax.plot(V, results["n_g_vd_low"], 'm--')
 
-    ax.plot(results["V_vb"], results["n_g_vb_up_plot"], 'g--', linewidth=2, label='VB Gust (66 ft/s)')
-    ax.plot(results["V_vb"], results["n_g_vb_low_plot"], 'g--', linewidth=2)
+    # Positive gust rays
+    #ax.plot([0, Vc],[1, nCp],'k--',alpha=0.7)
+    #ax.plot([0, Vd],[1, nDp],'k--',alpha=0.7)
+
+    # Negative gust rays
+    #ax.plot([0, Vc],[1, nCm],'k--',alpha=0.7)
+    #ax.plot([0, Vd],[1, nDm],'k--',alpha=0.7)
 
 
     # Vertical line at Vd
-    ax.plot([speeds["Vd"], speeds["Vd"]], [0, n_max],'k-', linewidth=2)
+    ax.plot([Vd, Vd],[nDm, nDp],'k',linewidth=2)
 
     # Reference Lines
     ax.axhline(0, color='black', lw=1)
@@ -232,18 +199,41 @@ def plot_gust_diagram(ac: Aircraft, output_filepath: str = 'outputs/Gust_Diagram
     #ax.axvline(speeds["Vc"], color='g', ls='--', alpha=0.5, label=f'Vc ({speeds["Vc"]:.1f} m/s)')
     #ax.axvline(speeds["Vd"], color='m', ls='--', alpha=0.5, label=f'Vd ({speeds["Vd"]:.1f} m/s)')
 
-    ax.axvline(speeds["Vb"], color='orange', linestyle='--', alpha=0.5, label=f'$V_B$ ({speeds["Vb"]:.1f} m/s)')
+    #ax.axvline(speeds["Vb"], color='orange', linestyle='--', alpha=0.5, label=f'$V_B$ ({speeds["Vb"]:.1f} m/s)')
 
     # Vertical speed markers only inside envelope
-    ax.plot([speeds["Vc"], speeds["Vc"]],[n_max, n_min],'g--', alpha=0.5, label=f'$V_C$ ({speeds["Vc"]:.1f} m/s)')
-    ax.plot([speeds["Vd"], speeds["Vd"]], [n_max, 0], color='black', linestyle='--', alpha=0.5, label=f'$V_D$ ({speeds["Vd"]:.1f} m/s)')
+    #ax.plot([speeds["Vc"], speeds["Vc"]],[n_max, n_min],'g--', alpha=0.5, label=f'$V_C$ ({speeds["Vc"]:.1f} m/s)')
+    #ax.plot([speeds["Vd"], speeds["Vd"]], [n_max, 0], color='black', linestyle='--', alpha=0.5, label=f'$V_D$ ({speeds["Vd"]:.1f} m/s)')
+    ax.plot([Vc, Vc],[nCm, nCp],'g--',alpha=0.6, label=f'$V_C$ ({speeds["Vc"]:.1f} m/s)')
+    ax.plot([Vd, Vd],[nDm, nDp],'k--',alpha=0.6, label=f'$V_D$ ({speeds["Vd"]:.1f} m/s)')
+
+    # Labels for gust velocities
+
+    #ax.annotate(r"$50$ ft/s",xy=(Vc, nCp),xytext=(10, 10),textcoords="offset points")
+    #ax.annotate(r"$25$ ft/s",xy=(Vd, nDp),xytext=(10, 10),textcoords="offset points")
+    # Position labels at 90% of Vd
+    x_label = 0.85 * Vd
+
+    # Interpolate y-values on the gust lines
+    y_vc_up = np.interp(x_label, V, results["n_g_vc_up"])
+    y_vc_low = np.interp(x_label, V, results["n_g_vc_low"])
+
+    y_vd_up = np.interp(x_label, V, results["n_g_vd_up"])
+    y_vd_low = np.interp(x_label, V, results["n_g_vd_low"])
+
+    angle_vc = np.degrees(np.arctan2(results["n_g_vc_up"][-1] - 1,V[-1]))
+    angle_vd = np.degrees(np.arctan2(results["n_g_vd_up"][-1] - 1,V[-1]))
+
+    ax.text(x_label - 1.5,y_vc_up + 0.25,fr"${Ude_Vc}$ m/s",rotation=angle_vc,fontsize=10,ha='left')
+    ax.text(x_label - 1,y_vd_up + 0.25,fr"${Ude_Vd}$ m/s",rotation=angle_vd,fontsize=10,ha='left')
+
 
 
     # Labels below axis
     y_text = -0.2
     ax.text(speeds["Vc"] + 1.5, y_text, r"$V_C$", ha='center', va='top', fontsize=11, color='g')
-    ax.text(speeds["Vd"], y_text,r"$V_D$", ha='center', va='top', fontsize=11, color='black')
-    ax.text(speeds["Vb"],-0.2,r"$V_B$", ha='center', va='top', fontsize=11, color='orange')
+    ax.text(speeds["Vd"] - 1.5, y_text,r"$V_D$", ha='center', va='top', fontsize=11, color='black')
+    #ax.text(speeds["Vb"],-0.2,r"$V_B$", ha='center', va='top', fontsize=11, color='orange')
 
 
     ax.set_xlabel('Equivalent Airspeed (EAS) [m/s]')
