@@ -123,12 +123,12 @@ def generate_vn_envelope(ac: Aircraft, flight: str = 'cruise', condition: str = 
     # Design gust velocities (simplified CS-23 values)
     Ude_Vc = 50 * FT_TO_M    # 50 ft/s at VC
     Ude_Vd = 25 * FT_TO_M    # reduced at VD (25 ft/s)
-    Ude_Vb = 66 * FT_TO_M    # intermediate (66 ft/s)
+    #Ude_Vb = 66 * FT_TO_M    # intermediate (66 ft/s)
 
     # Compute gust curves
     n_g_vc_up, n_g_vc_low = compute_gust_lines(ac, V_vec, rho, weight, Ude_Vc)
     n_g_vd_up, n_g_vd_low = compute_gust_lines(ac, V_vec, rho, weight, Ude_Vd)
-    n_g_vb_up, n_g_vb_low = compute_gust_lines(ac, V_vec, rho, weight, Ude_Vb)
+    #n_g_vb_up, n_g_vb_low = compute_gust_lines(ac, V_vec, rho, weight, Ude_Vb)
 
 
     return {
@@ -139,8 +139,8 @@ def generate_vn_envelope(ac: Aircraft, flight: str = 'cruise', condition: str = 
         "n_g_vc_low": n_g_vc_low,
         "n_g_vd_up": n_g_vd_up,
         "n_g_vd_low": n_g_vd_low,
-        "n_g_vb_up": n_g_vb_up,
-        "n_g_vb_low": n_g_vb_low,
+        #"n_g_vb_up": n_g_vb_up,
+        #"n_g_vb_low": n_g_vb_low,
 
 
         "n_pos": n_pos,
@@ -175,11 +175,11 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Gust_Diagram.p
     ax.plot(V, results["n_g_vc_up"], 'c--', label='Gust VC')
     ax.plot(V, results["n_g_vc_low"], 'c--')
 
-    ax.plot(V, results["n_g_vd_up"], 'm--', label='Gust VD')
-    ax.plot(V, results["n_g_vd_low"], 'm--')
+    ax.plot(V, results["n_g_vd_up"], 'g--', label='Gust VD')
+    ax.plot(V, results["n_g_vd_low"], 'g--')
 
-    ax.plot(V, results["n_g_vb_up"], 'g--', label='Gust VB')
-    ax.plot(V, results["n_g_vb_low"], 'g--')
+    #ax.plot(V, results["n_g_vb_up"], 'g--', label='Gust VB')
+    #ax.plot(V, results["n_g_vb_low"], 'g--')
 
     # Plot Flaps (Limited to Vf)
     # Landing flaps
@@ -238,7 +238,7 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Gust_Diagram.p
     ax.set_xlabel('Equivalent Airspeed (EAS) [m/s]')
     ax.set_ylabel('Load Factor (n)')
     #ax.set_title(f'V-n Diagram: MTOW={ac.weights.m_takeoff:.0f} kg')
-    #ax.legend()
+    ax.legend()
     ax.grid(True, linestyle='--', alpha=0.5)
 
     plt.tight_layout()
