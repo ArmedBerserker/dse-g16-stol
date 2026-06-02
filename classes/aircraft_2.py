@@ -124,6 +124,7 @@ class Weights:
     x_cg_aft: float | None
     x_cg_fwd: float | None
     z_cg: float | None
+    ballast_rear: float | None
 
     def __str__(self):
         text = "The weights are:\n"
@@ -300,11 +301,12 @@ class Engine:
     eng_vdist_from_wing_y_c : float | None
     eng_above_wing : bool
     eng_y_pos_fuselage: float | None
-    eng_x_pos: str | None
+    eng_x_pos: float | None
     n_fuel_tanks: int | None
     x_cg_fuel_tanks_c_r: float | None
     fuel_type: str | None
     engine_power_cruise: float | None
+    engine_power_takeoff: float | None
     super_cap_power: float | None
     power_cr: float | None
     power_to: float | None

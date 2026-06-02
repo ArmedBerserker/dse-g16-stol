@@ -44,7 +44,7 @@ def check_power_requirement(ac: Aircraft):
     P_a_cr = e.eta_1 * e.eta_3 * e.engine_power_cruise
     P_r_cr = e.power_cr
     phi = (e.super_cap_power) / (e.super_cap_power + e.engine_power_cruise)
-    P_a_to = (e.eta_1 * e.engine_power_cruise * (1 - phi) + e.eta_2 * e.super_cap_power ) * e.eta_2
+    P_a_to = e.eta_1 * e.engine_power_takeoff * e.eta_3 + e.eta_2 * e.super_cap_power * e.eta_3
     P_r_to = e.power_to
     condition_cr = P_r_cr < P_a_cr
     condition_to = P_r_to < P_a_to
@@ -138,20 +138,31 @@ def compute_landing_gear_positions(ac: Aircraft, epoch) -> Aircraft:
     return ac
 
 def compute_empennage(ac: Aircraft, epoch) -> Aircraft:
-    c1_loading_and_empennage.size_empennage_planform(ac, epoch)
+    ac = c1_loading_and_empennage.size_empennage_planform(ac, epoch)
     return ac
 
 def compute_class_I_mass(ac: Aircraft) -> Aircraft:
     """Initial mass estimate for all but first epoch"""
     oew_mtow = ac.weights.oew_frac
     result = c1_m.energy_frac_needed(ac)
-    if isinstance(result, tuple) and len(result) == 2:
+    if ac.engine.engine_type == 'prop': # prop, bat or hyb
+        fuel_frac = result[0]
+        bat_frac = 0
+        energy_frac = fuel_frac
+    elif ac.engine.engine_type == 'bat':
+        fuel_frac = 0
+        bat_frac = result[0]
+        energy_frac = bat_frac
+    elif ac.engine.engine_type == 'hyb':
         fuel_frac, bat_frac = result
         energy_frac = fuel_frac + bat_frac
-    else:
-        bat_frac = result
-        fuel_frac = 0.0
-        energy_frac = bat_frac
+    # if isinstance(result, tuple) and len(result) == 2:
+    #     fuel_frac, bat_frac = result
+    #     energy_frac = fuel_frac + bat_frac
+    # else:
+    #     bat_frac = float(result[0])
+    #     fuel_frac = 0.0
+    #     energy_frac = bat_frac
     mtow = ac.weights.m_payload / (1 - fuel_frac - bat_frac - oew_mtow)
 
     ac.weights.m_takeoff = mtow 
@@ -193,7 +204,7 @@ def tail_sizing_wing_positioning(ac: Aircraft, epoch: int) -> Aircraft:
     wing_pos_arr = np.arange(0,1.01,0.01)
     print(f'wing positions: {wing_pos_arr}')
     stability_output = overlay_wing_pos_and_scissor_plot(ac, x_le_w_fus_length_arr=wing_pos_arr, output_filepath=f'outputs/Stability_and_Control/Scissor_plot_{epoch}', show_plot=True, update_ac=False)
-    if stability_output is not None:
+    if stability_output[0]>0:
         print(f' \n Sh_S: {stability_output[0]}, x_lemac/mac: {stability_output[1]}, aft_cg: {stability_output[2]}, fwd_cg: {stability_output[3]}, x_le: {stability_output[4]}')
         # NOTE: add updating Sh_S and wing_pos stored in stability output, add option to not update value if not happy with value
         update_ac = int(input('Enter 0 if you want to update these parameters into the aircraft, else 1'))
@@ -202,17 +213,21 @@ def tail_sizing_wing_positioning(ac: Aircraft, epoch: int) -> Aircraft:
             ac.weights.x_cg_fwd = stability_output[3]
             ac.empennage.horizontal_tail['area div S'] = stability_output[0]
             ac.wing.x_le =  stability_output[4]
+            ac.empennage.horizontal_tail['area'] = stability_output[0] * ac.wing.area
+            return ac, epoch
+        else: 
+            epoch += 1e10
+            return ac, epoch
     else: 
-        print('Scissor plot doesnt match!!!')
-        epoch += 1000
-    return ac, epoch
+        return ac, epoch
+    
 
 def Class_II_drag(ac: Aircraft, epoch):
     # Cruise
     CD0 = c2_drag_new.CD0(ac, n_engine_inoperative=0, flight_condition='cruise', update_ac=True)
     c2_drag_new.C_D_L(ac, CD0, flight_condition='cruise', update_ac=True, wing_tip=False)
     # Take-off
-    ac.wing.CD0_to = c2_drag_new.CD0(ac, n_engine_inoperative=0, flight_condition='take-off', update_ac=True)
+    ac.wing.CD0_to = c2_drag_new.CD0(ac, n_engine_inoperative=0, flight_condition='take-off', update_ac=False)
     CDi, ac.wing.e_to, ac.wing.k_to, ac.wing.ld_to = c2_drag_new.C_D_L(ac, ac.wing.CD0_to, flight_condition='take-off', update_ac=True, wing_tip=False)
     # Landing
     ac.wing.CD0_ld = c2_drag_new.CD0(ac, n_engine_inoperative=0, flight_condition='landing', update_ac=False)
@@ -263,11 +278,16 @@ def run_iteration(ac: Aircraft,
     # Class II mass 
     ac = compute_class_II_mass_and_cg(ac, epoch)
     mtow_class_II = ac.weights.m_takeoff
+    # print(ac)
 
     # ── Inner convergence check ───────────────────────────────────────────
-    inner_converged = (
+    # inner_converged = (
+    #     abs(mtow_class_II - mtow_class_I) / mtow_class_I
+    # ) < INNER_TOLERANCE
+    inner_converged = bool(
         abs(mtow_class_II - mtow_class_I) / mtow_class_I
-    ) < INNER_TOLERANCE
+        < INNER_TOLERANCE
+    )
 
     # Stability and control and Class II drag
     ac, epoch = tail_sizing_wing_positioning(ac, epoch)
@@ -399,7 +419,9 @@ def run_design_loop(
         prev = copy.deepcopy(ac)
 
         # Run one full design cycle
-        ac, inner_converged, epoch = run_iteration(ac, epoch, INNER_TOLERANCE)
+        ac, inner_converged, epoch_change = run_iteration(ac, epoch, INNER_TOLERANCE)
+        if epoch_change > config.max_epochs + 1:
+            break
 
         # Power requirement check
         enough_cr_power, enough_to_power =  check_power_requirement(ac)
@@ -414,6 +436,7 @@ def run_design_loop(
 
         # Check convergence
         converged, deltas = has_converged(prev, ac, config.convergence_params)
+        print(type(inner_converged))
 
         # Log to file (read-only history — never read back by the loop)
         record = _snapshot(epoch, ac, deltas, inner_converged)
@@ -538,7 +561,7 @@ if __name__ == "__main__":
                 loader.load('concepts/tricycle_gear.yaml', Landing_Gear))
 
     config = DesignLoopConfig(
-        max_epochs   = 2,
+        max_epochs   = 20,
         history_file = "aircraft_history.json",
         convergence_params = [
             ConvergenceParam("weights.m_empty", 1.0),

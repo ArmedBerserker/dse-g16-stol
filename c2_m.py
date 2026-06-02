@@ -12,6 +12,22 @@ import matplotlib.pyplot as plt
 
 
 # Helper functions for wing geometry:
+def interp_value(df : pd.DataFrame,
+                 x_query,
+                 x_col : str,
+                 y_col : str,
+                 log_x = False) -> float:
+    data = df[[x_col, y_col]].dropna().sort_values(x_col)
+ 
+    x = data[x_col].to_numpy(dtype = float)
+    y = data[y_col].to_numpy(dtype = float)
+ 
+    if log_x:
+        x = np.log10(x)
+        x_query = np.log10(x_query)
+       
+ 
+    return float(np.interp(x_query, x, y))
 def interpolate_csv_z(x_query, y_query, filepath):
     """
     Interpolate z value from a CSV lookup table.
@@ -143,6 +159,20 @@ def x_pos_le_along_span_from_nose(le_sweep_deg: float, # Leading edge sweep in d
                                   ):
     return x_le + y * np.tan(np.deg2rad(le_sweep_deg))
 
+def convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_nose, ac: Aircraft):
+    # c_r = ac.wing.c_root
+    # taper = ac.wing.taper_ratio
+    # sweep_c_4 = ac.wing.sweep
+    # b = ac.wing.span
+    # mac = 2 * c_r / 3 * (1 + taper + taper**2) / (1 + taper)
+    # le_sweep_deg = LE_sweep_deg(sweep_c_4, c_r, b, taper)
+    # y_span_mac = (c_r - mac) / (2 / b * c_r * (1 - taper))
+
+    le_sweep_deg = ac.wing.sweep_LE_deg
+    y_span_mac = ac.wing.y_MAC
+    x_lemac = x_pos_le_along_span_from_nose(le_sweep_deg, y_span_mac, x_le_w)
+    return (x_cg_nose - x_lemac) / ac.wing.MAC
+
 def x_le_from_x_lemac(x_lemac, y_mac, le_sweep_deg):
     return x_lemac - y_mac * np.tan(np.deg2rad(le_sweep_deg))
 
@@ -185,206 +215,24 @@ def W_to(ac: Aircraft, w_oe, w_f, w_pl, w_crew = 0, update_ac: bool = False):
         ac.weights.m_takeoff = Wto
     return Wto
 
-def W_oe_and_cg_from_nose1(ac: Aircraft, update_ac: bool = False, 
-                          pie_chart_output_path: str = None, show_pie_chart: bool = False, 
-                          struc_pie_chart_output_path: str = None, struc_show_pie_chart: bool = False) -> tuple:
-    w_power, x_cg_pwr = W_pwr_and_x_cg_from_nose(ac)
-    w_mlg, w_nlg = W_gear(ac)
-    w_ht, w_vt = W_emp(ac)
-    wwing = W_wing(ac)
-    wfus = W_fus(ac)
-    wnac = W_nac(ac)
-    w_structure = wwing + w_ht + w_vt + wfus + wnac + w_mlg + w_nlg
-    w_fxeq, x_cg_fxeq = W_feq_and_cg_from_nose(ac)
-    W_oe = w_structure + w_power + w_fxeq
-    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr)
-    ac.weights.oew_frac = W_oe / ac.weights.m_takeoff
-    if update_ac:
-        ac.weights.m_empty = W_oe
-        ac.weights.x_cg_oew = x_cg_oe
-    if pie_chart_output_path is not None:
-        categories = ['Structural', 'Power', 'Fixed equipment']
-        values = [w_structure, w_power, w_fxeq] / W_oe * 100
-        fig, ax = plt.subplots(figsize=(8, 6))
-        wedges, _ = ax.pie(values, startangle=90)
-        total = sum(values)
-        for i, wedge in enumerate(wedges):
-            angle = (wedge.theta2 + wedge.theta1) / 2
-            x = np.cos(np.radians(angle))
-            y = np.sin(np.radians(angle))
-            percentage = values[i] / total * 100
-
-            ax.annotate(
-                f'{categories[i]}\n{percentage:.1f}%',
-                xy=(x, y),
-                xytext=(1.3 * np.sign(x), 1.3 * y),
-                arrowprops=dict(arrowstyle='->'),
-                ha='left' if x > 0 else 'right'
-            )
-
-        ax.axis('equal')
-        plt.title('Distribution of OEW')
-        plt.savefig(pie_chart_output_path)
-        if show_pie_chart:
-            plt.show()
-    if struc_pie_chart_output_path is not None:
-        categories = ['Wing', 'Horizontal tail', 'Vertical tail', 'Fuselage', 'Nacelles', 'Landing gear']
-        values = [wwing, w_ht, w_vt, wfus, wnac, w_mlg+w_nlg] / w_structure * 100
-        fig, ax = plt.subplots(figsize=(8, 6))
-        wedges, _ = ax.pie(values, startangle=90)
-        total = sum(values)
-        for i, wedge in enumerate(wedges):
-            angle = (wedge.theta2 + wedge.theta1) / 2
-            x = np.cos(np.radians(angle))
-            y = np.sin(np.radians(angle))
-            percentage = values[i] / total * 100
-
-            ax.annotate(
-                f'{categories[i]}\n{percentage:.1f}%',
-                xy=(x, y),
-                xytext=(1.3 * np.sign(x), 1.3 * y),
-                arrowprops=dict(arrowstyle='->'),
-                ha='left' if x > 0 else 'right'
-            )
-
-        ax.axis('equal')
-        plt.title('Distribution of structural weight')
-        plt.savefig(struc_pie_chart_output_path)
-        if struc_show_pie_chart:
-            plt.show()
-    return W_oe, x_cg_oe, ac
-
-def W_oe_and_cg_from_nose2(ac: Aircraft, update_ac: bool = False, 
-                          pie_chart_output_path: str = None, show_pie_chart: bool = False, 
-                          struc_pie_chart_output_path: str = None, struc_show_pie_chart: bool = False) -> tuple:
-    w_power, x_cg_pwr = W_pwr_and_x_cg_from_nose(ac)
-    w_mlg, w_nlg = W_gear(ac)
-    w_ht, w_vt = W_emp(ac)
-    wwing = W_wing(ac)
-    wfus = W_fus(ac)
-    wnac = W_nac(ac)
-    w_structure = wwing + w_ht + w_vt + wfus + wnac + w_mlg + w_nlg
-    w_fxeq, x_cg_fxeq = W_feq_and_cg_from_nose(ac)
-    W_oe = w_structure + w_power + w_fxeq
-    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr)
-    ac.weights.oew_frac = W_oe / ac.weights.m_takeoff
-    if update_ac:
-        ac.weights.m_empty = W_oe
-        ac.weights.x_cg_oew = x_cg_oe
-    if pie_chart_output_path is not None:
-        categories = ['Structural', 'Power', 'Fixed equipment']
-        raw_values = [w_structure, w_power, w_fxeq]
-        values = np.array(raw_values) / W_oe * 100
-        fig, ax = plt.subplots(figsize=(8, 6))
-        wedges, _ = ax.pie(values, startangle=90)
-        total = sum(values)
-        for i, wedge in enumerate(wedges):
-            angle = (wedge.theta2 + wedge.theta1) / 2
-            x = np.cos(np.radians(angle))
-            y = np.sin(np.radians(angle))
-            percentage = values[i] / total * 100
-
-            ax.annotate(
-                f'{categories[i]}\n{percentage:.1f}%\n({raw_values[i]:.1f} kg)',
-                xy=(x, y),
-                xytext=(1.3 * np.sign(x), 1.3 * y),
-                arrowprops=dict(arrowstyle='->'),
-                ha='left' if x > 0 else 'right'
-            )
-
-        ax.axis('equal')
-        plt.title('Distribution of OEW')
-        plt.savefig(pie_chart_output_path)
-        if show_pie_chart:
-            plt.show()
-    if struc_pie_chart_output_path is not None:
-        categories = ['Wing', 'Horizontal tail', 'Vertical tail', 'Fuselage', 'Nacelles', 'Landing gear']
-        raw_values = [wwing, w_ht, w_vt, wfus, wnac, w_mlg+w_nlg]
-        values = np.array(raw_values) / w_structure * 100
-        fig, ax = plt.subplots(figsize=(8, 6))
-        wedges, _ = ax.pie(values, startangle=90)
-        total = sum(values)
-        for i, wedge in enumerate(wedges):
-            angle = (wedge.theta2 + wedge.theta1) / 2
-            x = np.cos(np.radians(angle))
-            y = np.sin(np.radians(angle))
-            percentage = values[i] / total * 100
-
-            ax.annotate(
-                f'{categories[i]}\n{percentage:.1f}%\n({raw_values[i]:.1f} kg)',
-                xy=(x, y),
-                xytext=(1.3 * np.sign(x), 1.3 * y),
-                arrowprops=dict(arrowstyle='->'),
-                ha='left' if x > 0 else 'right'
-            )
-
-        ax.axis('equal')
-        plt.title('Distribution of structural weight')
-        plt.savefig(struc_pie_chart_output_path)
-        if struc_show_pie_chart:
-            plt.show()
-    return W_oe, x_cg_oe, ac
-
-def W_to_new2(ac: Aircraft,
-             m_res = 0.0, # from class I
-             W_crew = 0.0, # included in PL probably
-             update_ac: bool = False,
-             pie_chart_output_path: str = None,
-             show_pie_chart: bool = False
-             ):
-    W_PL = ac.weights.m_payload
-    W_e = ac.weights.m_empty
-    print(f' New oew: {W_e}')
-    m_ff = 1 - ac.weights.m_fuel / ac.weights.m_takeoff # Insert class I method called
-    m_tfo = ac.weights.m_takeoff * 0.005
-    Wto = W_e / ac.weights.oew_frac
-    Wto = W_e + ac.weights.m_fuel + W_PL + m_tfo
-    print(f'Wto: {Wto}, m_ff: {m_ff}, W_e: {W_e}, W_PL: {W_PL}, W_fuel: {ac.weights.m_fuel}')
-    if update_ac:
-        ac.weights.m_takeoff = Wto
-
-    if pie_chart_output_path is not None:
-        categories = ['Empty weight', 'Payload', 'Trapped fuel and oil', 'Fuel']
-        raw_values = [W_e, W_PL, m_tfo, Wto-W_e-m_tfo-W_PL]
-        values = np.array(raw_values) / Wto * 100
-        print(f'Pie chart values: {values}')
-        fig, ax = plt.subplots(figsize=(8, 6))
-        wedges, _ = ax.pie(values, startangle=90)
-        total = sum(values)
-        for i, wedge in enumerate(wedges):
-            angle = (wedge.theta2 + wedge.theta1) / 2
-            x = np.cos(np.radians(angle))
-            y = np.sin(np.radians(angle))
-            percentage = values[i] / total * 100
-
-            ax.annotate(
-                f'{categories[i]}\n{percentage:.1f}%\n({raw_values[i]:.1f} kg)',
-                xy=(x, y),
-                xytext=(0.9 * np.sign(x), 0.9 * y),
-                arrowprops=dict(arrowstyle='->'),
-                ha='left' if x > 0 else 'right'
-            )
-
-        ax.axis('equal')
-        plt.title('Distribution of MTOW')
-        plt.savefig(pie_chart_output_path)
-        if show_pie_chart:
-            plt.show()
-    return Wto, ac
-
 def W_oe_and_cg_from_nose(ac: Aircraft, update_ac: bool = False,
                           pie_chart_output_path: str = None, show_pie_chart: bool = False,
-                          struc_pie_chart_output_path: str = None, struc_show_pie_chart: bool = False) -> tuple:
-    w_power, x_cg_pwr = W_pwr_and_x_cg_from_nose(ac)
+                          struc_pie_chart_output_path: str = None, struc_show_pie_chart: bool = False, 
+                          x_le_w = 1000) -> tuple:
+    if x_le_w == 1000:
+        x_le_w = ac.wing.x_le
+
+    # print(f'\nWing position: {x_le_w, x_le_w/ac.fuselage.length}')
+    w_power, x_cg_pwr = W_pwr_and_x_cg_from_nose(ac, x_le_w)
     w_mlg, w_nlg = W_gear(ac)
     w_ht, w_vt = W_emp(ac)
     wwing = W_wing(ac)
     wfus = W_fus(ac)
     wnac = W_nac(ac)
     w_structure = wwing + w_ht + w_vt + wfus + wnac + w_mlg + w_nlg
-    w_fxeq, x_cg_fxeq = W_feq_and_cg_from_nose(ac)
+    w_fxeq, x_cg_fxeq = W_feq_and_cg_from_nose(ac, x_le_w)
     W_oe = w_structure + w_power + w_fxeq
-    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, update_ac=False)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr) / W_oe
+    x_cg_oe = (w_structure * x_cg_structural_from_nose(ac, update_ac=False, x_le_w=x_le_w)[0] + w_fxeq * x_cg_fxeq + w_power * x_cg_pwr) / W_oe
     ac.weights.oew_frac = W_oe / ac.weights.m_takeoff
     # print(f'\nstructure cg: {x_cg_structural_from_nose(ac, update_ac=False)[0]} \n power: {x_cg_pwr} \n feq: {x_cg_fxeq}')
     if update_ac:
@@ -475,59 +323,14 @@ def W_to_new(ac: Aircraft,
             plt.show()
     return Wto, ac
 
-def W_to_new1(ac: Aircraft,
-             m_res = 0.0, # from class I
-             W_crew = 0.0, # included in PL probably
-             update_ac: bool = False,
-             pie_chart_output_path: str = None,
-             show_pie_chart: bool = False
-             ):
-    W_PL = ac.weights.m_payload
-    W_e = ac.weights.m_empty
-    print(f' New oew: {W_e}')
-    m_ff = 1 - ac.weights.m_fuel / ac.weights.m_takeoff # Insert class I method called
-    m_tfo = ac.weights.m_takeoff * 0.005
-    # Wto = (W_e + W_PL + W_crew) / (m_ff * (1 + m_res) - m_res - m_tfo)
-    Wto = W_e / ac.weights.oew_frac
-    Wto = W_e + ac.weights.m_fuel + W_PL + m_tfo
-    print(f'Wto: {Wto}, m_ff: {m_ff}, W_e: {W_e}, W_PL: {W_PL}, W_fuel: {ac.weights.m_fuel}')
-    if update_ac:
-        ac.weights.m_takeoff = Wto
-
-    if pie_chart_output_path is not None:
-        categories = ['Empty weight', 'Payload', 'Trapped fuel and oil', 'Fuel']
-        values = [W_e, W_PL, m_tfo, Wto-W_e-m_tfo-W_PL] / Wto * 100
-        print(f'Pie chart values: {values}')
-        fig, ax = plt.subplots(figsize=(8, 6))
-        wedges, _ = ax.pie(values, startangle=90)
-        total = sum(values)
-        for i, wedge in enumerate(wedges):
-            angle = (wedge.theta2 + wedge.theta1) / 2
-            x = np.cos(np.radians(angle))
-            y = np.sin(np.radians(angle))
-            percentage = values[i] / total * 100
-
-            ax.annotate(
-                f'{categories[i]}\n{percentage:.1f}%',
-                xy=(x, y),
-                xytext=(1.3 * np.sign(x), 1.3 * y),
-                arrowprops=dict(arrowstyle='->'),
-                ha='left' if x > 0 else 'right'
-            )
-
-        ax.axis('equal')
-        plt.title('Distribution of MTOW')
-        plt.savefig(pie_chart_output_path)
-        if show_pie_chart:
-            plt.show()
-    return Wto, ac
-
-def W_pwr_and_x_cg_from_nose(ac: Aircraft):
-    x_le = ac.wing.x_le
+def W_pwr_and_x_cg_from_nose(ac: Aircraft,
+                             x_le_w = 1000):
+    if x_le_w == 1000:
+        x_le_w = ac.wing.x_le
     alpha_p_id = ac.engine.alpha_p_id
     P_to = ac.engine.power_to / HP_TO_W
     W_piston = ac.weights.m_piston
-    W_supercap = ac.weights.m_supercap
+    W_supercap = ac.weights.m_supercap * 1.5  # Add 50% for surrounding structure
     W_eng = ac.weights.m_turboprop / LBS_TO_KG
     if alpha_p_id == 'piston':
         W_eng = W_piston / LBS_TO_KG
@@ -560,13 +363,17 @@ def W_pwr_and_x_cg_from_nose(ac: Aircraft):
     
     if ac.engine.eng_x_pos == 'le':
         nac_y = ac.fuselage.width / 2 + ac.engine.eng_y_pos_fuselage
-        x_cg_pwr1 = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, nac_y, x_le)
-    x_cg = (W_pwr1 * x_cg_pwr1 + W_fs * (x_le + ac.wing.c_root * ac.engine.x_cg_fuel_tanks_c_r) + W_supercap * x_le) / (W_pwr1 + W_supercap + W_fs)
+        x_cg_pwr1 = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, nac_y, x_le_w)
+    else:
+        nac_y = ac.fuselage.width / 2 + ac.engine.eng_y_pos_fuselage
+        x_cg_pwr1 = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, nac_y, x_le_w) + ac.engine.eng_x_pos * chord_at_y_span(ac.wing.c_root, ac.wing.taper_ratio, ac.engine.eng_y_pos_fuselage+ac.fuselage.width/2, ac.wing.span)
+    x_cg = (W_pwr1 * x_cg_pwr1 + W_fs * (x_le_w + ac.wing.c_root * ac.engine.x_cg_fuel_tanks_c_r) + W_supercap * ac.fuselage.x_cargo_holds) / (W_pwr1 + W_supercap + W_fs)
     ac.weights.power_system = (W_pwr1 + W_supercap + W_fs) * LBS_TO_KG
     # print(f' \nPower system weight: {(W_pwr1 + W_supercap + W_fs) * LBS_TO_KG}kg \n')
     return (W_pwr1 + W_supercap + W_fs) * LBS_TO_KG, x_cg
 
-def W_feq_and_cg_from_nose(ac: Aircraft):
+def W_feq_and_cg_from_nose(ac: Aircraft, 
+                          x_le_w = 1000):
     Wto = ac.weights.m_takeoff / LBS_TO_KG
     W_e = ac.weights.m_empty
     N_pax = ac.fuselage.n_pax  # Including crew
@@ -588,7 +395,7 @@ def W_feq_and_cg_from_nose(ac: Aircraft):
     W_ops = 0
     W_fti = 0.5 * (155 / 9980 * Wto + 708 / 24912 * Wto)
     W_aux = 0.01 * W_e
-    W_bal = 0
+    W_bal = ac.weights.ballast_rear
     W_pt = 0.0045 * Wto
     W_etc = 0  # NOTE: check if there are other things to include
 
@@ -601,7 +408,8 @@ def W_feq_and_cg_from_nose(ac: Aircraft):
     w_sweep_c_4_deg = ac.wing.sweep
     ht_sweep_le_deg = ac.empennage.horizontal_tail['sweep_LE_deg']
     vt_sweep_le_deg = ac.empennage.vertical_tail['sweep_LE_deg']
-    x_le_w = ac.wing.x_le  # Wing root chord LE distance from nose
+    if x_le_w == 1000:
+        x_le_w = ac.wing.x_le  # Wing root chord LE distance from nose
     x_le_ht = ac.empennage.horizontal_tail['x_h_frac_lf'] * ac.fuselage.length - ac.empennage.horizontal_tail['MAC_h']* np.tan(np.deg2rad(ht_sweep_le_deg)) - 0.4 * ac.empennage.horizontal_tail['y_MAC_h'] # HT root chord LE distance from nose
     x_le_vt = ac.empennage.vertical_tail['x_v_frac_lf'] * ac.fuselage.length - ac.empennage.vertical_tail['MAC_v']* np.tan(np.deg2rad(vt_sweep_le_deg)) - 0.4 * ac.empennage.vertical_tail['y_MAC_v']  # VT root chord LE distance from nose
     x_c_front_spar = ac.wing.x_c_front_spar
@@ -620,19 +428,20 @@ def W_feq_and_cg_from_nose(ac: Aircraft):
     x_cg_fc = (x_c_rear_spar + 1) / 2 * chord_fc + y_fc  # *Between aft spar and trailing-edge
     x_cg_hps = ((x_c_rear_spar - x_c_front_spar) / 2 * c_r_w + x_le_w) * 0.7 + (l_fus - 0.5 * l_tc) * 0.3  # *
     x_cg_els = x_cg_hps * 0.7  # * Battery cables between 
-    x_cg_iae = x_nlg * 0.65 # *
+    x_cg_iae = x_nlg # *
     x_cg_api = (b_w * x_le_w + b_ht * x_le_ht + b_vt * x_le_vt) / (b_w + b_ht + b_vt)  # De-icing on leading edges of wing, ht and vt
-    x_cg_fur = start_cabin + 0.525 * l_cabin  # *
+    x_cg_fur = start_cabin + 0.6 * l_cabin  # *
     x_cg_ops = x_cg_fur  # *
-    x_cg_fti = start_cabin + l_cabin  # Source: we saw it was in the back for the PH-LAB
-    x_cg_aux = start_cabin  # Assuming additional stuff like fire axes near cockpit
-    x_cg_pt = start_cabin + 0.5 * l_cabin  # Guestimation
+    x_cg_fti = ac.fuselage.x_cargo_holds  # Source: we saw it was in the back for the PH-LAB
+    x_cg_aux = ac.fuselage.x_cargo_holds  # Assuming additional stuff like fire axes near cockpit
+    x_cg_bal = ac.fuselage.length * 0.97
+    x_cg_pt = 0.5 * l_fus  # Guestimation
     x_cg_etc = 0  # NOTE: check if there was anything to add
 
     # print(f'Weights FEQ: {W_fc, W_hps, W_els, W_iae, W_api, W_fur, W_ops, W_fti, W_aux, W_pt, W_etc}')
-    Weights = np.array([W_fc, W_hps, W_els, W_iae, W_api, W_fur, W_ops, W_fti, W_aux, W_pt, W_etc])
+    Weights = np.array([W_fc, W_hps, W_els, W_iae, W_api, W_fur, W_ops, W_fti, W_aux, W_bal, W_pt, W_etc])
     W_feq = np.sum(Weights)
-    cgs = np.array([x_cg_fc, x_cg_hps, x_cg_els, x_cg_iae, x_cg_api, x_cg_fur, x_cg_ops, x_cg_fti, x_cg_aux, x_cg_pt, x_cg_etc])
+    cgs = np.array([x_cg_fc, x_cg_hps, x_cg_els, x_cg_iae, x_cg_api, x_cg_fur, x_cg_ops, x_cg_fti, x_cg_aux, x_cg_bal, x_cg_pt, x_cg_etc])
     x_cg_feq = (Weights@cgs) / W_feq
 
     return W_feq * LBS_TO_KG, x_cg_feq
@@ -665,7 +474,7 @@ def W_wing(ac: Aircraft, update_ac: bool = False):
     # Torenbeek
     W_wing_t = 0.00125 * Wto * ((b / np.cos(np.deg2rad(w.sweep_c_2_deg))) ** 0.75) * (1 + (6.3 * np.cos(np.deg2rad(w.sweep_c_2_deg)) / b) ** 0.5) * (n_ult ** 0.55) * (b * S / (t_r * Wto * np.cos(np.deg2rad(w.sweep_c_2_deg))))**0.3
     # print(f'\n Wing weight: \t Cessna: {W_wing_c * LBS_TO_KG} \t Torenbeek: {W_wing_t * LBS_TO_KG}')
-    return W_wing_t * LBS_TO_KG
+    return W_wing_t * LBS_TO_KG * 1.02
     # return (W_wing_c + W_wing_t) / 2 * LBS_TO_KG
 
 def W_emp(ac: Aircraft, update_ac: bool = False):
@@ -705,10 +514,12 @@ def W_emp(ac: Aircraft, update_ac: bool = False):
     W_ht = (W_h_c + W_h_u) / 2
     # W_vt = (W_v_c + W_v_u) / 2
     W_vt = (0.5*W_v_c + 1.5*W_v_u) / 2
+    if ac.empennage.t_tail_condition:
+        W_vt *= 1.15
     # print(f'\n HT weight: \t Cessna: {W_h_c * LBS_TO_KG} \t USAF: {W_h_u * LBS_TO_KG}')
     # print(f'\n VT weight: \t Cessna: {W_v_c * LBS_TO_KG} \t USAF: {W_v_u * LBS_TO_KG}')
 
-    return W_ht * LBS_TO_KG, W_vt * LBS_TO_KG
+    return W_ht * LBS_TO_KG, W_vt * LBS_TO_KG * 3
 
 def W_fus(ac: Aircraft, update_ac: bool = False):
     fus = ac.fuselage
@@ -799,12 +610,15 @@ def W_gear(ac: Aircraft, update_ac: bool = False):
     return W_mlg * LBS_TO_KG, W_nlg * LBS_TO_KG
 
 def x_cg_structural_from_nose(ac: Aircraft,
-                            update_ac=False):
+                              update_ac=False,
+                              x_le_w = 1000
+                              ):
     w = ac.wing
     ht = ac.empennage.horizontal_tail
     vt = ac.empennage.vertical_tail
 
-    x_le_w = w.x_le
+    if x_le_w == 1000:
+        x_le_w = w.x_le
     x_le_ht = ht['x_le']
     x_le_vt = vt['x_le']
     l_fus = ac.fuselage.length
@@ -826,6 +640,8 @@ def x_cg_structural_from_nose(ac: Aircraft,
     l_nacelle = ac.engine.length_nac
     if ac.engine.eng_x_pos == 'le':
         nac_mount_dist = 0  # distance nacelle is mounted behind le of wing (front of nacelle)
+    else:
+        nac_mount_dist = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, ac.engine.eng_y_pos_fuselage+ac.fuselage.width/2, x_le_w) + ac.engine.eng_x_pos * chord_at_y_span(w_c_r, w_taper, ac.engine.eng_y_pos_fuselage+ac.fuselage.width/2, b_w)
     x_nlg = ac.landing_gear.longitudinal_nlg
     x_mlg = ac.landing_gear.longitudinal_mlg
     
@@ -833,11 +649,11 @@ def x_cg_structural_from_nose(ac: Aircraft,
     if ac.wing.sweep == 0:
         c_y = chord_at_y_span(w_c_r, w_taper, y=0.4*0.5*b_w, b=b_w)
         x_along_chord = 0.4 * c_y
-        x_cg_w = x_pos_le_along_span_from_nose(LE_sweep_deg(sweep_c_4=0, c_r=w_c_r, b=b_w, taper_ratio=w_taper), 0.5 * 0.4 * b_w, x_le_w) + x_along_chord
+        x_cg_w = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, 0.5 * 0.4 * b_w, x_le_w) + x_along_chord
     else:
         c_y = chord_at_y_span(w_c_r, w_taper, y=0.35*0.5*b_w, b=b_w)
         x_along_chord = c_y * (x_c_front_spar + 0.7 * (x_c_rear_spar - x_c_front_spar))
-        x_cg_w = x_pos_le_along_span_from_nose(LE_sweep_deg(w_sweep_c_4_deg, w_c_r, b_w, w_taper), 0.5 * 0.35 * b_w, x_le_w) + x_along_chord
+        x_cg_w = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, 0.5 * 0.35 * b_w, x_le_w) + x_along_chord
 
     # HT:
     c_y = chord_at_y_span(ht_c_r, ht_taper, y=0.38*0.5*b_ht, b=b_ht)
@@ -890,20 +706,9 @@ def x_cg_structural_from_nose(ac: Aircraft,
         ac.weights.x_cg_structural = x_cg_data
     return x_cg_struc, x_cg_data, ac
 
-def convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_nose, ac: Aircraft):
-    c_r = ac.wing.c_root
-    taper = ac.wing.taper_ratio
-    sweep_c_4 = ac.wing.sweep
-    b = ac.wing.span
-    mac = 2 * c_r / 3 * (1 + taper + taper**2) / (1 + taper)
-    le_sweep_deg = LE_sweep_deg(sweep_c_4, c_r, b, taper)
-    y_span_mac = (c_r - mac) / (2 / b * c_r * (1 - taper))
-    x_lemac = x_pos_le_along_span_from_nose(le_sweep_deg, y_span_mac, x_le_w)
-    return (x_cg_nose - x_lemac) / mac
-
 def update_m_and_cg(m_current, cg_current, added_m, added_cg):
     new_cg = (m_current * cg_current + added_m * added_cg) / (m_current + added_m)
-    new_m  =(m_current + added_m)
+    new_m = (m_current + added_m)
     return new_m, new_cg
 
 def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath=None, update_ac_cgs = False):
@@ -958,9 +763,8 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     W_plot_btf = []
 
     # OEW
-    W_oe, x_cg_oe, ac = W_oe_and_cg_from_nose(ac)
-    x_cg_oe = ac.weights.x_cg_oew
-    W_oe = ac.weights.m_empty
+    W_oe, x_cg_oe, ac = W_oe_and_cg_from_nose(ac, x_le_w=x_le_w)
+    # print(f'\n x_le_w and frac fus: {x_le_w, x_le_w/ac.fuselage.length}')
     W_plot_ftb.append(W_oe)
     # x_cg_nose_plot_ftb.append(convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_oe, ac))
     x_cg_nose_plot_ftb.append(x_cg_oe)
@@ -1011,8 +815,8 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     
     # print(f'front to back loading cgs: {x_cg_nose_plot_ftb}')
     # print(f'back to front loading cgs: {x_cg_nose_plot_btf}')
-    x_cg_lemac_plot_btf = convert_x_cg_from_nose_to_lemac_frac_mac(ac.wing.x_le, x_cg_nose_plot_btf, ac)
-    x_cg_lemac_plot_ftb = convert_x_cg_from_nose_to_lemac_frac_mac(ac.wing.x_le, x_cg_nose_plot_ftb, ac)
+    x_cg_lemac_plot_btf = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_nose_plot_btf, ac)
+    x_cg_lemac_plot_ftb = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w, x_cg_nose_plot_ftb, ac)
     
     # Plotting
     min_x = min(min(x_cg_lemac_plot_btf), min(x_cg_lemac_plot_ftb))
@@ -1110,6 +914,7 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     # Tail params
     height_ht = ac.empennage.vertical_tail['b_v']  # height of ht above wing (perpendicular to chord lines)
     l_h = ac.empennage.horizontal_tail['l_h']
+    print(f' \n l_h: {l_h}')
     A_h = ac.empennage.horizontal_tail['aspect_ratio']
     r = 2 * l_h / b
     m_tv = height_ht * 2 / b
@@ -1118,6 +923,8 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     nac_y = b_f / 2 + ac.engine.eng_y_pos_fuselage
     if ac.engine.eng_x_pos == 'le':
         nac_mount_dist = x_pos_le_along_span_from_nose(sweep_LE_deg, nac_y, x_le)  # Distance front of nacelle from nose
+    else:
+        nac_mount_dist = x_pos_le_along_span_from_nose(sweep_LE_deg, nac_y, x_le) + ac.engine.eng_x_pos * chord_at_y_span(ac.wing.c_root, ac.wing.taper_ratio, ac.engine.eng_y_pos_fuselage+ac.fuselage.width/2, ac.wing.span)
     l_fn = x_pos_le_along_span_from_nose(sweep_LE_deg, b_f/2, x_le)
     b_n = ac.engine.nac_diameter  # nacelle diameter (max)
     x_mac_c_4 = x_pos_le_along_span_from_nose(sweep_LE_deg, y_pos_at_chord_length(c_r, taper, mac, b), x_le) + 0.25 * mac
@@ -1165,7 +972,8 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     x_ac_n_ld = n_eng * (-4) * b_n**2 * l_n / (S * mac * C_L_alpha_A_less_h_LD)
     x_ac_cr = x_ac_w_cr + x_ac_f1_cr + x_ac_f2 + x_ac_n_cr
     x_ac_ld = x_ac_w_ld + x_ac_f1_ld + x_ac_f2 + x_ac_n_ld
-    # print(f'x_ac_cr: {x_ac_cr} \n x_ac_n_cr: {x_ac_n_cr} \n x_ac_f2: {x_ac_f2} \n x_ac_f1_cr: {x_ac_f1_cr} \n x_ac_w_cr: {x_ac_w_cr}')
+    print(f'x_ac_cr: {x_ac_cr} \n x_ac_n_cr: {x_ac_n_cr} \n x_ac_f2: {x_ac_f2} \n x_ac_f1_cr: {x_ac_f1_cr} \n x_ac_w_cr: {x_ac_w_cr}')
+    print(f'x_ac_ld: {x_ac_ld} \n x_ac_n_ld: {x_ac_n_ld} \n x_ac_f2: {x_ac_f2} \n x_ac_f1_ld: {x_ac_f1_ld} \n x_ac_w_ld: {x_ac_w_ld}')
 
     # depsilon/dalpha
     K_eL = (0.1124 + 0.1265 * np.deg2rad(sweep_c_4_deg) + 0.1766 * np.deg2rad(sweep_c_4_deg)**2) / (r**2) + 0.1024 / r + 2
@@ -1177,6 +985,10 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
         V_h_V2 = 1.0
 
     # Cm_ac
+    CL_ld = -ac.hld_and_ailerons.landing_lift['alpha_zero_lift'] * ac.hld_and_ailerons.landing_lift['CL_alpha']
+    CL_clean = -ac.wing.alpha_0L * ac.hld_and_ailerons.clean_lift['CL_alpha']
+    # C_m_ac_flap_ld = interp_value(pd.read_csv('lookups/HLD/Cm0_flaps.csv'), CL_clean-CL_ld, 'x', 'y')
+
     C_m_ac_w = C_m0_airfoil * (A * np.cos(np.deg2rad(sweep_c_4_deg))**2 / (A + 2 * np.cos(np.deg2rad(sweep_c_4_deg))))
     C_m_ac_fus_ld = -1.8 * (1 - 2.5 * b_f / l_f) * np.pi * b_f * h_f * l_f / (4 * S * mac) * C_L_0 / C_L_alpha_A_less_h_LD
     C_m_ac_flap_ld = mu2 * (-mu1 * Delta_Cl_max_ld * ext_flap_chord_ratio_ld - (C_L_LD + Delta_Cl_max_ld * (1 - Swf / S)) / 8 * ext_flap_chord_ratio_ld * (ext_flap_chord_ratio_ld - 1)) + 0.7 * A / (1 + 2 / A) * mu3 * Delta_Cl_max_ld * np.tan(np.deg2rad(sweep_c_4_deg))
@@ -1187,6 +999,7 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     Sh_S_cont = (x_cg_lemac_mac - (x_ac_ld - C_m_ac_ld / C_L_A_less_h_ld)) / (C_L_h / C_L_A_less_h_ld * l_h / mac * V_h_V2)
     Sh_S_n_stab = (x_cg_lemac_mac - x_ac_cr) / (C_L_alpha_h_cr / C_L_alpha_A_less_h_cr * (1 - depsilon_dalpha_cr) * l_h / mac * V_h_V2)
     Sh_S_stab = (x_cg_lemac_mac - (x_ac_cr - SM)) / (C_L_alpha_h_cr / C_L_alpha_A_less_h_cr * (1 - depsilon_dalpha_cr) * l_h / mac * V_h_V2)
+    print(f' \n slope of controllability curve: {1/(C_L_h / C_L_A_less_h_ld * l_h / mac * V_h_V2)}')
 
     # PLotting
     min_x = min(x_cg_lemac_mac)
@@ -1203,7 +1016,13 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     ax.set_ylabel(f"$\\frac{{S_h}}{{S}}$")
     ax.set_title("Scissor plot")
     ax.legend()
-    ax.grid(True, linestyle="--", alpha=0.5)
+    # ax.grid(True, linestyle="--", alpha=0.5)
+    ax.grid(
+        visible=True,
+        color='0.7',
+        linewidth=0.8,
+        linestyle='--'
+    )
 
     plt.tight_layout()
     if output_filepath is not None:
@@ -1214,6 +1033,113 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     return Sh_S_cont, Sh_S_n_stab, Sh_S_stab
 
 def overlay_wing_pos_and_scissor_plot(ac: Aircraft, 
+                                      x_le_w_fus_length_arr: np.ndarray,
+                                      output_filepath: str = None,
+                                      show_plot: bool = False,
+                                      update_ac: bool = False):
+    x_cg_lemac_mac_plot = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length_arr * ac.fuselage.length, x_le_w_fus_length_arr * ac.fuselage.length, ac)
+    x_cg_lemac_mac_plot = np.arange(-1.5, 1.5, 0.01)
+    fwd_cg = np.zeros_like(x_le_w_fus_length_arr)
+    aft_cg = np.zeros_like(x_le_w_fus_length_arr)
+    for i, x_le_w_fus_length in enumerate(x_le_w_fus_length_arr):
+        fwd_cg_nose, aft_cg_nose, ac1, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w_fus_length * ac.fuselage.length, ac, update_ac_cgs=False)
+        fwd_cg[i] = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length * ac.fuselage.length, fwd_cg_nose, ac)
+        aft_cg[i] = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length * ac.fuselage.length, aft_cg_nose, ac)
+    x_le_w_l_fus = x_le_w_fus_length_arr
+    Sh_S_cont, Sh_S_n_stab, Sh_S_stab = scissor_plot(ac, x_cg_lemac_mac_plot, output_filepath='outputs/Initial_scissor_plot.png', show_plot=False)
+
+    fig, ax1 = plt.subplots(figsize=(8, 6))
+
+    line1a = ax1.plot(x_cg_lemac_mac_plot, Sh_S_cont, color='navy', label='Controlability')
+    line1b = ax1.plot(x_cg_lemac_mac_plot, Sh_S_n_stab, color='navy', label='Neutral stability')
+    line1c = ax1.plot(x_cg_lemac_mac_plot, Sh_S_stab, color='navy', label=f'Stability (SM=0.05)')
+    ax1.set_xlabel(r'$X_{cg}/MAC$')
+    ax1.set_ylabel(r'$S_h/S$', color='navy')
+    ax1.tick_params(axis='y', labelcolor='navy')
+
+    ax2 = ax1.twinx()
+    line2a = ax2.plot(fwd_cg, x_le_w_l_fus, color='steelblue', label='Forward cg')
+    line2b = ax2.plot(aft_cg, x_le_w_l_fus, color='steelblue', label='Aft cg')
+    ax2.set_ylabel(r'$X_{LE}/L_{fus}$', color='steelblue')
+    ax2.tick_params(axis='y', labelcolor='steelblue')
+
+    intersection1 = scissor_plot_intersection_points(x1=x_cg_lemac_mac_plot, x2=fwd_cg, y1=Sh_S_cont, y2=x_le_w_l_fus)
+    intersection2 = scissor_plot_intersection_points(x1=x_cg_lemac_mac_plot, x2=aft_cg, y1=Sh_S_stab, y2=x_le_w_l_fus)
+    if intersection1 is not None and intersection2 is not None:
+        ax1.plot(intersection1[0], intersection1[1], 'ko')
+        ax1.plot(intersection2[0], intersection2[1], 'ko')
+        ax1.axhline(max(intersection1[1], intersection2[1]), linestyle='--', color='gray', alpha=0.7)
+    ax1.legend(loc='upper right')
+    ax2.legend(loc='lower right')
+    plt.title('Tail sizing and wing position plot')
+    plt.grid(True)
+
+    # --- Interactive click handling ---
+    selected_points = []  # Stores (x, y_ax1, y_ax2) tuples
+    click_markers = []    # Keeps track of marker artists for visual feedback
+
+    def on_click(event):
+        # Only register clicks inside the axes, with no zoom/pan tool active
+        if event.inaxes not in (ax1, ax2):
+            return
+        if fig.canvas.toolbar and fig.canvas.toolbar.mode != '':
+            return  # Ignore clicks when zoom/pan is active
+
+        x_data = event.xdata
+
+        # ax2 shares the x-axis, so xdata is the same regardless of which axes was clicked.
+        # Compute the matching y value on ax1 and ax2 using the display transform.
+        y_ax1 = event.ydata if event.inaxes is ax1 else ax1.transData.inverted().transform(
+            ax2.transData.transform((x_data, event.ydata))
+        )[1]
+        y_ax2 = event.ydata if event.inaxes is ax2 else ax2.transData.inverted().transform(
+            ax1.transData.transform((x_data, event.ydata))
+        )[1]
+
+        selected_points.append({
+            'x':     x_data,
+            'y_ax1': y_ax1,   # Sh/S
+            'y_ax2': y_ax2,   # X_LE / L_fus
+        })
+
+        # Visual marker on whichever axis was clicked
+        marker, = event.inaxes.plot(x_data, event.ydata, 'rx', markersize=10, markeredgewidth=2)
+        click_markers.append(marker)
+
+        # Annotation showing both y-values
+        ax1.annotate(
+            f"x={x_data:.3f}\nSh/S={y_ax1:.3f}\nX_LE={y_ax2:.3f}",
+            xy=(x_data, y_ax1), xycoords='data',
+            xytext=(10, 10), textcoords='offset points',
+            fontsize=7,
+            bbox=dict(boxstyle='round,pad=0.3', fc='yellow', alpha=0.7),
+            arrowprops=dict(arrowstyle='->', color='black'),
+        )
+
+        fig.canvas.draw()
+        print(f"[Click {len(selected_points)}]  x={x_data:.4f} | Sh/S (ax1)={y_ax1:.4f} | X_LE/L_fus (ax2)={y_ax2:.4f}")
+
+    fig.canvas.mpl_connect('button_press_event', on_click)
+    # ^^^ Keep a reference — the connection stays alive as long as `fig` is alive.
+
+    plt.savefig(output_filepath)
+    if show_plot:
+        plt.show()  # Blocks until window is closed
+    
+    Sh_S = selected_points[0]['y_ax1']
+    x_le_w_fus = selected_points[0]['y_ax2']
+
+    fwd_cg_nose, aft_cg_nose, ac1, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w_fus * ac.fuselage.length, ac, update_ac_cgs=False)
+    lemac = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, ac.wing.y_MAC, x_le_w_fus * ac.fuselage.length)
+    if update_ac:
+        ac.weights.x_cg_aft = aft_cg_nose
+        ac.weights.x_cg_fwd = fwd_cg_nose
+        ac.empennage.horizontal_tail['area div S'] = Sh_S
+        ac.empennage.horizontal_tail['area'] = Sh_S * ac.wing.area
+        ac.wing.x_le = x_le_w_fus * ac.fuselage.length
+    return Sh_S, lemac, aft_cg_nose, fwd_cg_nose, x_le_w_fus * ac.fuselage.length
+
+def overlay_wing_pos_and_scissor_plot1(ac: Aircraft, 
                                       x_le_w_fus_length_arr: np.ndarray,
                                       output_filepath: str = None,
                                       show_plot: bool = False,
@@ -1263,6 +1189,7 @@ def overlay_wing_pos_and_scissor_plot(ac: Aircraft,
     ax1.legend(loc='upper right')
     ax2.legend(loc='lower right')
     plt.title('Tail sizing and wing position plot')
+    plt.grid(True)
     plt.savefig(output_filepath)
     if show_plot:
         plt.show()

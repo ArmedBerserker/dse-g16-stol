@@ -117,7 +117,7 @@ def D_CD_flap_stuff(ac: Aircraft, flap_type, t_c_max, flap_deflection, wing_drag
     elif flap_type == 'slotted':
         fd = closest_value(cf_c, values=[0.1, 0.2, 0.3])
         D_CD_flap_stuff = interp_value(read_csv('lookups/cf_c_comb2.csv'), flap_deflection, 'df', f'dCdp (cf={fd}0)', log_x=False)
-    elif flap_type == 'fowler':
+    elif flap_type in ['fowler', 'double slotted', 'triple slotted']:
         fd = f"{closest_value(cf_c, values=[0.1, 0.2, 0.3, 0.4]):.1f}"
         # fd = closest_value(cf_c, values=[0.1, 0.2, 0.3, 0.4])
         df = read_csv('lookups/roskam_p6_fig_4_48.csv')

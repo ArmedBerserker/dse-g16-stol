@@ -118,18 +118,9 @@ def size_empennage_planform(ac: Aircraft, epoch: int):
     # Extract positions to calculate the moment arms
     l_f = ac.fuselage.length
     x_cgaft = ac.weights.x_cg_aft
-    x_h = ht['x_h_frac_lf'] * l_f
+    # x_h = ht['x_h_frac_lf'] * l_f
     x_v = vt['x_v_frac_lf'] * l_f
-    
-    # Calculate moment arms dynamically
-    # ht_moment_arm = x_h - x_cgaft
-    # vt_moment_arm = x_v - x_cgaft
-    # ht['l_h'] = ht_moment_arm
-    ht_moment_arm = 0.5 * l_f
-    # if epoch > 1:
-    #     ht_moment_arm = x_h -  ac.wing.x_le + ac.wing.y_MAC * np.tan(np.deg2rad(ac.wing.sweep_LE_deg)) + 0.25 * ac.wing.MAC
-    vt_moment_arm = 0.5 * l_f
-    ht['l_h'] = ht_moment_arm
+    vt_moment_arm = vt['x_v_frac_lf'] * l_f - x_cgaft 
     
     # Extract fixed constants from YAML
     V_h = ht['volume_coefficient']
@@ -140,6 +131,37 @@ def size_empennage_planform(ac: Aircraft, epoch: int):
     A_v = vt['aspect_ratio']
     taper_v = vt['taper_ratio']
     LE_sweep_v = vt['sweep_LE_deg']
+
+    # ---------------------------------------------------------
+    # VERTICAL STABILIZER SIZING
+    # ---------------------------------------------------------
+    # 1. Calculate new area based on volume coefficient and calculated moment arm
+    S_v = (V_v * S * b) / vt_moment_arm
+    
+    # 2. Update geometry dependent on the new area
+    b_v = np.sqrt(A_v * S_v)
+    c_r_v = 2 * S_v / (b_v * (1 + taper_v))
+    c_t_v = c_r_v * taper_v
+    
+    MAC_v = (2 / 3) * c_r_v * (1 + taper_v + taper_v**2) / (1 + taper_v)
+    y_MAC_v = (c_r_v - MAC_v) / (c_r_v * (1 - taper_v)) * b_v
+
+    vt['area'] = S_v
+    vt['b_v'] = b_v
+    vt['c_r_v'] = c_r_v
+    vt['c_t_v'] = c_t_v
+    vt['MAC_v'] = MAC_v
+    vt['y_MAC_v'] = y_MAC_v
+    vt['sweep'] = np.rad2deg(np.arctan(np.tan(np.deg2rad(LE_sweep_v)) - 0.5 * c_r_v / b_v * (1 - taper_v)))
+    vt['x_le'] = x_v - y_MAC_v * np.tan(np.deg2rad(vt['sweep_LE_deg'])) - 0.4 * MAC_v
+
+    # Calculate moment arms dynamically
+    # vt_moment_arm = x_v - x_cgaft
+    # ht['l_h'] = ht_moment_arm
+    x_h = x_v + b_v * np.tan(np.deg2rad(LE_sweep_v))
+    ht_moment_arm = x_h - x_cgaft + 1
+    #     ht_moment_arm = x_h -  ac.wing.x_le + ac.wing.y_MAC * np.tan(np.deg2rad(ac.wing.sweep_LE_deg)) + 0.25 * ac.wing.MAC
+    ht['l_h'] = ht_moment_arm
 
     # ---------------------------------------------------------
     # HORIZONTAL STABILIZER SIZING
@@ -167,28 +189,8 @@ def size_empennage_planform(ac: Aircraft, epoch: int):
     ht['sweep_LE_deg'] = np.rad2deg(np.arctan(np.tan(np.deg2rad(sweep_h)) + 0.5 * c_r_h / b_h * (1 - taper_h)))
     ht['x_le'] = x_h - y_MAC_h * np.tan(np.deg2rad(ht['sweep_LE_deg'])) - 0.4 * MAC_h
 
-    # ---------------------------------------------------------
-    # VERTICAL STABILIZER SIZING
-    # ---------------------------------------------------------
-    # 1. Calculate new area based on volume coefficient and calculated moment arm
-    S_v = (V_v * S * b) / vt_moment_arm
     
-    # 2. Update geometry dependent on the new area
-    b_v = np.sqrt(A_v * S_v)
-    c_r_v = 2 * S_v / (b_v * (1 + taper_v))
-    c_t_v = c_r_v * taper_v
-    
-    MAC_v = (2 / 3) * c_r_v * (1 + taper_v + taper_v**2) / (1 + taper_v)
-    y_MAC_v = (c_r_v - MAC_v) / (c_r_v * (1 - taper_v)) * b_v
-
-    vt['area'] = S_v
-    vt['b_v'] = b_v
-    vt['c_r_v'] = c_r_v
-    vt['c_t_v'] = c_t_v
-    vt['MAC_v'] = MAC_v
-    vt['y_MAC_v'] = y_MAC_v
-    vt['sweep'] = np.rad2deg(np.arctan(np.tan(np.deg2rad(LE_sweep_v)) - 0.5 * c_r_v / b_v * (1 - taper_v)))
-    vt['x_le'] = x_v - y_MAC_v * np.tan(np.deg2rad(vt['sweep_LE_deg'])) - 0.4 * MAC_v
+    return ac
 
 
 

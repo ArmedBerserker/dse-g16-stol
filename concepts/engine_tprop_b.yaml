@@ -13,11 +13,12 @@ Phi : 0            # power split ratio, P_b / (P_b + P_f)
 eng_vdist_from_wing_y_c : -0.21  # m (-ve = below)
 eng_above_wing : False
 eng_y_pos_fuselage: 1.42  # m
-eng_x_pos: le
+eng_x_pos: 0.25  # along local chord, frac chord
 n_fuel_tanks: 2
 x_cg_fuel_tanks_c_r: 0.4
 fuel_type: Jet-A1
 engine_power_cruise: 550000  # watts
+engine_power_takeoff: 626000  # watts
 super_cap_power: 60000  # watts
 power_cr: 177236  # watts
 power_to: 216730 # watts 

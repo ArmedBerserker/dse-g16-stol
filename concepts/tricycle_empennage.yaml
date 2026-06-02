@@ -24,7 +24,7 @@ vertical_tail:
   taper_ratio: 0.5
   x_v_frac_lf: 0.9
   sweep: null  # deg
-  sweep_LE_deg: 30
+  sweep_LE_deg: 45
   t_c_max: 0.14 # CHANGE ONCE AIRFOIL SELECTED
   loc_t_c_max: 0.3
   x_le: null
