@@ -77,7 +77,7 @@ def landing_dist_matching(ac: Aircraft,
     return W_P, W_S
 
 def cruise_speed_matching(ac: Aircraft,
-                          type_to_use : str = "Single Engine Propeller Driven",
+                          type_to_use : str = "Twin Engine Propeller Driven",
                           W_S: np.ndarray = np.arange(1,10000)
                           ):
 
@@ -109,6 +109,7 @@ def cruise_speed_matching(ac: Aircraft,
 
     if ac.engine.alpha_p_id == 'turboprop':
         alpha_p = alpha_p_electric * ac.engine.Phi + alpha_p_turboprop * (1 - ac.engine.Phi)
+        alpha_p = 1
     elif ac.engine.alpha_p_id == 'piston':
         alpha_p = alpha_p_electric * ac.engine.Phi + alpha_p_piston * (1 - ac.engine.Phi)
     elif ac.engine.alpha_p_id == 'hydrogen':
@@ -236,7 +237,7 @@ def all_engine_operative(ac : Aircraft,
     return W_P_AEO_turbine_and_non_turbine_ROC, W_P_AEO_turbine_and_non_turbine_CGR, W_P_AEO_turbine_additional_condition_CGR, W_S / PA_TO_LBSpFT2
 
 def one_engine_inoperative(ac : Aircraft,
-                           type_to_use : str = "Single Engine Propeller Driven",
+                           type_to_use : str = "Twin Engine Propeller Driven",
                            W_S: np.ndarray = np.arange(1, 10000),
                            initial_est: bool = True
                            ):
@@ -297,7 +298,7 @@ def one_engine_inoperative(ac : Aircraft,
     return W_P_OEI_turbine_condition_1_ROC, W_P_OEI_turbine_condition_1_CGR, W_P_OEI_turbine_condition_2_ROC, W_P_OEI_turbine_condition_2_CGR, W_S / PA_TO_LBSpFT2
 
 def balked_landing(ac : Aircraft,
-                   type_to_use : str = "Single Engine Propeller Driven",
+                   type_to_use : str = "Twin Engine Propeller Driven",
                    W_S: np.ndarray = np.arange(1, 10000),
                    initial_est: bool = True
                    ):
@@ -539,6 +540,7 @@ def plot_matching_and_select_design_point(ac : Aircraft,  # Change units
         plt.savefig(output_filepath, dpi=600)
     if show_plot:
         plt.show()
+    plt.close()
 
     data = {
         "W/P": result['W_P'],

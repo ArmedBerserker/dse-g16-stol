@@ -431,7 +431,7 @@ def C_D_L(ac: Aircraft,
     
     # General
     A = ac.wing.aspect_ratio
-    A_wing_tip = 0  # NOTE: add wing tip effect here
+    A_wing_tip = 0.004  # NOTE: add wing tip effect here
     if wing_tip:
         A_wing_tip = ...
     A_eff = A + A_wing_tip 
@@ -457,4 +457,5 @@ def C_D_L(ac: Aircraft,
         ac.wing.e = e
         ac.wing.k = K
         ac.wing.ld = ld
+        ac.wing.aspect_ratio = A_eff
     return CDi, e, K, ld

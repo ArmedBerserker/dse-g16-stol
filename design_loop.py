@@ -104,11 +104,13 @@ def pre_loop_calculations(ac: Aircraft) -> Aircraft:
     data_to = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='to')
     W_P_to = data_to['W/P']
     W_S = data_to['W/S']
-    ac.engine.power_to = ac.weights.m_takeoff * g / W_P_to
     ac.wing.area = ac.weights.m_takeoff * g / W_S
     data_cr = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='cruise')
     W_P_cr = data_cr['W/P']
     ac.engine.power_cr = ac.weights.m_takeoff * g / W_P_cr
+    ac.engine.power_to = max(ac.weights.m_takeoff * g / W_P_to, ac.weights.m_takeoff * g / W_P_cr)
+
+    print(f' W_e: {ac.weights.m_empty}')
 
     # Fuselage sizing:
     c1_fuselage.calculate_fuselage_parameters
@@ -176,15 +178,15 @@ def compute_class_I_mass(ac: Aircraft) -> Aircraft:
     if ac.engine.count == 1:
         type_to_use = "Single Engine Propeller Driven"
     # NOTE: check if we need to add tw options for requirements to meet or add W/P result used by Shubhankar for weight est
-    data_to = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='to', initial_est=False)
+    data_to = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='to', initial_est=False, show_plot=False)
     W_P_to = data_to['W/P']
     W_S = data_to['W/S']
     # NOTE: check if we need to update multiple power values and if they exist already
-    ac.engine.power_to = ac.weights.m_takeoff * g / W_P_to
     ac.wing.area = ac.weights.m_takeoff * g / W_S
-    data_cr = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='cruise', initial_est=False)
+    data_cr = matching_diagram.plot_matching_and_select_design_point(ac, type_to_use, W_P_plot=np.arange(0.00000001,0.15,0.0001), W_S_plot=np.arange(1,1250), output_filepath='outputs/Iteration_matching_plot.png', requirement_to_meet='cruise', initial_est=False, show_plot=False)
     W_P_cr = data_cr['W/P']
     ac.engine.power_cr = ac.weights.m_takeoff * g / W_P_cr
+    ac.engine.power_to = max(ac.weights.m_takeoff * g / W_P_to, ac.weights.m_takeoff * g / W_P_cr)
     return ac
 
 def compute_class_II_mass_and_cg(ac: Aircraft, iteration: int) -> Aircraft:
@@ -202,7 +204,7 @@ def compute_class_II_mass_and_cg(ac: Aircraft, iteration: int) -> Aircraft:
 def tail_sizing_wing_positioning(ac: Aircraft, epoch: int) -> Aircraft:
     loading_diagram(ac.wing.x_le, ac, show_plot=False, output_filepath='outputs/init_loading_diagram.png', update_ac_cgs=False)
     wing_pos_arr = np.arange(0,1.01,0.01)
-    print(f'wing positions: {wing_pos_arr}')
+    # print(f'wing positions: {wing_pos_arr}')
     stability_output = overlay_wing_pos_and_scissor_plot(ac, x_le_w_fus_length_arr=wing_pos_arr, output_filepath=f'outputs/Stability_and_Control/Scissor_plot_{epoch}', show_plot=True, update_ac=False)
     if stability_output[0]>0:
         print(f' \n Sh_S: {stability_output[0]}, x_lemac/mac: {stability_output[1]}, aft_cg: {stability_output[2]}, fwd_cg: {stability_output[3]}, x_le: {stability_output[4]}')
@@ -561,7 +563,7 @@ if __name__ == "__main__":
                 loader.load('concepts/tricycle_gear.yaml', Landing_Gear))
 
     config = DesignLoopConfig(
-        max_epochs   = 20,
+        max_epochs   = 3,
         history_file = "aircraft_history.json",
         convergence_params = [
             ConvergenceParam("weights.m_empty", 1.0),

@@ -294,7 +294,7 @@ def W_to_new(ac: Aircraft,
     m_tfo = ac.weights.m_takeoff * 0.005
     # Wto = W_e / ac.weights.oew_frac
     Wto = W_e + ac.weights.m_fuel + W_PL + m_tfo
-    print(f'Wto: {Wto}, m_ff: {m_ff}, W_e: {W_e/Wto}, W_PL: {W_PL}, W_fuel: {ac.weights.m_fuel}, W_fuel/mtow: {ac.weights.m_fuel / Wto}')
+    print(f'Wto: {Wto}, m_ff: {m_ff}, W_e: {W_e}, W_PL: {W_PL}, W_fuel: {ac.weights.m_fuel}, \nW_fuel/mtow: {ac.weights.m_fuel / Wto}, W_e/mtow: {W_e/Wto}')
     if update_ac:
         ac.weights.m_takeoff = Wto
         ac.weights.oew_frac = W_e / Wto
@@ -394,6 +394,7 @@ def W_feq_and_cg_from_nose(ac: Aircraft,
     W_fur = 0.5 * (0.412 * N_pax**1.145 * Wto**0.489 + 15 * N_pax + V_pax_cargo)
     W_ops = 0
     W_fti = 0.5 * (155 / 9980 * Wto + 708 / 24912 * Wto)
+    W_fti = max(0, (W_fti - ac.weights.m_cargo - (ac.fuselage.n_pax - 1) / ac.fuselage.n_pax * ac.weights.m_pax))
     W_aux = 0.01 * W_e
     W_bal = ac.weights.ballast_rear
     W_pt = 0.0045 * Wto
@@ -474,7 +475,7 @@ def W_wing(ac: Aircraft, update_ac: bool = False):
     # Torenbeek
     W_wing_t = 0.00125 * Wto * ((b / np.cos(np.deg2rad(w.sweep_c_2_deg))) ** 0.75) * (1 + (6.3 * np.cos(np.deg2rad(w.sweep_c_2_deg)) / b) ** 0.5) * (n_ult ** 0.55) * (b * S / (t_r * Wto * np.cos(np.deg2rad(w.sweep_c_2_deg))))**0.3
     # print(f'\n Wing weight: \t Cessna: {W_wing_c * LBS_TO_KG} \t Torenbeek: {W_wing_t * LBS_TO_KG}')
-    return W_wing_t * LBS_TO_KG * 1.02
+    return W_wing_t * LBS_TO_KG 
     # return (W_wing_c + W_wing_t) / 2 * LBS_TO_KG
 
 def W_emp(ac: Aircraft, update_ac: bool = False):
@@ -848,8 +849,9 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
 
         plt.tight_layout()
         plt.savefig(output_filepath, dpi=300)
-        if show_plot:
-            plt.show()
+        # if show_plot:
+        #     plt.show()
+        plt.close()
         print(f'Loading diagram saved to {output_filepath}')
 
     # Return from nose
@@ -1029,6 +1031,7 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
         plt.savefig(output_filepath, dpi=300)
     if show_plot:
         plt.show()
+    plt.close()
     print(f'Scissor plot saved to {output_filepath}')
     return Sh_S_cont, Sh_S_n_stab, Sh_S_stab
 
@@ -1042,7 +1045,7 @@ def overlay_wing_pos_and_scissor_plot(ac: Aircraft,
     fwd_cg = np.zeros_like(x_le_w_fus_length_arr)
     aft_cg = np.zeros_like(x_le_w_fus_length_arr)
     for i, x_le_w_fus_length in enumerate(x_le_w_fus_length_arr):
-        fwd_cg_nose, aft_cg_nose, ac1, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w_fus_length * ac.fuselage.length, ac, update_ac_cgs=False)
+        fwd_cg_nose, aft_cg_nose, ac1, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w_fus_length * ac.fuselage.length, ac, update_ac_cgs=False, show_plot=False)
         fwd_cg[i] = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length * ac.fuselage.length, fwd_cg_nose, ac)
         aft_cg[i] = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length * ac.fuselage.length, aft_cg_nose, ac)
     x_le_w_l_fus = x_le_w_fus_length_arr
@@ -1153,7 +1156,7 @@ def overlay_wing_pos_and_scissor_plot1(ac: Aircraft,
         fwd_cg[i] = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length * ac.fuselage.length, fwd_cg_nose, ac)
         aft_cg[i] = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length * ac.fuselage.length, aft_cg_nose, ac)
     x_le_w_l_fus = x_le_w_fus_length_arr
-    Sh_S_cont, Sh_S_n_stab, Sh_S_stab = scissor_plot(ac, x_cg_lemac_mac_plot, output_filepath='outputs/Initial_scissor_plot.png', show_plot=True)
+    Sh_S_cont, Sh_S_n_stab, Sh_S_stab = scissor_plot(ac, x_cg_lemac_mac_plot, output_filepath='outputs/Initial_scissor_plot.png', show_plot=False)
     # print(f'fwd_cg: {fwd_cg}, aft cg: {aft_cg}')
     # Plotting
 
