@@ -51,10 +51,10 @@ if __name__ == '__main__':
     target_class = Aircraft
     aircraft = loader.load(file_path, target_class)
 
-    x_pos_seats = [2.3, 3.5, 4.2]
-    x_cargo_holds = 5.5
-    nose_length = 2
-    fuselage_length = 12
+    x_pos_seats = [1.9, 3, 3.6]
+    x_cargo_holds = 5
+    nose_length = 1
+    fuselage_length = 0 # calculates using empirical relation - only change if you'd like to increase the length
     calculate_fuselage_parameters(aircraft, x_pos_seats, x_cargo_holds, nose_length, fuselage_length)
 
     print(aircraft.fuselage.length)
