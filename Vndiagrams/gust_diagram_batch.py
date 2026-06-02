@@ -1,26 +1,30 @@
 """
-Gust and Structural Envelope Generation Utilities.
+Gust and Structural Envelope Generation
 
-Generates gust envelopes based on CS-23 regulations.
-Calculates limit load factors (n) across the airspeed range, accounting for
-structural design speeds (Vc, Vd).
+Generates one Gust diagram per (altitude × weight condition)
+based on CS-23 maneuvering envelope rules.
 """
 
 import sys
 import os
+from pathlib import Path
 
-# Fix path FIRST, before any local imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Ensure project root is in path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 from classes.aircraft_2 import Aircraft, loader
 from classes.isa import Atmosphere
 from lookups.consts import *
-from pathlib import Path
-import numpy as np
-import matplotlib.pyplot as plt
 
 BASE_DIR = Path(__file__).resolve().parent
 
+
+# ============================================================
+# CHARACTERISTIC SPEEDS
+# ============================================================
 
 def calculate_characteristic_speeds(ac: Aircraft, rho: float, weight: float):
     """Calculates V-n characteristic speeds."""
@@ -76,21 +80,18 @@ def gust_load_at_speed(ac, V, rho, weight, Ude):
 
     return 1 + dn, 1 - dn
 
-def generate_gust_envelope(ac: Aircraft, flight: str = 'cruise', condition: str = 'MTOW'):
+
+# ============================================================
+# ENVELOPE GENERATION
+# ============================================================
+
+def generate_gust_envelope(ac: Aircraft, altitude_m: float, weight: float):
     """
     Computes the load factor limits for the maneuvering envelope.
     """
     # Atmosphere Setup
-    altitude = ac.requirements.cruise['cr_altitude'] * FT_TO_M if flight == 'cruise' else 0
-    atmos = Atmosphere(altitude)
+    atmos = Atmosphere(altitude_m)
     rho = atmos.density
-    temp = atmos.temp
-
-    weight = (
-        ac.weights.m_takeoff * g
-        if condition == 'MTOW'
-        else ac.weights.m_empty * g
-    )
 
     V_c, V_d =  calculate_characteristic_speeds(ac, rho, weight)
 
@@ -128,21 +129,24 @@ def generate_gust_envelope(ac: Aircraft, flight: str = 'cruise', condition: str 
     }
 
 
-def plot_gust_diagram(ac: Aircraft, output_filepath: str = 'outputs/Gust_Diagram.png', show_plot: bool = False):
-    """
-    Generates and saves the V-n Diagram plot.
-    """
+# ============================================================
+# PLOTTING FUNCTION (ONE CASE)
+# ============================================================
 
-    results = generate_gust_envelope(ac)
-    V = results["V"]
-    speeds = results["speeds"]
+def plot_gust_diagram(ac: Aircraft, altitude_ft: float, condition: str, show_plot: bool = False):
 
-    # Atmosphere
-    altitude = ac.requirements.cruise['cr_altitude'] * FT_TO_M
-    atmos = Atmosphere(altitude)
+    altitude_m = altitude_ft * FT_TO_M
+    atmos = Atmosphere(altitude_m)
     rho = atmos.density
 
-    weight = ac.weights.m_takeoff * g
+    weight = (
+        ac.weights.m_takeoff * g if condition == "MTOW"
+        else ac.weights.m_empty * g
+    )
+
+    results = generate_gust_envelope(ac, altitude_m, weight)
+    V = results["V"]
+    speeds = results["speeds"]
 
     Vc = speeds["Vc"]
     Vd = speeds["Vd"]
@@ -242,17 +246,43 @@ def plot_gust_diagram(ac: Aircraft, output_filepath: str = 'outputs/Gust_Diagram
     ax.legend()
     ax.grid(True, linestyle='--', alpha=0.5)
 
+
     plt.tight_layout()
-    plt.savefig(output_filepath, dpi=300)
+
+    # Save output
+    output_dir = BASE_DIR / "outputs" / "vn_diagrams"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = f"Gust_{condition}_{int(altitude_ft)}ft.png"
+    plt.savefig(output_dir / filename, dpi=300)
+
     if show_plot:
         plt.show()
 
+    plt.close()
 
-if __name__ == '__main__':
-    # Load aircraft parameters from the centralized YAML configuration
+
+# ============================================================
+# DRIVER (ALL CASES)
+# ============================================================
+
+def generate_all_gust_cases(ac: Aircraft):
+
+    altitudes_ft = [0, ac.requirements.take_off['to_altitude'], ac.requirements.cruise['cr_altitude']]
+    conditions = ["MTOW", "OEW"]
+
+    for alt in altitudes_ft:
+        for cond in conditions:
+            plot_gust_diagram(ac, alt, cond)
+
+
+# ============================================================
+# MAIN
+# ============================================================
+
+if __name__ == "__main__":
+
     file_path = BASE_DIR.parent / "yamls" / "aircraft.yaml"
-    target_class = Aircraft
     ac = loader.load(file_path, Aircraft)
 
-    # Generate the diagram
-    plot_gust_diagram(ac)
+    generate_all_gust_cases(ac)
