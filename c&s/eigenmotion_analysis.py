@@ -1,118 +1,125 @@
-import sys
-import os
 import numpy as np
-import math
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from classes.aircraft_2 import Aircraft, loader
-from classes.isa import Atmosphere
-from lookups.consts import *
+import matplotlib.pyplot as plt
+from matrices import *
+from pathlib import Path
 
-def calculate_aircraft_parameters(mtom, h_cruise, rho, V_cruise, S, Ixx, Iyy, Izz, Ixz):
 
-    hp0 = h_cruise * FT_TO_M  # Pressure altitude in the stationary flight condition [m]
-    V0 = V_cruise * KTS_TO_MS # True airspeed in the stationary flight condition [m/sec]
-    C_L_1 = mtom * g * 2 / (rho * V_cruise ** 2 * S)
-    alpha0 = 0.965 * np.pi / 180 # Angle of attack in the stationary flight condition [rad]
-    th0 = 0  # Pitch angle in the stationary flight condition [rad]
 
-    # Aircraft mass
-    m = mtom  # Mass [kg]
+Path("plots").mkdir(exist_ok = True)
 
-    # Aerodynamic properties
-    e = 0.8  # Oswald factor [ ]
-    CD0 = 0.4  # Zero-lift drag coefficient [ ]
-    CLa = 5.76  # Slope of C_L-alpha curve [ ]
+eigenvals_sym, eigenvecs_sym = np.linalg.eig(A_sym)
+eigenvals_asym, eigenvecs_asym = np.linalg.eig(A_Asym)
 
-    # Longitudinal stability
-    Cma = -1.87  # Longitudinal stability [ ]
-    Cmde = 3.646  # Elevator effectiveness [ ]
+def plot_response(sys, x0, labels, t_final, title):
+    t = np.linspace(0,t_final, 5000)
 
-    # Aircraft geometry
-    S = S  # Wing area [m^2]
-    Sh = 7.26 # Stabiliser area [m^2]
-    Sh_S = Sh / S  # [ ]
-    lh = 6.4  # Tail length [m]
-    c = 1.792  # Mean aerodynamic cord [m]
-    lh_c = lh / c  # [ ]
-    b = 15.2  # Wing span [m]
-    bh = 5.65  # Stabiliser span [m]
-    A = b ** 2 / S  # Wing aspect ratio [ ]
-    Ah = bh ** 2 / Sh  # Stabiliser aspect ratio [ ]
-    Vh_V = 1  # [ ]
-    ih = 0 # Stabiliser angle of incidence [rad]
-
-    # Constant values concerning aircraft inertia
-    muc = mtom / (rho * S * c)
-    mub = mtom / (rho * S * b)
-    KX2 = Ixx / (mtom * b ** 2)
-    KY2 = Iyy / (mtom * c ** 2)
-    KZ2 = Izz / (mtom * b ** 2)
-    KXZ = Ixz / (mtom * b ** 2)
-
-    # Aerodynamic constants
-    Cmac = 0  # Moment coefficient about the aerodynamic centre [ ]
-    CNwa = CLa  # Wing normal force slope [ ]
-    CNha = 2 * np.pi * Ah / (Ah + 2)  # Stabiliser normal force slope [ ]
-    depsda = 4 / (A + 2)  # Downwash gradient [ ]
-
-    # Lift and drag coefficient
-    CL = 2 * mtom / (rho * V0 ** 2 * S)  # Lift coefficient [ ]
-    CD = CD0 + (CLa * alpha0) ** 2 / (np.pi * A * e)  # Drag coefficient [ ]
-
-    # Stability derivatives
-
-    CX0 = mtom * np.sin(th0) / (0.5 * rho * V0 ** 2 * S)
-    CXu = 0.017142
-    CXa = 0.04387  # Positive, see FD lecture notes
-    CXadot = 0
-    CXq = -9.81
-    CXde = -0.0086
-
-    CZ0 = - mtom * np.cos(th0) / (0.5 * rho * V0 ** 2 * S)
-    CZu = 0
-    CZa = -CLa
-    CZadot = -2 * 0.116 * np.pi / 180 * lh * Sh_S * depsda
-    CZq = 11.222
-    CZde = -1.16
+    t,y = ctr.initial_response(sys, t, x0)
     
-    # Cm0 = +0.0297  # wrong but doesnt matter
-    # Cmu = +0.06990
-    # Cmadot = +0.17800
-    # Cmq = -8.79415
-    # CmTc = -0.0064
-    #
-    # CYb = -0.7500  # right
-    # CYbdot = 0
-    # CYp = -0.0304  # right
-    # CYr = +0.8495  # right
-    # CYda = -0.0400  # wrong
-    # CYdr = +0.2300  # right
-    #
-    # Clb = -0.10260  # right
-    # Clp = -0.71085  # right
-    # Clr = +0.23760  # right
-    # Clda = -0.23088  # wrong
-    # Cldr = +0.03440  # right
-    #
-    # Cnb = +0.1348  # right
-    # Cnbdot = 0
-    # Cnp = -0.0602  # right
-    # Cnr = -0.2061  # right
-    # Cnda = -0.0120  # wrong
-    # Cndr = -0.0939  # right
+    fig, axs = plt.subplots(len(labels), 1, figsize=(8,8),sharex=True)
+
+    for i in range(len(labels)):
+        axs[i].plot(t,y[i])
+        axs[i].set_ylabel(labels[i])
+        axs[i].grid()
+
+    axs[-1].set_xlabel("Time [s]")
+    fig.suptitle(title)
+
+    save_dir = os.path.join(
+    os.path.dirname(__file__),
+    "eigenmotion_figures")
+
+    os.makedirs(save_dir, exist_ok=True)
+
+    save_path = os.path.join(save_dir, f"{title.lower()}.png")
+
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+   
+    # filename = f"plots/{title.lower().replace(' ', '_')}.png"
+    
 
 
-if __name__=="__main__":
-    file_path = '../yamls/aircraft.yaml'
-    target_class = Aircraft
-    aircraft = loader.load(file_path, target_class)
+#short period
+idx_sp = np.argmax(np.abs(np.imag(eigenvals_sym)))
+x0_sp = np.real(eigenvecs_sym[:,idx_sp])
+plot_response(sys_sym, x0_sp, ["u", 'alpha','theta','q'],t_final=10, title = "short period")
 
-    atmos_model = Atmosphere(8500, 20)
-    rho = atmos_model.density
+#phugoid
+complex_modes = np.where(np.abs(np.imag(eigenvals_sym)) > 1e-6)[0]
+idx_ph = complex_modes[np.argmin(np.abs(np.imag(eigenvals_sym[complex_modes])))]
+x0_ph = np.real(eigenvecs_sym[:, idx_ph])
+plot_response(sys_sym, x0_ph, ["u","alpha","theta","q"], t_final=200, title = 'phugoid')
 
-    Ixx = 0
-    Iyy = 0
-    Izz = 0
-    Ixz = 0
+#Dutch roll
+idx_dr = np.argmax(np.abs(np.imag(eigenvals_asym)))
+x0_dr = np.real(eigenvecs_asym[:, idx_dr])
+plot_response(sys_asym, x0_dr, ["beta","phi","p","r"], t_final = 40, title = 'dutch roll')
 
-    calculate_aircraft_parameters(1870, 8500, rho[0], 132, 25.65, Ixx, Iyy, Izz, Ixz)
+#Aperiodic roll
+real_modes = np.where(np.abs(np.imag(eigenvals_asym)) < 1e-6 )[0]
+idx_ar = real_modes[np.argmin(np.real(eigenvals_asym[real_modes]))]
+x0_ar = np.real(eigenvecs_asym[:, idx_ar])
+plot_response(sys_asym, x0_ar,["beta","phi","p","r"], t_final=5, title = 'aperiodic roll')
+
+#Spiral
+spiral_options = [i for i in real_modes if i != idx_ar]
+idx_spiral = spiral_options[0]
+x0_spiral = np.real(eigenvecs_asym[:, idx_spiral])
+plot_response(sys_asym, x0_spiral, ["beta","phi","p","r"], t_final = 500, title = 'spiral')
+
+#disturbance inputs
+
+#velocity disturbance
+x0_u = np.array([1,0,0,0]) #phugoid
+x0_alpha = np.array([0, np.deg2rad(2),0,0]) #short period
+x0_beta = np.array([np.deg2rad(5),0,0,0]) #dutch roll
+x0_p = np.array([0,0,np.deg2rad(10),0]) #aperiodic roll
+x0_phi = np.array([0,np.deg2rad(5), 0,0]) #spiral
+
+plot_response(sys_sym, x0_u, ["u","alpha","theta","q"], t_final=200, title = 'v disturbance, phugoid')
+plot_response(sys_sym, x0_alpha, ["u", 'alpha','theta','q'],t_final=10, title = 'alpha disturbance, short period')
+plot_response(sys_asym, x0_beta,  ["beta","phi","p","r"], t_final = 40, title = 'beta disturbance, dutch roll')
+plot_response(sys_asym, x0_p,["beta","phi","p","r"], t_final=5, title = 'roll disturbance, aperiodic roll')
+plot_response(sys_asym, x0_phi, ["beta","phi","p","r"], t_final = 500, title = 'phi disturbance, spiral')
+
+def modal_char(eigenvals,idx):
+    eigval = eigenvals[idx]
+    sigma = np.real(eigval)
+    omega = np.imag(eigval)
+    return sigma, omega
+
+def oscillatory(sigma, omega):
+    wn = np.sqrt(sigma**2 + omega**2)
+    zeta = -sigma /wn
+    period = 2*np.pi /abs(omega)
+    t_half = np.log(2)/(-sigma)
+    return wn, zeta, period, t_half
+
+def real_m(sigma):
+    tau = -1/sigma
+    t_half = np.log(2)/(-sigma)
+    return tau, t_half
+
+
+sigma_sp, omega_sp = modal_char(eigenvals_sym, idx_sp)
+wn_sp, zeta_sp, T_sp, t_half_sp = oscillatory(sigma_sp, omega_sp)
+
+sigma_ph, omega_ph = modal_char(eigenvals_sym, idx_ph)
+wn_ph, zeta_ph, T_ph, t_half_ph = oscillatory(sigma_ph, omega_ph)
+
+sigma_dr, omega_dr = modal_char(eigenvals_asym,idx_dr)
+wn_dr, zeta_dr, T_dr, t_half_dr = oscillatory(sigma_dr, omega_dr)
+
+sigma_ar, omega_ar = modal_char(eigenvals_asym, idx_ar)
+tau_ar, t_half_ar = real_m(sigma_ar)
+
+sigma_spiral, omega_spiral = modal_char(eigenvals_asym, idx_spiral)
+tau_spiral, t_half_spiral = real_m(sigma_spiral)
+
+print("sigma", sigma_spiral)
+print("omega",omega_spiral)
+print("wn", wn_dr)
+print("zeta", zeta_dr)
+print("period", T_dr)
+print("half time period", t_half_spiral)
+print("tau", tau_spiral)
