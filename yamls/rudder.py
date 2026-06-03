@@ -1,5 +1,5 @@
 import numpy as np
-
+from scipy.optimize import fsolve
 
 # Figure 12.12 - x (crcv) / y (tau)
 x_data = np.array([
@@ -38,6 +38,13 @@ def get_tau(crcv):
 def get_crcv(tau):
     return np.interp(tau, y_data, x_data)
 
+# both guesstimated from flight dynamics reader
+Cnb = 0.15
+Cyb = -0.8
+
+# assumed
+Cdy = 0.6
+dc = 1.2
 
 Vs = 25
 S = 25.67
@@ -45,8 +52,9 @@ b = 15.2
 yt = 1.45 + (1.45/2)
 Vmc = 0.95 * Vs
 Vapp = 1.3 * Vs
-Vw = 15.43 # 30 knots for Level 2 A/C
-q = 0.5 * 1.079 * Vmc * Vmc
+Vw = 0.2 * Vs
+rho = 1.079 # 2000ft at ISA +20
+q = 0.5 * rho * Vmc * Vmc
 T = 4050
 
 brbv = 0.8 # 0.7-1.0
@@ -56,27 +64,35 @@ eta = 1.0 # dynamic pressure ratio at the tail
 volume = 0.05 # vertical tail volume coefficient
 Sv = 5.1
 Ss = 16.2 # side area of aircraft profile
-
+svs = Sv/S
 
 # Condition 1 - Asymmetric Thrust
-def cndeltar(T, yt, q, S, b, drmax):
-    return (T*yt)/(q*S*b*drmax)
-def tau(cndeltar, clav, volume, eta, brbv):
-    return (cndeltar) / (clav*volume*eta*brbv)
-def asym_thrust(T, yt, q, S, b, delta_r_max, clav, volume, eta, brbv):
-    cndr_val = cndeltar(T, yt, q, S, b, delta_r_max)
-    tau_val = tau(cndr_val, clav, volume, eta, brbv)
-    if tau_val >= 0.8:
-        raise Exception("Asymmetric thrust: Tau larger than 0.8")
-    crcv = get_crcv(tau_val)
-    if crcv >= 0.5:
-        raise Exception("Asymmetric thrust: Cr/Cv larger than 0.5")
-    return (crcv)
+cndeltar = (T*yt)/(q*S*b*delta_r_max)
+tau = (cndeltar) / (clav*volume*eta*brbv)
+if tau >= 0.8:
+    raise Exception("Asymmetric thrust: Tau larger than 0.8")
+crcv = get_crcv(tau)
+if crcv >= 0.5:
+    raise Exception("Asymmetric thrust: Cr/Cv larger than 0.5")
+print(cndeltar, tau,  crcv)
 
 # Condition 2 - Crosswind Landing
-def Fw(rho, Vw, Ss, Cdy):
-    return 0.5*rho*Vw*Vw*Ss*Cdy
-def cydeltar(clav, eta, tau, brbv, svs):
-    return clav*eta*tau*brbv*svs
+Fw = 0.5 * rho * Vw * Vw * Ss * Cdy
+cydeltar = clav * eta * tau * brbv * svs
+beta = np.atan(Vw/Vapp)
+Vtot = np.sqrt( Vapp**2 + Vw**2 )
+print(cydeltar, beta, Vtot)
 
-print(asym_thrust(T, yt, q, S, b, delta_r_max, clav, volume, eta, brbv))
+def func(x): # x = [sigma, deltaR]
+    beta_term = beta - x[0]
+    return [
+        (0.5 * rho * Vtot ** 2 * S * b) *
+        (Cnb * beta_term + cndeltar * x[1])
+        + (Fw * dc * np.cos(x[0])),
+
+        Fw - (0.5 * rho * Vtot ** 2 * S) *
+        (Cyb * beta_term + cydeltar * x[1])
+    ]
+root = fsolve(func, [1, 1])
+
+print(np.rad2deg(root))
