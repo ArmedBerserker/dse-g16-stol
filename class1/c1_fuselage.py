@@ -15,10 +15,12 @@ def fuselage_cross_section(ac: Aircraft):
 
 def fuselage_external_dimensions(ac: Aircraft):
     fus = ac.fuselage
-    x_pos_seats = ac.fuselage.x_pos_seats
-    x_cargo_holds = ac.fuselage.x_cargo_holds
-    nose_length = 
+    x_pos_seats = fus.x_pos_seats
+    x_cargo_holds = fus.x_cargo_holds
+    nose_length = fus.nose_length
+    fuselage_length = fus.length
     fus.nose_cone_length = fus.nose_cone_fineness_ratio * fus.effective_diameter
+    print(f'nose cone params {fus.nose_cone_length, fus.nose_cone_fineness_ratio, fus.effective_diameter}')
     fus.tail_cone_length = fus.tail_cone_fineness_ratio * fus.effective_diameter
     fus.over_nose_angle = fus.approach_angle + 0.07 * 1.3 * ac.requirements.general['stall_speed']
     fus.x_pos_seats = x_pos_seats

@@ -96,7 +96,6 @@ def pre_loop_calculations(ac: Aircraft) -> Aircraft:
     c1_m.energy_frac_needed(ac, Phi=ac.engine.Phi, update_ac=True)
     c1_m.operating_empty_frac(ac, source_for_fracs='specific', engine_type=ac.engine.alpha_p_id, gear_type=ac.landing_gear.gear_type, update_ac=True)
 
-    # print(f' Fuel weight: {ac.weights.m_fuel}')
     # Matching diagram:
     type_to_use = "Twin Engine Propeller Driven"
     if ac.engine.count == 1:
@@ -113,7 +112,7 @@ def pre_loop_calculations(ac: Aircraft) -> Aircraft:
     print(f' W_e: {ac.weights.m_empty}')
 
     # Fuselage sizing:
-    c1_fuselage.calculate_fuselage_parameters
+    c1_fuselage.calculate_fuselage_parameters(ac)
 
 def compute_aerodynamics(ac: Aircraft) -> Aircraft:
     """
@@ -204,7 +203,6 @@ def compute_class_II_mass_and_cg(ac: Aircraft, iteration: int) -> Aircraft:
 def tail_sizing_wing_positioning(ac: Aircraft, epoch: int) -> Aircraft:
     loading_diagram(ac.wing.x_le, ac, show_plot=True, output_filepath='outputs/init_loading_diagram.png', update_ac_cgs=False)
     wing_pos_arr = np.arange(0,1.01,0.01)
-    # print(f'wing positions: {wing_pos_arr}')
     stability_output = overlay_wing_pos_and_scissor_plot(ac, x_le_w_fus_length_arr=wing_pos_arr, output_filepath=f'outputs/Stability_and_Control/Scissor_plot_{epoch}', show_plot=True, update_ac=False)
     if stability_output[0]>0:
         print(f' \n Sh_S: {stability_output[0]}, x_lemac/mac: {stability_output[1]}, aft_cg: {stability_output[2]}, fwd_cg: {stability_output[3]}, x_le: {stability_output[4]}')
@@ -448,10 +446,10 @@ def run_design_loop(
         _print_epoch(epoch, ac, deltas, config.convergence_params, converged, inner_converged)
 
         # Stop if not enough power
-        if insufficient_to_power_counter >4:
+        if insufficient_to_power_counter >1:
             print(f"\n⚠  Insufficient take-off power for 6 consecutive epochs.")
             break
-        if insufficient_cr_power_counter >4:
+        if insufficient_cr_power_counter >1:
             print(f"\n⚠  Insufficient cruise power for 6 consecutive epochs.")
             break
 
@@ -577,7 +575,7 @@ if __name__ == "__main__":
         max_epochs   = 10,
         history_file = "aircraft_history.json",
         convergence_params = [
-            ConvergenceParam("weights.m_empty", 20.0)
+            ConvergenceParam("weights.m_empty", 1.0)
         ],
     )
 

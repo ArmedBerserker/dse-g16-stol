@@ -190,60 +190,60 @@ class Wing:
 
 @dataclass
 class Fuselage:
-    over_nose_angle: float | None = None 
-    wall_thickness: float | None = None
+    wall_thickness: float
+    floor_thickness: float
+    aisle_height: float
+    clearance: float
+    arm_rest_width: float
+    seat_width: float
+    aisle_width: float
 
-    floor_thickness: float | None = None
-    aisle_height: float | None = None
-    top_compartment_height: float | None = None
+    # Cargo volume
+    cargo_width: float
+    cargo_height: float
+    cargo_length: float
 
-    clearance: float | None = None
-    arm_rest_width: float | None = None
-    seat_width: float | None = None
-    aisle_width: float | None = None
-    top_compartment_width: float | None = None
+    # External dimensions
+    effective_diameter: float
+    nose_length: float
+    nose_cone_fineness_ratio: float
+    nose_cone_length: float
+    tail_cone_fineness_ratio: float
+    tail_cone_length: float
+    # tail_to_cabin: float
+    # tail_to_tail_cone_ratio: float
+    approach_angle: float
+    over_nose_angle: float
+    window_angle: float
+    tail_upsweep: float
 
-    cargo_width: float | None = None
-    cargo_height: float | None = None
-    cargo_length: float | None = None
+    # Internal dimensions
+    seat_pitch: float
+    cockpit_length: float
+    emergency_exit_width: float
+    emergency_exit_height: float
+    door_width: float
+    door_height: float
+    seat_length: float
 
-    tail_cone_fuselage_ratio: float | None = None
-    approach_angle: float | None = None
-
-    seat_pitch: float | None = None
-    cockpit_length: float | None = None
-
-    tail_upsweep_taildragger: float | None = None
-    tail_upsweep_tricycle: float | None = None
-
-    nose_cone_length: float | None = None
-    window_angle: float | None = None
-
-    emergency_exit_width: float | None = None
-    emergency_exit_height: float | None = None
-
-    door_width: float | None = None
-    door_height: float | None = None
-
-    length: float | None = None
-    height: float | None = None
-    width: float | None = None
-    eq_diameter: float | None = None
-    base_area: float | None = None
-    tail_cone_length: float | None = None
-    upsweep_angle: float | None = None
-    max_cross_section_area: float | None = None
-    max_perimeter: float | None = None
-    start_cabin: float | None = None
-    l_cabin: float | None = None
-    vol_cabin_and_cargo: float | None = None
-    x_pos_seats: list | None = None
-    x_cargo_holds: float | None = None # list if multiple, if multiple uncomment the line below for lift of mass fractions (sum to 1)
-    #mass_frac_cargo_holds: null
-    n_pax: int | None = None
-    n_window_seats: int | None = None
-    n_middle_seats: int | None = None
-    n_aisle_seats: int | None = None
+    # Total dimensions
+    length: float
+    height: float
+    width: float
+    base_area: float
+    max_cross_section_area: float
+    max_perimeter: float
+    start_cabin: float
+    l_cabin: float
+    vol_cabin_and_cargo: float
+    x_pos_seats: float
+    x_cargo_holds: float
+    n_pax: int
+    n_window_seats: int
+    n_middle_seats: int
+    n_aisle_seats: int
+    upper_corner_radii: float
+    lower_corner_radii: float
 
     def __str__(self):
         text = "The fuselage is:\n"
