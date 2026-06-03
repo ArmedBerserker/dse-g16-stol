@@ -8,7 +8,7 @@ from classes.isa import Atmosphere
 from lookups.consts import *
 #used table citation values from svv pleun
 atmos_model = Atmosphere(8500, 20)
-rho = atmos_model.density
+rho = atmos_model.density[0]
 
 # Ixx = 0
 # Iyy = 0
@@ -55,9 +55,9 @@ ih = -2*np.pi/180 # Stabiliser angle of incidence [rad]
 # Constant values concerning aircraft inertia
 mub = m/(rho*S*b)
 muc = m/(rho*S*c)
-KX2 = 0.019
-KY2 = 1.25*1.114
-KZ2 = 0.042
+KX2 = 0.019 #Kxsquared
+KY2 = 1.25*1.114 #Kysquared
+KZ2 = 0.042 #Kzsquared
 KXZ = 0.002
 dc = c / V0
 db = b/(2*V0) 
@@ -71,6 +71,7 @@ depsda = 4 / (A + 2)  # Downwash gradient [ ]
 # Lift and drag coefficient
 CL = 2 * mtom *9.81/ (rho * V0 ** 2 * S)  # Lift coefficient [ ]
 CD = CD0 + (CL) ** 2 / (np.pi * A * e)  # Drag coefficient [ ]
+print(CL)
 
 # Stability derivatives
 

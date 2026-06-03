@@ -91,6 +91,10 @@ D_Asym = np.zeros((4,2))
 sys_sym = ctr.ss(A_sym, B_sym, C_sym, D_sym)
 sys_asym = ctr.ss(A_Asym, B_Asym, C_Asym, D_Asym)
 
+# print(A_sym)
+# print(A_Asym)
+# print(B_Asym)
+# print(B_sym)
 # def ASymGen(cessna):
 #     C1Sym = C1SymGen(cessna)
 #     C2Sym = C2SymGen(cessna)
