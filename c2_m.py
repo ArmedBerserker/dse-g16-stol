@@ -339,15 +339,15 @@ def W_pwr_and_x_cg_from_nose(ac: Aircraft,
     Fuel_type = ac.engine.fuel_type  # Check if avgas or Jet-A1 or other
     N_t = ac.engine.n_fuel_tanks # Number of separate fuel tanks
     INT = 1.0  # Fraction of fuel tanks that are intergral
-    # W_pwr = W_eng + W_ai + W_prop + W_fs + W_p + W_batt = W_batt + W_pwr1 + W_fs (fuel system)
+    # W_pwr = W_eng + W_ai + W_prop + W_fs + W_p + W_batt = W_batt + W_prop + + W_eng + W_pwr1 + W_fs (fuel system)
     
     # USAF - Roskam eqn 6.3
     # W_pwr1a = 2.075 * W_eng**0.922 * N_e
     # W_pwr1b = N_e * ac.weights.m_propeller / LBS_TO_KG + W_eng + 1.03 * N_e**0.3 * P_to**0.7
     # print(f' \n Power system weights: USAF:{W_pwr1a} Torenbeek: {W_pwr1b}')
     # W_pwr1 = (W_pwr1a + W_pwr1b) / 2
-
-    W_pwr1 = N_e * ac.weights.m_propeller / LBS_TO_KG + W_eng + 1.03 * N_e**0.3 * P_to**0.7
+    W_prop = N_e * ac.weights.m_propeller / LBS_TO_KG 
+    W_pwr1 = 0  # 1.03 * N_e**0.3 * P_to**0.7  # W_ai + W_p
 
     if alpha_p_id != 'hydrogen':
         if Fuel_type == 'avgas':
@@ -357,47 +357,53 @@ def W_pwr_and_x_cg_from_nose(ac: Aircraft,
         else:
             raise ValueError(f"Fuel type given: {Fuel_type}, should be either 'avgas' or 'Jet-A1'")
         W_fs = 2.49 * ((W_fuel / K_fsp)**0.6 * (1 / (1 + INT))**0.3 * N_t**0.2 * N_e**0.13)**1.21
-    
-    # elif alpha_p_id == 'hydrogen':  # NOTE: insert method of fixed equipment weight
-    #     W_fs = ...
-    
+
+    nac_y = ac.fuselage.width / 2 + ac.engine.eng_y_pos_fuselage
     if ac.engine.eng_x_pos == 'le':
-        nac_y = ac.fuselage.width / 2 + ac.engine.eng_y_pos_fuselage
         x_cg_pwr1 = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, nac_y, x_le_w)
     else:
-        nac_y = ac.fuselage.width / 2 + ac.engine.eng_y_pos_fuselage
         x_cg_pwr1 = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, nac_y, x_le_w) + ac.engine.eng_x_pos * chord_at_y_span(ac.wing.c_root, ac.wing.taper_ratio, ac.engine.eng_y_pos_fuselage+ac.fuselage.width/2, ac.wing.span)
-    x_cg = (W_pwr1 * x_cg_pwr1 + W_fs * (x_le_w + ac.wing.c_root * ac.engine.x_cg_fuel_tanks_c_r) + W_supercap * ac.fuselage.x_cargo_holds) / (W_pwr1 + W_supercap + W_fs)
-    ac.weights.power_system = (W_pwr1 + W_supercap + W_fs) * LBS_TO_KG
+
+    x_cg_eng = x_le_w + ac.engine.eng_x_pos * chord_at_y_span(ac.wing.c_root, ac.wing.taper_ratio, ac.engine.eng_y_pos_fuselage+ac.fuselage.width/2, ac.wing.span)
+    x_cg_prop = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, nac_y, x_le_w) + 0.5
+    x_cg_fs = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, ac.wing.y_MAC, x_le_w) + (ac.wing.x_c_rear_spar - ac.wing.x_c_front_spar) / 2 * ac.wing.MAC
+
+    Weights = np.array([W_pwr1, W_eng * N_e, W_prop, W_fs, W_supercap])
+    x_cgs = np.array([x_cg_pwr1, x_cg_eng, x_cg_prop, x_cg_fs, ac.weights.x_cg_supercap])
+    x_cg = (Weights@x_cgs)/np.sum(Weights)
+    ac.weights.power_system = (np.sum(Weights)) * LBS_TO_KG
     # print(f' \nPower system weight: {(W_pwr1 + W_supercap + W_fs) * LBS_TO_KG}kg \n')
-    return (W_pwr1 + W_supercap + W_fs) * LBS_TO_KG, x_cg
+    return (np.sum(Weights)) * LBS_TO_KG, x_cg
 
 def W_feq_and_cg_from_nose(ac: Aircraft, 
                           x_le_w = 1000):
     Wto = ac.weights.m_takeoff / LBS_TO_KG
-    W_e = ac.weights.m_empty
+    W_e = ac.weights.m_empty / LBS_TO_KG
     N_pax = ac.fuselage.n_pax  # Including crew
     T_cr = float(Atmosphere(ac.requirements.cruise['cr_altitude'] * FT_TO_M).temp_isa)
     M_D = 1.5 * ac.requirements.cruise['cr_speed'] * KTS_TO_MS / np.sqrt(1.4 * 287 * T_cr)  # Design dive Mach number
-    no_pressurization_const = 0.6 # Fraction to take into account api does not have p (pressurization) in our case
+    no_pressurization_const = 0.3 # Fraction to take into account api does not have p (pressurization) in our case
     V_pax_cargo = ac.fuselage.vol_cabin_and_cargo * M2_TO_F2/FT_TO_M  # Volume of passenger cabin and cargo [ft3]
 
-    W_fc = 0.5 * (0.0168 * Wto + 1.066 * Wto**0.626)
+    W_fc = 0.33 * Wto**(2 / 3)
 
     # Cessna
-    W_hps = 0.009 * Wto
+    W_hps = 0.006 * Wto
     W_els = 0.0268 * Wto
     # # Torenbeek (W_hps + W_els = W_hps_els)
-    # W_hps_els = 0.0078 * Wto**1.2
+    W_hps_els = 0.0078 * Wto**1.2
     W_iae = 40 + 0.008 * Wto
-    W_api = (0.265 * Wto**0.52 * N_pax**0.68 * W_iae**0.17 * M_D**0.08) * no_pressurization_const
-    W_fur = 0.5 * (0.412 * N_pax**1.145 * Wto**0.489 + 15 * N_pax + V_pax_cargo)
+    # W_api = (0.265 * Wto**0.52 * N_pax**0.68 * W_iae**0.17 * M_D**0.08) * no_pressurization_const
+    W_api = 14
+    W_fur = 0.412 * N_pax**1.145 * Wto**0.489
     W_ops = 0
-    W_fti = 0.5 * (155 / 9980 * Wto + 708 / 24912 * Wto)
-    W_fti = max(0, (W_fti - ac.weights.m_cargo - (ac.fuselage.n_pax - 1) / ac.fuselage.n_pax * ac.weights.m_pax))
-    W_aux = 0.01 * W_e
+    # W_fti = 0.5 * (155 / 9980 * Wto + 708 / 24912 * Wto)
+    # W_fti = max(0, (W_fti - ac.weights.m_cargo - (ac.fuselage.n_pax - 1) / ac.fuselage.n_pax * ac.weights.m_pax))
+    W_fti = 0
+    # W_aux = 0.01 * W_e
+    W_aux = 0
     W_bal = ac.weights.ballast_rear
-    W_pt = 0.0045 * Wto
+    W_pt = 0.003 * Wto
     W_etc = 0  # NOTE: check if there are other things to include
 
     # CG from nose - *indicated source = https://archive.aoe.vt.edu/mason/Mason_f/M96SC02.pdf 
@@ -429,6 +435,7 @@ def W_feq_and_cg_from_nose(ac: Aircraft,
     x_cg_fc = (x_c_rear_spar + 1) / 2 * chord_fc + y_fc  # *Between aft spar and trailing-edge
     x_cg_hps = ((x_c_rear_spar - x_c_front_spar) / 2 * c_r_w + x_le_w) * 0.7 + (l_fus - 0.5 * l_tc) * 0.3  # *
     x_cg_els = x_cg_hps * 0.7  # * Battery cables between 
+    x_cg_hps_els = ac.wing.x_le * 0.9
     x_cg_iae = x_nlg # *
     x_cg_api = (b_w * x_le_w + b_ht * x_le_ht + b_vt * x_le_vt) / (b_w + b_ht + b_vt)  # De-icing on leading edges of wing, ht and vt
     x_cg_fur = start_cabin + 0.6 * l_cabin  # *
@@ -440,9 +447,11 @@ def W_feq_and_cg_from_nose(ac: Aircraft,
     x_cg_etc = 0  # NOTE: check if there was anything to add
 
     # print(f'Weights FEQ: {W_fc, W_hps, W_els, W_iae, W_api, W_fur, W_ops, W_fti, W_aux, W_pt, W_etc}')
-    Weights = np.array([W_fc, W_hps, W_els, W_iae, W_api, W_fur, W_ops, W_fti, W_aux, W_bal, W_pt, W_etc])
+    # Weights = np.array([W_fc, W_hps, W_els, W_iae, W_api, W_fur, W_ops, W_fti, W_aux, W_bal, W_pt, W_etc])
+    Weights = np.array([W_fc, W_hps_els, W_iae, W_api, W_fur, W_ops, W_fti, W_aux, W_bal, W_pt, W_etc])
     W_feq = np.sum(Weights)
-    cgs = np.array([x_cg_fc, x_cg_hps, x_cg_els, x_cg_iae, x_cg_api, x_cg_fur, x_cg_ops, x_cg_fti, x_cg_aux, x_cg_bal, x_cg_pt, x_cg_etc])
+    # cgs = np.array([x_cg_fc, x_cg_hps, x_cg_els, x_cg_iae, x_cg_api, x_cg_fur, x_cg_ops, x_cg_fti, x_cg_aux, x_cg_bal, x_cg_pt, x_cg_etc])
+    cgs = np.array([x_cg_fc, x_cg_hps_els, x_cg_iae, x_cg_api, x_cg_fur, x_cg_ops, x_cg_fti, x_cg_aux, x_cg_bal, x_cg_pt, x_cg_etc])
     x_cg_feq = (Weights@cgs) / W_feq
 
     return W_feq * LBS_TO_KG, x_cg_feq
@@ -512,9 +521,9 @@ def W_emp(ac: Aircraft, update_ac: bool = False):
     # # Torenbeek
     # W_emp_t = 0.04 * (n_ult * (S_v + S_h)**2)**0.75
 
-    W_ht = (W_h_c + W_h_u) / 2
+    W_ht = min(W_h_c, W_h_u)
     # W_vt = (W_v_c + W_v_u) / 2
-    W_vt = (0.5*W_v_c + 1.5*W_v_u) / 2
+    W_vt = min(W_v_c, W_v_u)
     if ac.empennage.t_tail_condition:
         W_vt *= 1.15
     # print(f'\n HT weight: \t Cessna: {W_h_c * LBS_TO_KG} \t USAF: {W_h_u * LBS_TO_KG}')
@@ -542,7 +551,7 @@ def W_fus(ac: Aircraft, update_ac: bool = False):
     # USAF
     W_fus_u = 200 * ((Wto * n_ult * 1e-5)**0.286 * (l_f / 10)**0.857 * ((w_f + h_f) / 10) * (V_c / 100)**0.338)**1.1
     # print(f'\n fus weight: \t Cessna: {W_fus_c * LBS_TO_KG} \t USAF: {W_fus_u * LBS_TO_KG}')
-    return (W_fus_c + W_fus_u) / 2 * LBS_TO_KG
+    return min(W_fus_c, W_fus_u) * LBS_TO_KG
 
 def W_nac(ac: Aircraft, update_ac: bool = False):
     alpha_p_id = ac.engine.alpha_p_id  # turboprop or hydrogen or piston
@@ -551,21 +560,15 @@ def W_nac(ac: Aircraft, update_ac: bool = False):
 
     # Cessna NOTE: fill in methods
     if alpha_p_id == 'piston':
-        engine_type = 'horizontally opposed'
+        engine_type = ac.engine.piston_type
         if engine_type == 'radial':
             K_n = 0.37   # lbs/hp 
         elif engine_type == 'horizontally opposed':
             K_n = 0.24   # lbs/hp 
 
         W_n_c = K_n * P_to
-    # elif alpha_p_id == 'hydrogen':
-    #     W_n_c = ...
-    # elif alpha_p_id =='turboprop':
-    #     W_n_c = ...
 
-    # Torenbeek
-    if alpha_p_id == 'piston':
-        engine_type = 'horizontally opposed'
+        # Torenbeek 
         if engine_type == 'radial':
             N_e = ac.engine.count
             W_n_t = 0.045 * P_to**1.25 * N_e**(-0.25)
@@ -573,12 +576,8 @@ def W_nac(ac: Aircraft, update_ac: bool = False):
             W_n_t = 0.32 * P_to 
         if engine_over_wing:
             W_n_t += 0.11 * P_to
-        # print(f'\n nac weight: \t Cessna: {W_n_c * LBS_TO_KG} \t Torenbeek: {W_n_t * LBS_TO_KG}')
-        # return (W_n_c + W_n_t) / 2 * LBS_TO_KG
-        return W_n_c * LBS_TO_KG
+        return W_n_c * LBS_TO_KG 
 
-    # elif alpha_p_id == 'hydrogen':
-    #     W_n_t = ...
     elif alpha_p_id =='turboprop':
         W_n_t = 0.14 * P_to 
         if engine_over_wing:
@@ -593,9 +592,7 @@ def W_gear(ac: Aircraft, update_ac: bool = False):
     d_tire_n = ac.landing_gear.selected_nlg_tire["Outside Diameter Max (In)"] * 2.54 / 100  # tire diameter
     l_s_m = shock_strut_frac_whole * (np.abs(ac.landing_gear.height_mlg) - d_tire / 2) / FT_TO_M # Shock strut length main gear [ft]
     l_s_n = shock_strut_frac_whole * (np.abs(ac.landing_gear.height_nlg) - d_tire_n / 2) / FT_TO_M # Shock strut length nose gear [ft]
-    l_s_m = shock_strut_frac_whole * (np.abs(ac.landing_gear.height_mlg)) / FT_TO_M # Shock strut length main gear [ft]
-    l_s_n = shock_strut_frac_whole * (np.abs(ac.landing_gear.height_nlg)) / FT_TO_M # Shock strut length nose gear [ft]
-    n_ult = ac.requirements.general['n_ult']
+    n_ult = 5.7  # ac.requirements.general['n_ult']
 
     # Cessna
     W_mlg = (0.013 * Wto + 0.362 * (W_L**0.417) * (n_ult**0.950) * (l_s_m**0.183))

@@ -125,6 +125,7 @@ class Weights:
     x_cg_fwd: float | None
     z_cg: float | None
     ballast_rear: float | None
+    x_cg_supercap: float | None
 
     def __str__(self):
         text = "The weights are:\n"
@@ -290,6 +291,7 @@ class HLD_and_AIL:
 @dataclass
 class Engine:
     engine_type : str | None
+    piston_type: str | None
     alpha_p_id : str | None
     count : int | None
     eta_1 : list[float] | None        # this corresponds to the fuel always

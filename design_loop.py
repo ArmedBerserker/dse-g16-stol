@@ -41,10 +41,10 @@ from lookups.consts import *
 # 0. Helper function
 def check_power_requirement(ac: Aircraft):
     e = ac.engine
-    P_a_cr = e.eta_1 * e.eta_3 * e.engine_power_cruise
+    P_a_cr = e.eta_3 * e.engine_power_cruise
     P_r_cr = e.power_cr
     phi = (e.super_cap_power) / (e.super_cap_power + e.engine_power_cruise)
-    P_a_to = e.eta_1 * e.engine_power_takeoff * e.eta_3 + e.eta_2 * e.super_cap_power * e.eta_3
+    P_a_to = e.engine_power_takeoff * e.eta_3 + e.eta_2 * e.super_cap_power * e.eta_3
     P_r_to = e.power_to
     condition_cr = P_r_cr < P_a_cr
     condition_to = P_r_to < P_a_to
@@ -202,7 +202,7 @@ def compute_class_II_mass_and_cg(ac: Aircraft, iteration: int) -> Aircraft:
     return ac
 
 def tail_sizing_wing_positioning(ac: Aircraft, epoch: int) -> Aircraft:
-    loading_diagram(ac.wing.x_le, ac, show_plot=False, output_filepath='outputs/init_loading_diagram.png', update_ac_cgs=False)
+    loading_diagram(ac.wing.x_le, ac, show_plot=True, output_filepath='outputs/init_loading_diagram.png', update_ac_cgs=False)
     wing_pos_arr = np.arange(0,1.01,0.01)
     # print(f'wing positions: {wing_pos_arr}')
     stability_output = overlay_wing_pos_and_scissor_plot(ac, x_le_w_fus_length_arr=wing_pos_arr, output_filepath=f'outputs/Stability_and_Control/Scissor_plot_{epoch}', show_plot=True, update_ac=False)
@@ -230,10 +230,10 @@ def Class_II_drag(ac: Aircraft, epoch):
     c2_drag_new.C_D_L(ac, CD0, flight_condition='cruise', update_ac=True, wing_tip=False)
     # Take-off
     ac.wing.CD0_to = c2_drag_new.CD0(ac, n_engine_inoperative=0, flight_condition='take-off', update_ac=False)
-    CDi, ac.wing.e_to, ac.wing.k_to, ac.wing.ld_to = c2_drag_new.C_D_L(ac, ac.wing.CD0_to, flight_condition='take-off', update_ac=True, wing_tip=False)
+    CDi, ac.wing.e_to, ac.wing.k_to, ac.wing.ld_to = c2_drag_new.C_D_L(ac, ac.wing.CD0_to, flight_condition='take-off', update_ac=False, wing_tip=False)
     # Landing
     ac.wing.CD0_ld = c2_drag_new.CD0(ac, n_engine_inoperative=0, flight_condition='landing', update_ac=False)
-    CDi, ac.wing.e_ld, ac.wing.k_ld, ac.wing.ld_landing = c2_drag_new.C_D_L(ac, ac.wing.CD0_ld, flight_condition='landing', update_ac=True, wing_tip=False)
+    CDi, ac.wing.e_ld, ac.wing.k_ld, ac.wing.ld_landing = c2_drag_new.C_D_L(ac, ac.wing.CD0_ld, flight_condition='landing', update_ac=False, wing_tip=False)
     return ac
 
 ITERATION_STEPS1: list[Callable[[Aircraft], Aircraft]] = [
@@ -448,10 +448,10 @@ def run_design_loop(
         _print_epoch(epoch, ac, deltas, config.convergence_params, converged, inner_converged)
 
         # Stop if not enough power
-        if insufficient_to_power_counter >5:
+        if insufficient_to_power_counter >4:
             print(f"\n⚠  Insufficient take-off power for 6 consecutive epochs.")
             break
-        if insufficient_cr_power_counter >5:
+        if insufficient_cr_power_counter >4:
             print(f"\n⚠  Insufficient cruise power for 6 consecutive epochs.")
             break
 
@@ -551,7 +551,7 @@ def summarise_convergence(history_file: str = "aircraft_history.json") -> None:
 
 
 if __name__ == "__main__":
-    ac = Aircraft('Boosted_turboprop_tricycle',
+    ac_tp = Aircraft('Boosted_turboprop_tricycle',
                 loader.load('concepts/reqs_turb.yaml', Requirements),
                 loader.load('yamls/mission.yaml', Mission),
                 loader.load('yamls/weights.yaml', Weights),
@@ -562,16 +562,27 @@ if __name__ == "__main__":
                 loader.load('yamls/HLD_and_ailerons.yaml', HLD_and_AIL),
                 loader.load('concepts/tricycle_gear.yaml', Landing_Gear))
 
+    ac_piston = Aircraft('Boosted_piston_tricycle',
+                loader.load('concepts/reqs_nturb.yaml', Requirements),
+                loader.load('yamls/mission.yaml', Mission),
+                loader.load('yamls/weights.yaml', Weights),
+                loader.load('concepts/wing_electra.yaml', Wing),
+                loader.load('concepts/fus_tri.yaml', Fuselage),
+                loader.load('concepts/engine_piston_b.yaml', Engine),
+                loader.load('concepts/tricycle_empennage.yaml', Empennage),
+                loader.load('yamls/HLD_and_ailerons.yaml', HLD_and_AIL),
+                loader.load('concepts/tricycle_gear.yaml', Landing_Gear))
+
     config = DesignLoopConfig(
-        max_epochs   = 3,
+        max_epochs   = 10,
         history_file = "aircraft_history.json",
         convergence_params = [
-            ConvergenceParam("weights.m_empty", 1.0),
-            ConvergenceParam("wing.area", 0.01),
-            ConvergenceParam("wing.ld", 0.01),
+            ConvergenceParam("weights.m_empty", 20.0)
         ],
     )
 
-    final_aircraft = run_design_loop(ac, config)
+    final_aircraft = run_design_loop(ac_piston, config)
     print("\nFinal aircraft state:")
     print(final_aircraft)
+
+    summarise_convergence()

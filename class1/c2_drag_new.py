@@ -450,12 +450,13 @@ def C_D_L(ac: Aircraft,
     K = 1 / (np.pi * A_eff * e)
     CDi = C_L**2 * K
     tip_twist = ac.wing.tip_twist  # degrees
-    ld = 0.5 * np.sqrt(1 / (K * CD0))
+    ld = 0.5 * np.sqrt(np.pi * A_eff * e / CD0)
+    print(f'lift/drag values: A_eff: {A_eff}, e: {e}, CD0: {CD0} \n L/D: {ld}')
     if tip_twist != 0:
         CDi += 0.00004 * 2 / 3 * tip_twist
     if update_ac:
         ac.wing.e = e
         ac.wing.k = K
         ac.wing.ld = ld
-        ac.wing.aspect_ratio = A_eff
+        # ac.wing.aspect_ratio = A_eff
     return CDi, e, K, ld

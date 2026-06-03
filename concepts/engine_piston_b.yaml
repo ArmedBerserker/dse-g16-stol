@@ -1,4 +1,5 @@
 engine_type : prop
+piston_type: horizontally opposed
 alpha_p_id : piston  # turboprop or hydrogen or piston
 count : 2          # number of engines aboard
 #       [combustion]
@@ -18,14 +19,13 @@ n_fuel_tanks: 2
 x_cg_fuel_tanks_c_r: 0.4
 fuel_type: avgas
 engine_power_cruise: 202000  # watts
+engine_power_takeoff: 234000  # watts
 super_cap_power: 60000  # watts
 power_cr: 196521  # watts
 power_to: 216730 # watts 
-prop_diameter: 2.03 m
+prop_diameter: 2.03 # m
 nac_diameter: 0.63  # m
-length_nac: 1.26  # m 2x diameter
-y_prop: null   # Distance from aircraft centerline to the center of the (outboard) propeller
-z_prop : null  # Height of the lowest (outboard) propeller point. Measured from the bottom of the fuselage
+length_nac: 1.56  # m 2x diameter
 nac_t_c_max: 0.5
 nac_x_c_t_c_max: 0.5
 i_n: 0

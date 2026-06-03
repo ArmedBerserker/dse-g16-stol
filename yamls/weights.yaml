@@ -1,13 +1,13 @@
 
-m_takeoff: 2000
+m_takeoff: 1750
 m_empty: null
-m_payload: 680  # kg CHANGE VALUE (assumed 6 pax * 84 kg + 200 kg)
+m_payload: 680  # kg CHANGE VALUE (assumed 6 pax * 80 kg + 200 kg)
 m_pax: 480
 m_cargo: 200
 m_energy: null
 m_fuel: null
 m_battery: null
-m_piston: 91.2
+m_piston: 111.2  # 91.2
 m_supercap: 36 
 m_turboprop: 96.2
 m_propeller: 10
@@ -16,4 +16,6 @@ x_cg_aft: 3.23  # Taildragger
 x_cg_fwd: 2.88
 z_cg: 1.29  # from bottom of fuselage
 ballast_rear: 0 # kg
+x_cg_supercap: 5  # m
+
 

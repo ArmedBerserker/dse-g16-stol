@@ -153,13 +153,17 @@ def size_empennage_planform(ac: Aircraft, epoch: int):
     vt['MAC_v'] = MAC_v
     vt['y_MAC_v'] = y_MAC_v
     vt['sweep'] = np.rad2deg(np.arctan(np.tan(np.deg2rad(LE_sweep_v)) - 0.5 * c_r_v / b_v * (1 - taper_v)))
-    vt['x_le'] = x_v - y_MAC_v * np.tan(np.deg2rad(vt['sweep_LE_deg'])) - 0.4 * MAC_v
+    vt['x_le'] = x_v - y_MAC_v * np.tan(np.deg2rad(vt['sweep_LE_deg'])) - MAC_v * 0.25
 
     # Calculate moment arms dynamically
     # vt_moment_arm = x_v - x_cgaft
     # ht['l_h'] = ht_moment_arm
-    x_h = x_v + b_v * np.tan(np.deg2rad(LE_sweep_v))
-    ht_moment_arm = x_h - x_cgaft + 1
+    ht['x_le'] = vt['x_le'] + 0.25 * c_r_v + b_v * np.tan(np.deg2rad(vt['sweep']))
+    if epoch > 1:
+        x_h = ht['x_le'] + 0.25 * ht['c_r_h'] + ht['y_MAC_h'] * np.tan(np.deg2rad(sweep_h))
+    else:
+        x_h = ht['x_le'] + 0.5
+    ht_moment_arm = x_h - x_cgaft
     #     ht_moment_arm = x_h -  ac.wing.x_le + ac.wing.y_MAC * np.tan(np.deg2rad(ac.wing.sweep_LE_deg)) + 0.25 * ac.wing.MAC
     ht['l_h'] = ht_moment_arm
 
@@ -187,7 +191,7 @@ def size_empennage_planform(ac: Aircraft, epoch: int):
     ht['MAC_h'] = MAC_h
     ht['y_MAC_h'] = y_MAC_h
     ht['sweep_LE_deg'] = np.rad2deg(np.arctan(np.tan(np.deg2rad(sweep_h)) + 0.5 * c_r_h / b_h * (1 - taper_h)))
-    ht['x_le'] = x_h - y_MAC_h * np.tan(np.deg2rad(ht['sweep_LE_deg'])) - 0.4 * MAC_h
+    # ht['x_le'] = x_h - y_MAC_h * np.tan(np.deg2rad(ht['sweep_LE_deg'])) - 0.25 * MAC_h
 
     
     return ac
