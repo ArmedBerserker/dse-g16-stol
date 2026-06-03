@@ -1,7 +1,7 @@
 import numpy as np
 
 
-# Figure 12.12 - x (tau) / y (c_R/c_V)
+# Figure 12.12 - x (crcv) / y (tau)
 x_data = np.array([
     0.0055, 0.0124, 0.0193, 0.0262, 0.0332, 0.0401, 0.0470, 0.0539,
     0.0608, 0.0677, 0.0746, 0.0815, 0.0884, 0.0954, 0.1023, 0.1092,
@@ -17,7 +17,6 @@ x_data = np.array([
     0.6138, 0.6207, 0.6276, 0.6345, 0.6414, 0.6483, 0.6552, 0.6621,
     0.6691, 0.6760, 0.6829, 0.6898, 0.6967
 ])
-
 y_data = np.array([
     0.0144, 0.0378, 0.0609, 0.0835, 0.1054, 0.1263, 0.1460, 0.1645,
     0.1818, 0.1980, 0.2133, 0.2278, 0.2414, 0.2544, 0.2667, 0.2784,
@@ -34,32 +33,50 @@ y_data = np.array([
     0.7800, 0.7847, 0.7895, 0.7943, 0.7990
 ])
 
-S=25.67
-b=15.2
-yt=1.45 + (1.45/2)
-Vmc=1.05*25
-q=0.5*1.079*Vmc*Vmc
-T = 4800
-
-
-brbv = 0.8 # 0.7-1.0
-delta_r_max=np.deg2rad(30)
-clav = 4.5
-eta = 1.0 # dynamic pressure ratio at the tail
-volume = 0.06275
-
 def get_tau(crcv):
     return np.interp(crcv, x_data, y_data)
 def get_crcv(tau):
     return np.interp(tau, y_data, x_data)
 
+
+Vs = 25
+S = 25.67
+b = 15.2
+yt = 1.45 + (1.45/2)
+Vmc = 0.95 * Vs
+Vapp = 1.3 * Vs
+Vw = 15.43 # 30 knots for Level 2 A/C
+q = 0.5 * 1.079 * Vmc * Vmc
+T = 4050
+
+brbv = 0.8 # 0.7-1.0
+delta_r_max = np.deg2rad(30)
+clav = 6
+eta = 1.0 # dynamic pressure ratio at the tail
+volume = 0.05 # vertical tail volume coefficient
+Sv = 5.1
+Ss = 16.2 # side area of aircraft profile
+
+
+# Condition 1 - Asymmetric Thrust
 def cndeltar(T, yt, q, S, b, drmax):
     return (T*yt)/(q*S*b*drmax)
 def tau(cndeltar, clav, volume, eta, brbv):
     return (cndeltar) / (clav*volume*eta*brbv)
+def asym_thrust(T, yt, q, S, b, delta_r_max, clav, volume, eta, brbv):
+    cndr_val = cndeltar(T, yt, q, S, b, delta_r_max)
+    tau_val = tau(cndr_val, clav, volume, eta, brbv)
+    if tau_val >= 0.8:
+        raise Exception("Asymmetric thrust: Tau larger than 0.8")
+    crcv = get_crcv(tau_val)
+    if crcv >= 0.5:
+        raise Exception("Asymmetric thrust: Cr/Cv larger than 0.5")
+    return (crcv)
 
+# Condition 2 - Crosswind Landing
+def Fw(rho, Vw, Ss, Cdy):
+    return 0.5*rho*Vw*Vw*Ss*Cdy
+def cydeltar(clav, eta, tau, brbv, svs):
+    return clav*eta*tau*brbv*svs
 
-cndr_val = cndeltar(T, yt, q, S, b, delta_r_max)
-tau_val = tau(cndr_val, clav, volume, eta, brbv)
-crcv = get_crcv(tau_val)
-print(cndr_val, tau_val, crcv)
+print(asym_thrust(T, yt, q, S, b, delta_r_max, clav, volume, eta, brbv))
