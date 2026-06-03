@@ -191,17 +191,27 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_G_Diagram.p
     m_AC = (nCp - 1.0) / Vc
     m_CD = (nDp - nCp) / (Vd - Vc)
 
-    # Intersection of C'-D' gust segment with n_max
+    # ==========================================================
+    # ROBUST GUST–MANEUVER INTERSECTION LOGIC
+    # ==========================================================
 
-    if abs(m_CD) > 1e-12:
-        V_gust_maneuver = Vc + (n_max - nCp) / m_CD
-    else:
+    # Value of gust line at Vd
+    n_gust_at_Vd = nCp + m_CD * (Vd - Vc)
+
+    # Check if gust ever reaches n_max
+    if n_gust_at_Vd <= n_max:
+        # CASE B: gust never reaches maneuver limit
         V_gust_maneuver = Vd
+        use_plateau = False
+    else:
+        # CASE A: gust intersects n_max inside VC–VD
+        if abs(m_CD) > 1e-12:
+            V_gust_maneuver = Vc + (n_max - nCp) / m_CD
+        else:
+            V_gust_maneuver = Vd
 
-    V_gust_maneuver = np.clip(
-        V_gust_maneuver,
-        Vc,
-        Vd)
+        V_gust_maneuver = np.clip(V_gust_maneuver, Vc, Vd)
+        use_plateau = True
 
     # Lower gust segments
     m_AF = (nCm - 1.0) / Vc
@@ -235,8 +245,14 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_G_Diagram.p
     n_upper_3 = (nCp + m_CD * (V_upper_3 - Vc))
 
     # G -> VD
-    V_upper_4 = V[V > V_gust_maneuver]
-    n_upper_4 = np.full_like(V_upper_4, n_max)
+    if use_plateau:
+        # G → VD plateau at n_max
+        V_upper_4 = V[V > V_gust_maneuver]
+        n_upper_4 = np.full_like(V_upper_4, n_max)
+    else:
+        # NO plateau: gust controls all the way to VD
+        V_upper_4 = np.array([])
+        n_upper_4 = np.array([])
 
     # ----------------------------
     # Lower branch
@@ -322,9 +338,14 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_G_Diagram.p
         zorder=100
     )
 
+    if use_plateau:
+        y_top = n_max
+    else:
+        y_top = nDp  # or max(nDp, nDm) depending on visual preference
+
     ax.plot(
         [Vd, Vd],
-        [nDm, n_max],
+        [nDm, y_top],
         color='black',
         linewidth=3,
         zorder=100
