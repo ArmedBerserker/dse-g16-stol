@@ -15,9 +15,37 @@ def fuselage_cross_section(ac: Aircraft):
 
 def fuselage_external_dimensions(ac: Aircraft):
     fus = ac.fuselage
+    x_pos_seats = ac.fuselage.x_pos_seats
+    x_cargo_holds = ac.fuselage.x_cargo_holds
+    nose_length = 
     fus.nose_cone_length = fus.nose_cone_fineness_ratio * fus.effective_diameter
     fus.tail_cone_length = fus.tail_cone_fineness_ratio * fus.effective_diameter
     fus.over_nose_angle = fus.approach_angle + 0.07 * 1.3 * ac.requirements.general['stall_speed']
+    fus.x_pos_seats = x_pos_seats
+    fus.x_cargo_holds = x_cargo_holds
+    fus.nose_length = nose_length
+    fus.start_cabin = fus.x_pos_seats[0] - fus.seat_length / 2
+    if fuselage_length == 0:
+        fus.length = (0.86 * (ac.weights.m_takeoff / LBS_TO_KG) ** 0.42) * FT_TO_M
+    else:
+        fus.length = fuselage_length
+    fus.l_cabin = fus.length - fus.tail_cone_length - fus.nose_length - fus.cockpit_length * INCH_TO_M  # 3.8
+    
+
+    fus.base_area = 0.1
+    fus.n_pax = 6
+    fus.n_window_seats = 2
+    fus.n_middle_seats = 0
+    fus.n_aisle_seats = 0
+    
+    fus.max_perimeter = math.pi * fus.upper_corner_radii + (fus.width - fus.upper_corner_radii * 2) + math.pi * fus.lower_corner_radii + (fus.width - fus.lower_corner_radii * 2) + (fus.height - fus.upper_corner_radii - fus.lower_corner_radii) * 2 # math.pi * fus.upper_corner_radii + math.pi * fus.lower_corner_radii + 0.65 + 0.35 + 2 * 0.75
+    fus.max_cross_section_area = math.pi * fus.upper_corner_radii ** 2 / 2 + math.pi * fus.lower_corner_radii ** 2 / 2 + (fus.width - fus.upper_corner_radii * 2) * fus.upper_corner_radii + (fus.width - fus.lower_corner_radii * 2) * fus.lower_corner_radii + (fus.height - fus.upper_corner_radii - fus.lower_corner_radii) * fus.width # math.pi * fus.upper_corner_radii ** 2 / 2 + math.pi * fus.lower_corner_radii ** 2 / 2 + 1.35 * 0.75 + 0.65 * fus.lower_corner_radii + 0.35 * fus.upper_corner_radii
+    internal_area = math.pi * (fus.upper_corner_radii - fus.wall_thickness) ** 2 / 2 + math.pi * (fus.lower_corner_radii - fus.wall_thickness) ** 2 / 2 + (fus.width - 2 * fus.wall_thickness) * (fus.height - fus.upper_corner_radii - fus.lower_corner_radii) + (fus.width - 2 * fus.upper_corner_radii) * (fus.lower_corner_radii - fus.wall_thickness) + (fus.width - 2 * fus.lower_corner_radii) * fus.lower_corner_radii + (fus.width - 2 * fus.upper_corner_radii) * fus.upper_corner_radii # 0.65 * fus.lower_corner_radii + 0.35 * fus.upper_corner_radii
+    fus.vol_cabin_and_cargo = fus.cargo_length * fus.cargo_width * fus.cargo_height + internal_area * fus.l_cabin    
+    # fus = ac.fuselage
+    # fus.nose_cone_length = fus.nose_cone_fineness_ratio * fus.effective_diameter
+    # fus.tail_cone_length = fus.tail_cone_fineness_ratio * fus.effective_diameter
+    # fus.over_nose_angle = fus.approach_angle + 0.07 * 1.3 * ac.requirements.general['stall_speed']
 
     # fus.length = 9
     # fus.base_area = 0.0875
@@ -34,20 +62,20 @@ def fuselage_external_dimensions(ac: Aircraft):
     # fus.x_pos_seats = [1.92, 3.5, 4.5]  
     # fus.x_cargo_holds = (5.5*1 + 6.25*0.25)/1.25 # 5
 
-    fus.length = 9
-    fus.base_area = 0.0875
-    fus.start_cabin = 1.92
-    fus.l_cabin = 4.5-1.92
-    fus.n_pax = 6
-    fus.n_window_seats = 2
-    fus.n_middle_seats = 0
-    fus.n_aisle_seats = 0
-    fus.max_perimeter = math.pi * 0.55 + math.pi * 0.4 + 0.65 + 0.35 + 2 * 0.75
-    fus.max_cross_section_area = math.pi * 0.55 ** 2 / 2 + math.pi * 0.4 ** 2 / 2 + 1.35 * 0.75 + 0.65 * 0.4 + 0.35 * 0.55
-    internal_area = math.pi * 0.5 ** 2 / 2 + math.pi * 0.35 ** 2 / 2 + 1.35 * 0.75 + 0.65 * 0.4 + 0.35 * 0.55
-    fus.vol_cabin_and_cargo = fus.max_cross_section_area * fus.l_cabin
-    fus.x_pos_seats = [1.92, 3, 3.6]  
-    fus.x_cargo_holds = 5
+    # fus.length = 9
+    # fus.base_area = 0.0875
+    # fus.start_cabin = 1.92
+    # fus.l_cabin = 4.5-1.92
+    # fus.n_pax = 6
+    # fus.n_window_seats = 2
+    # fus.n_middle_seats = 0
+    # fus.n_aisle_seats = 0
+    # fus.max_perimeter = math.pi * 0.55 + math.pi * 0.4 + 0.65 + 0.35 + 2 * 0.75
+    # fus.max_cross_section_area = math.pi * 0.55 ** 2 / 2 + math.pi * 0.4 ** 2 / 2 + 1.35 * 0.75 + 0.65 * 0.4 + 0.35 * 0.55
+    # internal_area = math.pi * 0.5 ** 2 / 2 + math.pi * 0.35 ** 2 / 2 + 1.35 * 0.75 + 0.65 * 0.4 + 0.35 * 0.55
+    # fus.vol_cabin_and_cargo = fus.max_cross_section_area * fus.l_cabin
+    # fus.x_pos_seats = [1.92, 3, 3.6]  
+    # fus.x_cargo_holds = 5
 
 
 def calculate_fuselage_parameters(ac:Aircraft):
