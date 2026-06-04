@@ -15,16 +15,16 @@ def stall_speed(mtow, C_l_max, rho, S):
     return math.sqrt((2 * mtow)/(rho * S * C_l_max))
 
 
-def calculate_cd(cd0, e, AR, mtow, rho_0, V, S):
-    C_l = mtow / (0.5 * rho_0 * V ** 2 * S)
-    C_d = cd0 + C_l ** 2 / (np.pi * AR * e)
+# def calculate_cd(cd0, e, AR, mtow, rho_0, V, S):
+#     C_l = mtow / (0.5 * rho_0 * V ** 2 * S)
+#     C_d = cd0 + C_l ** 2 / (np.pi * AR * e)
 
-    return C_d
+#     return C_d
 
 
-def calculate_power_required(C_d, rho_0, V, S):
-    P_r = C_d * 0.5 * rho_0 * V ** 3 * S
-    return P_r
+# def calculate_power_required(C_d, rho_0, V, S):
+#     P_r = C_d * 0.5 * rho_0 * V ** 3 * S
+#     return P_r
 
 
 def power_curves(P_a_list, P_r_list, V):
@@ -37,6 +37,22 @@ def power_curves(P_a_list, P_r_list, V):
     # plt.show()
 
     return P_a_list - P_r_list
+
+def power_curves(cd0, e, AR, mtow, V, S,alt_m, eta_p, P_shaft):
+
+    atmos_model = Atmosphere(alt_m, 0)
+    rho = atmos_model.density[0]
+    C_l = mtow / (0.5 * rho * V ** 2 * S)
+    C_d = cd0 + C_l ** 2 / (np.pi * AR * e)
+    P_r = C_d * 0.5 * rho * V ** 3 * S #DV
+    P_a = 231000 #eta_p * P_shaft #eta p will be variable
+    excess_power = P_a - P_r
+    return excess_power
+
+excess_power = power_curves(0.03487, 0.752, 10.2, 1865, 68,23.7,3048, 0.84, 298000)
+print("power",excess_power)
+
+
 
 
 def RoC_vs_V(excess_power, V, mtow):
@@ -112,6 +128,9 @@ def power_curves_altitude(cd0, e, AR, mtow, rho_0, S, P_a_0, n, delta_T):
 
     return P_a_alts, P_r_alts, V_alts
 
+def climb_gradient(roc, v):
+    Climb_grad=roc/V
+    return Climb_grad
 
 def RoC_multiple_alts(P_a_lists, P_r_lists, V_alts, mtow):
     
@@ -316,7 +335,7 @@ if __name__ == '__main__':
         n = data["n"]
 
         # Power available
-        P_a = P_a_0 * (rho_0 / 1.225) ** n
+        P_a = P_a_0 * (rho_0 / 1.225) ** n #changes
         P_a_list = P_a * np.ones_like(V)
 
         # Drag coefficient
