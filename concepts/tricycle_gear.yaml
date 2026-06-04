@@ -7,7 +7,7 @@ n_nlg_min_as: 0.08 # Minimum nose(tail) landing gear load fraction. Value from V
 n_nlg_max_as: 0.15 # Maximum nose(tail) landing gear load fraction. Value from Vos
 tipover: 15     # Tip-over angle requirement [degrees]. Value from Vos
 scrape: 15      # Scrape angle requirement  [degrees]. Not applicable for taildragger. Value from Roskam
-prop_clear: 0.23 # propeller clearance requirement with nose wheel [m]. From CS25.925
+prop_clear: 0.18 # propeller clearance requirement with nose wheel [m]. From CS25.925
 fus_pitch: 0          # Fuselage inclination relative to ground plane [degrees]
 turnover: 50          # Turnover angle requirement [degrees]. Value from Roskam for rough field
 bank: 8               # Bank angle clearance requirement [degrees]. Valye from Vos

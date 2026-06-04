@@ -6,28 +6,29 @@ from classes.isa import Atmosphere
 from lookups.consts import *
 import numpy as np
 import pandas as pd
+from c2_m import chord_at_y_span, x_pos_le_along_span_from_nose
 
 
 def size_tires(ac: Aircraft, update_ac = False):
-    W_to = ac.weights.m_takeoff * g
+    W_to = ac.weights.m_takeoff * g  # [N]
     n_min_nlg = ac.landing_gear.n_nlg_min_as
     n_max_nlg = ac.landing_gear.n_nlg_max_as
 
     f_mlg = 1 - n_min_nlg
     f_nlg = n_max_nlg
-    Ft_mlg = 0.5 * f_mlg * W_to * 1.25  # [N] Main landing gear load requirement
+    Ft_mlg = f_mlg * W_to * 1.25  # [N] Main landing gear load requirement
     Ft_nlg = f_nlg * W_to * 1.25  # [N] Nose/tail landing gear load requirement
 
-    density_to = Atmosphere(ac.requirements.take_off['to_altitude'], ac.requirements.take_off['to_temp_shift']).density
-    to_speed = np.sqrt(ac.weights.m_takeoff / ac.wing.area / (0.5 *density_to * ac.requirements.take_off['as_CL_max_to']))
-    tire_to_speed = 1.1 * to_speed # [Kts]
-    tire_app_speed = 1.2 * ac.requirements.approach['ap_speed'] # [Kts]
+    density_to = float(Atmosphere(ac.requirements.take_off['to_altitude'], ac.requirements.take_off['to_temp_shift']).density)
+    to_speed = np.sqrt(ac.weights.m_takeoff * 9.81 / ac.wing.area / (0.5 *density_to * (ac.requirements.take_off['as_CL_max_to'] / 1.21)))
+    tire_to_speed = to_speed / KTS_TO_MS # [Kts]
+    tire_app_speed = 1.3 * ac.requirements.approach['ap_speed'] # [Kts]
     V_max_tire = max(tire_to_speed, tire_app_speed)
 
     V_max_tire = V_max_tire * KTS_TO_MPH  # [Mph]
     pt = ac.landing_gear.pt             # [Psi]
-    Load_mlg = Ft_mlg * 1/(g*LBS_TO_KG)   # [Lbs] per tire
-    Load_nlg = Ft_nlg * 1/(g*LBS_TO_KG)   # [Lbs]
+    Load_mlg = Ft_mlg * 1 / (g * LBS_TO_KG / ac.landing_gear.n_wheels_mlg)   # [Lbs] per tire
+    Load_nlg = Ft_nlg * 1 / (g * LBS_TO_KG / ac.landing_gear.n_wheels_nlg)   # [Lbs]
 
     tire_data = pd.read_csv('lookups/type3_tires.csv')
 
@@ -70,11 +71,12 @@ def tire_location(ac: Aircraft, update_ac = False):
     gear_type = ac.landing_gear.gear_type
     n_min_nlg = ac.landing_gear.n_nlg_min_as
     n_max_nlg = ac.landing_gear.n_nlg_max_as
-    tipover = ac.landing_gear.tipover * np.pi/180             # [rad]
-    scrape = ac.landing_gear.scrape * np.pi/180               # [rad]
-    turnover = ac.landing_gear.turnover * np.pi/180           # [rad]
-    bank = ac.landing_gear.bank * np.pi/180                   # [rad]
+    tipover = ac.landing_gear.tipover * np.pi / 180             # [rad]
+    scrape = ac.landing_gear.scrape * np.pi / 180               # [rad]
+    turnover = ac.landing_gear.turnover * np.pi / 180           # [rad]
+    bank = ac.landing_gear.bank * np.pi / 180                   # [rad]
     prop_clear = ac.landing_gear.prop_clear  # [m]
+    upsweep = ac.fuselage.tail_upsweep * np.pi / 180
 
     # The coordinate frame assumes [0,0] = [aircraft nose, fuselage bottom]. Z upwards
     X_cg_fwd = ac.weights.x_cg_fwd   # [m]
@@ -83,17 +85,18 @@ def tire_location(ac: Aircraft, update_ac = False):
     fus_pitch = ac.landing_gear.fus_pitch * np.pi/180    # [rad]
     fus_ground_clear = ac.landing_gear.fus_ground_clear  # [m]
     Z_cg = ac.weights.z_cg    # [m]
-    X_tcone = (1 - ac.fuselage.tail_cone_length / ac.fuselage.length) * ac.fuselage.length  # [m]
+    X_tcone = (ac.fuselage.length - ac.fuselage.tail_cone_length)  # [m]
     Z_tcone = 0                    # [m]
-    X_tcone = 8.83 # [m]
-    Z_tcone = 1.2    
+    # X_tcone = 8.83 # [m]
+    # Z_tcone = 1.2    
     Y_prop = ac.engine.eng_y_pos_fuselage + ac.fuselage.width / 2      # [m] for the outermost wing-mounted propeller
-    dihedral = ac.wing.dihedral
-    chord_at_eng = ac.wing.c_root - 2 * Y_prop / ac.wing.span * (ac.wing.c_root - ac.wing.c_tip)
-    Z_prop = ac.fuselage.height + Y_prop * np.tan(np.deg2rad(dihedral)) + ac.engine.eng_vdist_from_wing_y_c * chord_at_eng      # [m]
-    X_prop = ac.wing.x_le + Y_prop * np.tan(np.deg2rad(ac.wing.sweep_LE_deg)) - 0.5 * ac.engine.length_nac # [m] nose to prop
+    dihedral_deg = ac.wing.dihedral
+    chord_at_eng = chord_at_y_span(ac.wing.c_root, ac.wing.taper_ratio, Y_prop, ac.wing.span)
+    Z_prop = ac.fuselage.height + Y_prop * np.tan(np.deg2rad(dihedral_deg)) + ac.engine.eng_vdist_from_wing_y_c * chord_at_eng      # [m]
+    nac_y = ac.fuselage.width / 2 + ac.engine.eng_y_pos_fuselage
+    X_prop = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, nac_y, ac.wing.x_le) + 0.5  #ac.wing.x_le + Y_prop * np.tan(np.deg2rad(ac.wing.sweep_LE_deg)) - 0.5 * ac.engine.length_nac # [m] nose to prop
     bw = ac.wing.span              # [m]
-    Z_tip = ac.fuselage.height + ac.wing.span * np.tan(np.deg2rad(dihedral))                    # [m]
+    Z_tip = ac.fuselage.height + ac.wing.span * np.sin(np.deg2rad(dihedral_deg))                    # [m]
     X_tip = ac.wing.x_le + ac.wing.span / 2 * np.tan(np.deg2rad(ac.wing.sweep_LE_deg))                    # [m]
     a = ac.landing_gear.a
     s = ac.landing_gear.s          # [m]
@@ -109,43 +112,68 @@ def tire_location(ac: Aircraft, update_ac = False):
     # LONGITUDINAL POSITIONING
     if gear_type == 'tricycle':
         # Tipover constraint line
-        x1 = [X_cg_aft, X_cg_aft - np.tan(tipover)]
-        z1 = [Z_cg, Z_cg + 1]
+        # x1 = [X_cg_aft, X_cg_aft - np.tan(tipover)]
+        # z1 = [Z_cg, Z_cg + 1]
+        x1 = [X_cg_aft, X_cg_aft + 1]
+        z1 = [Z_cg, Z_cg - 1/np.tan(tipover)]
         slope1, intercept1 = np.polyfit(x1, z1, 1)
 
         # Scrape constraint line
-        x2 = [X_tcone, X_tcone + 1]
-        z2 = [Z_tcone, Z_tcone + np.tan(scrape)]
+        x2 = [ac.fuselage.length, ac.fuselage.length + 1]
+        z2 = [Z_tcone + ac.fuselage.tail_cone_length * np.tan(upsweep), 
+              Z_tcone + ac.fuselage.tail_cone_length * np.tan(upsweep) + np.tan(scrape)]
         slope2, intercept2 = np.polyfit(x2, z2, 1)
 
         # Find intersection point
         X_mlg = (intercept2 - intercept1) / (slope1 - slope2)
         Z_mlg = slope1 * X_mlg + intercept1
-        X_nlg_fwd_lim = X_cg_aft - (1/n_min_nlg - 1)*(X_mlg - X_cg_aft)
-        X_nlg_aft_lim = X_cg_fwd - (1/n_max_nlg - 1)*(X_mlg - X_cg_fwd)
+        X_nlg_fwd_lim = X_cg_aft - (1/n_min_nlg - 1) * (X_mlg - X_cg_aft)
+        X_nlg_aft_lim = X_cg_fwd - (1/n_max_nlg - 1) * (X_mlg - X_cg_fwd)
+        # X_nlg_fwd_lim = X_cg_aft + (X_cg_aft - X_mlg) * n_min_nlg / (1 - n_min_nlg)
+        # X_nlg_aft_lim = X_cg_fwd + (X_cg_fwd - X_mlg) * n_max_nlg / (1 - n_max_nlg)
+
+        print(f' \n Most forward and aft landing gear positions: {X_nlg_fwd_lim, X_nlg_aft_lim}')
+
+        # # Other intersection point method:
+        # X_mlg = (Z_cg + X_cg_aft * np.tan(1 / tipover) + X_tcone * np.tan(scrape)) / (np.tan(scrape) + np.tan(1 / tipover))
+        # Z_mlg = (X_mlg - X_tcone) * np.tan(scrape)
+        # X_nlg_fwd_lim = X_cg_aft - (1/n_min_nlg - 1)*(X_mlg - X_cg_aft)
+        # X_nlg_aft_lim = X_cg_fwd - (1/n_max_nlg - 1)*(X_mlg - X_cg_fwd)
+
         # location of nlg should be chosen as the most fwd possible one if structurally allowed.
-        X_nlg = X_nlg_fwd_lim
+        if X_nlg_fwd_lim < 0:
+            X_nlg = min(1.5, X_nlg_aft_lim)
+        else:
+            X_nlg = min(X_nlg_aft_lim, X_nlg_fwd_lim)  # X_nlg_fwd_lim
 
         # Need to check propeller clearance req. met
-        if Z_prop - Z_mlg < prop_clear:
-            extra_height_req = Z_prop - Z_mlg - prop_clear
+        if Z_prop - ac.engine.prop_diameter / 2 - Z_mlg < prop_clear: # Check that Z_mlg is negative
+            extra_height_req = Z_prop - ac.engine.prop_diameter / 2 - Z_mlg - prop_clear
             Z_mlg = Z_mlg + extra_height_req
 
-        Z_nlg = Z_mlg
+        Z_nlg = Z_mlg + np.tan(fus_pitch) * (X_nlg - X_mlg)
 
         # LATERAL POSITIONING
         l_mlg_fwd = abs(X_mlg - X_cg_fwd)
         l_nlg_fwd = abs(X_cg_fwd - X_nlg)
         Y_mlg_req1 = (l_mlg_fwd + l_nlg_fwd) / np.sqrt(
             l_nlg_fwd ** 2 * np.tan(turnover) ** 2 / (Z_cg - Z_mlg) ** 2 - 1)
-        Y_mlg_req2 = Y_prop - (Z_prop - Z_mlg) / np.tan(bank)
+        Y_mlg_req2 = Y_prop - (Z_prop - ac.engine.prop_diameter / 2 - Z_mlg) / np.tan(bank)
         Y_mlg_req3 = bw / 2 - ((Z_tip - Z_mlg) + (X_mlg - X_tip) * np.sin(scrape)) / np.tan(bank)
         delta_Z_mlg = (a * s + (D_tire - D_rim) / 2)
-        Y_mlg_req4 = delta_Z_mlg / (2 * (Z_prop - Z_mlg) - delta_Z_mlg) * Y_prop
+        Y_mlg_req4 = delta_Z_mlg / (2 * (Z_prop - ac.engine.prop_diameter / 2 - Z_mlg) - delta_Z_mlg) * Y_prop
         min_Y_mlg = max(Y_mlg_req1, Y_mlg_req2, Y_mlg_req3, Y_mlg_req4)
         # Lateral location on mlg should be chosen to be as close as possible to the primary structure
         Y_mlg = min_Y_mlg
         Y_nlg = 0
+
+        if Z_mlg > 0:
+            raise ValueError(f'Main landing gear z coordinate > 0, should be < 0 in the selected coordinate system')
+        if Z_nlg > 0:
+            raise ValueError(f'Nose landing gear z coordinate > 0, should be < 0 in the selected coordinate system')
+        # if X_nlg < 0:
+        #     raise ValueError(f'Nose landing gear is located ahead of aircraft')
+
 
 
     if gear_type == 'taildragger':

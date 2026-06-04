@@ -15,7 +15,7 @@ cargo_length: 1.0 # [m]
 # External dimensions
 effective_diameter: 0 # [m]
 nose_length: 2.0 # [m]
-nose_cone_fineness_ratio: 1.2 # [-]
+nose_cone_fineness_ratio: 2.2 # [-]
 nose_cone_length: 0
 tail_cone_fineness_ratio: 2.8125 # [-]
 tail_cone_length: 0

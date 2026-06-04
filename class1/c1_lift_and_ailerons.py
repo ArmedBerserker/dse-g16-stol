@@ -285,7 +285,7 @@ def size_ailerons(ac: Aircraft, update_ac: bool = False):
 
 def size_HLD(ac: Aircraft, update_ac: bool = False):
     y_in = ac.fuselage.width / 2 + 0.3
-    y_out = ac.hld_and_ailerons.ailerons['y_aileron_in'] - 0.05
+    y_out = ac.hld_and_ailerons.ailerons['y_aileron_in'] - 0.7
     y_out_slat = 0.96 * ac.wing.span
 
     Swf = S_wf(ac, y_in, y_out)
@@ -305,7 +305,7 @@ def size_HLD(ac: Aircraft, update_ac: bool = False):
     Atm_to = Atmosphere(ac.requirements.take_off['to_altitude'], ac.requirements.take_off['to_temp_shift'])
     rho_to = float(Atm_to.density)
     T_to = float(Atm_to.temp)
-    CLmax_to_as = ac.requirements.take_off['as_CL_max_to']
+    CLmax_to_as = ac.requirements.take_off['as_CL_max_to'] * 0.95
     V_to = np.sqrt(ac.weights.m_takeoff * 9.81 / (0.5 * rho_to * ac.wing.area * CLmax_to_as / 1.21))
     M_to = V_to / np.sqrt(1.4 * 287 * T_to)
 
@@ -328,8 +328,8 @@ def size_HLD(ac: Aircraft, update_ac: bool = False):
     # Margin matrix: 
     margin_matrix = combo_matrix - DCL_max_to_req  # positive -> meets req.
 
-    # Find the first combo that passes by at least 0.05
-    MARGIN_BUFFER = 0.05
+    # Find the first combo that passes by at least 0.02
+    MARGIN_BUFFER = 0.02
     passing_mask = margin_matrix >= MARGIN_BUFFER  # bool (4, 5)
 
     # Iterate in row-major order (slat 0 -> 3, flap 0 -> 4 within each slat row)
@@ -362,7 +362,7 @@ def size_HLD(ac: Aircraft, update_ac: bool = False):
     )
 
     # LD
-    CLmax_ld_as = ac.requirements.landing['as_CL_max_la']
+    CLmax_ld_as = ac.requirements.landing['as_CL_max_la'] * 0.95
     Atm_ld = Atmosphere(ac.requirements.landing['la_altitude'], ac.requirements.landing['la_temp_shift'])
     T_ld = float(Atm_ld.temp)
     M_ld = ac.requirements.general['stall_speed'] * KTS_TO_MS * 1.3 / np.sqrt(1.4 * 287 * T_ld)
@@ -384,8 +384,8 @@ def size_HLD(ac: Aircraft, update_ac: bool = False):
     # Margin matrix: 
     margin_matrix_ld = combo_matrix_ld - DCL_max_ld_req  # positive -> meets req.
 
-    # Find the first combo that passes by at least 0.05
-    MARGIN_BUFFER = 0.05
+    # Find the first combo that passes by at least 0.02
+    MARGIN_BUFFER = 0.02
     passing_mask_ld = margin_matrix_ld >= MARGIN_BUFFER  # bool (4, 5)
 
     # Iterate in row-major order (slat 0 -> 3, flap 0 -> 4 within each slat row)

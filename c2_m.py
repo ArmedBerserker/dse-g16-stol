@@ -395,7 +395,8 @@ def W_feq_and_cg_from_nose(ac: Aircraft,
     W_iae = 40 + 0.008 * Wto
     # W_api = (0.265 * Wto**0.52 * N_pax**0.68 * W_iae**0.17 * M_D**0.08) * no_pressurization_const
     W_api = 14
-    W_fur = 0.412 * N_pax**1.145 * Wto**0.489
+    # W_fur = 0.412 * N_pax**1.145 * Wto**0.489
+    W_fur = 0.95 * Wto * 0.0582 - 65  # Raymer
     W_ops = 0
     # W_fti = 0.5 * (155 / 9980 * Wto + 708 / 24912 * Wto)
     # W_fti = max(0, (W_fti - ac.weights.m_cargo - (ac.fuselage.n_pax - 1) / ac.fuselage.n_pax * ac.weights.m_pax))
@@ -460,7 +461,7 @@ def W_wing(ac: Aircraft, update_ac: bool = False):
     w = ac.wing
     Wto = ac.weights.m_takeoff / LBS_TO_KG
     S = w.area * M2_TO_F2
-    n_ult = ac.requirements.general['n_ult']  # NOTE: add later
+    n_ult = ac.requirements.general['n_ult'] * 1.2  # NOTE: add later
     A = w.aspect_ratio
     t_c_max = w.t_c_max
     # sweep_c_4_deg = w.sweep
@@ -525,7 +526,7 @@ def W_emp(ac: Aircraft, update_ac: bool = False):
     # W_vt = (W_v_c + W_v_u) / 2
     W_vt = min(W_v_c, W_v_u)
     if ac.empennage.t_tail_condition:
-        W_vt *= 1.15
+        W_vt *= 1.1
     # print(f'\n HT weight: \t Cessna: {W_h_c * LBS_TO_KG} \t USAF: {W_h_u * LBS_TO_KG}')
     # print(f'\n VT weight: \t Cessna: {W_v_c * LBS_TO_KG} \t USAF: {W_v_u * LBS_TO_KG}')
 

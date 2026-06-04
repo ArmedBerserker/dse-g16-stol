@@ -26,7 +26,7 @@ def fuselage_external_dimensions(ac: Aircraft):
     fus.x_pos_seats = x_pos_seats
     fus.x_cargo_holds = x_cargo_holds
     fus.nose_length = nose_length
-    fus.start_cabin = fus.x_pos_seats[0] - fus.seat_length / 2
+    fus.start_cabin = fus.nose_cone_length + fus.cockpit_length * INCH_TO_M  # fus.x_pos_seats[0] - fus.seat_length / 2
     if fuselage_length == 0:
         fus.length = (0.86 * (ac.weights.m_takeoff / LBS_TO_KG) ** 0.42) * FT_TO_M
     else:

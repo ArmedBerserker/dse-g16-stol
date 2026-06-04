@@ -198,6 +198,7 @@ def compute_class_II_mass_and_cg(ac: Aircraft, iteration: int) -> Aircraft:
     W_to, ac = W_to_new(ac, m_res=0, update_ac=True)
     x_cg_struc, x_cg_data, ac = x_cg_structural_from_nose(ac, update_ac=True)
     fwd_cg, aft_cg, ac, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w, ac, update_ac_cgs=True)
+    ac.weights.z_cg = ac.fuselage.height * 0.85 - ac.wing.c_root * ac.wing.t_c_max * 0.5
     return ac
 
 def tail_sizing_wing_positioning(ac: Aircraft, epoch: int) -> Aircraft:
@@ -572,10 +573,10 @@ if __name__ == "__main__":
                 loader.load('concepts/tricycle_gear.yaml', Landing_Gear))
 
     config = DesignLoopConfig(
-        max_epochs   = 10,
+        max_epochs   = 8,
         history_file = "aircraft_history.json",
         convergence_params = [
-            ConvergenceParam("weights.m_empty", 1.0)
+            ConvergenceParam("weights.m_empty", 0.01)
         ],
     )
 

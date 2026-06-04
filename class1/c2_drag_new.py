@@ -198,13 +198,22 @@ def CD0_flap_profile(ac: Aircraft, flap_type, t_c_max, flap_deflection, wing_dra
 def CD0_flap_interference(CD0flap_profile, flap_type):
     return CD0flap_profile * flap_interference_factor(flap_type)
 
-def CD0_gear(x_nlg, height_nlg, n_main_wheels, n_nose_wheels, nlg_tire_diameter, nlg_tire_width, mlg_tire_diameter, mlg_tire_width, S, fairing_type: str = 'C'):
+def CD0_gear(x_nlg, height_nlg, n_main_wheels, n_nose_wheels, nlg_tire_diameter, nlg_tire_width, mlg_tire_diameter, mlg_tire_width, S, fairing_type: str = 'B', gear_type_roskam: int = 2):
     # Type 1 landing gear (fig 4.54 Roskam VI)
-    CD = 0.71
-    if fairing_type == 'A':
-        CD = 1.15
-    elif fairing_type == 'B':
-        CD = 1.05
+    if gear_type_roskam == 1:
+        if fairing_type == 'A':
+            CD = 1.15
+        elif fairing_type == 'B':
+            CD = 1.05
+        elif fairing_type == 'C':
+            CD = 0.71
+    elif gear_type_roskam == 2:
+        if fairing_type == None:
+            CD = 0.565
+        elif fairing_type == 'B':
+            CD = 0.54
+        elif fairing_type == 'C':
+            CD = 0.49
     CD_mlg = CD * mlg_tire_diameter * mlg_tire_width / S
     a_Dt = x_nlg / nlg_tire_diameter
     e_Dt = x_nlg / height_nlg
