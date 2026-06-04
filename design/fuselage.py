@@ -16,18 +16,18 @@ def fuselage_cross_section(ac: Aircraft):
 def fuselage_external_dimensions(ac: Aircraft, x_pos_seats, x_cargo_holds, nose_length, fuselage_length=0):
     fus = ac.fuselage
     fus.nose_cone_length = fus.nose_cone_fineness_ratio * fus.effective_diameter
+    print(fus.nose_cone_length)
     fus.tail_cone_length = fus.tail_cone_fineness_ratio * fus.effective_diameter
     fus.over_nose_angle = fus.approach_angle + 0.07 * 1.3 * ac.requirements.general['stall_speed']
     fus.x_pos_seats = x_pos_seats
     fus.x_cargo_holds = x_cargo_holds
     fus.nose_length = nose_length
-    fus.start_cabin = fus.x_pos_seats[0] - fus.seat_length / 2
+    fus.start_cabin = fus.nose_length + fus.cockpit_length * INCH_TO_M
     if fuselage_length == 0:
         fus.length = (0.86 * (ac.weights.m_takeoff / LBS_TO_KG) ** 0.42) * FT_TO_M
     else:
         fus.length = fuselage_length
     fus.l_cabin = fus.length - fus.tail_cone_length - fus.nose_length - fus.cockpit_length * INCH_TO_M  # 3.8
-    
 
     fus.base_area = 0.1
     fus.n_pax = 6
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     nose_length = 1
     fuselage_length = 0 # calculates using empirical relation - only change if you'd like to increase the length
     calculate_fuselage_parameters(aircraft, x_pos_seats, x_cargo_holds, nose_length, fuselage_length)
-
+    print(aircraft.fuselage.effective_diameter)
     print(aircraft.fuselage.length)
     print(aircraft.fuselage.height)
     print(aircraft.fuselage.width)
