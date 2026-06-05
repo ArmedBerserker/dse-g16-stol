@@ -59,7 +59,7 @@ def landing_dist_matching(ac: Aircraft,
     landing_altitude = ac.requirements.landing['la_altitude'] * FT_TO_M
     landing_temperature_shift = ac.requirements.landing['la_temp_shift']
     atmos_model = Atmosphere(landing_altitude, landing_temperature_shift)
-    rho = atmos_model.density
+    rho = float(atmos_model.density)
 
     if balance_fl_condition:
         # Roskam 3.14
@@ -73,6 +73,8 @@ def landing_dist_matching(ac: Aircraft,
 
     W_S_LD = (V_S_L ** 2 * (1 / 2 * rho * C_L_max_landing)) * np.ones_like(W_P)
     W_S = W_S_LD * ac.weights.m_takeoff / W_L
+
+    # W_S = np.ones_like(W_P) * (1.938 * ac.requirements.landing['la_distance'] / 0.6) / ac.requirements.landing['la_mass_frac'] * rho / 2 * ac.requirements.landing['as_CL_max_la']
 
     return W_P, W_S
 

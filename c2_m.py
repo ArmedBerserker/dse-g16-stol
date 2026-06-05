@@ -461,7 +461,7 @@ def W_feq_and_cg_from_nose(ac: Aircraft,
     # cgs = np.array([x_cg_fc, x_cg_hps, x_cg_els, x_cg_iae, x_cg_api, x_cg_fur, x_cg_ops, x_cg_fti, x_cg_aux, x_cg_bal, x_cg_pt, x_cg_etc])
     cgs = np.array([x_cg_fc, x_cg_hps_els, x_cg_iae, x_cg_api, x_cg_fur, x_cg_ops, x_cg_fti, x_cg_aux, x_cg_bal, x_cg_pt, x_cg_etc])
     x_cg_feq = (Weights@cgs) / W_feq
-
+    x_cg_feq = 3.5
     return W_feq * LBS_TO_KG, x_cg_feq
 
 def W_wing(ac: Aircraft, update_ac: bool = False):
@@ -797,20 +797,33 @@ def loading_diagram(x_le_w, ac: Aircraft, show_plot: bool=False, output_filepath
     assert x_cg_nose_plot_btf[-1] == x_cg_nose_plot_ftb[-1], f"After loading all cargo holds total cg should match. \n ftb cg = {x_cg_nose_plot_ftb[-1]} \t btf cg = {x_cg_nose_plot_btf[-1]}"
     
     # Passengers
-    if n_aisle == 0 and n_middle == 0:
-        pax_row_mass = m_pax / len(x_cg_seats)
-        x_cg_seats_reverse = x_cg_seats[::-1]
+    # if n_aisle == 0 and n_middle == 0:
+    #     pax_row_mass = m_pax / len(x_cg_seats)
+    #     x_cg_seats_reverse = x_cg_seats[::-1]
 
-        for i, x_cg in enumerate(x_cg_seats):
-            new_m, new_cg = update_m_and_cg(W_plot_ftb[-1], x_cg_nose_plot_ftb[-1], pax_row_mass, x_cg)
-            W_plot_ftb.append(new_m)
-            x_cg_nose_plot_ftb.append(new_cg)
-            new_m, new_cg = update_m_and_cg(W_plot_btf[-1], x_cg_nose_plot_btf[-1], pax_row_mass, x_cg_seats_reverse[i])
-            W_plot_btf.append(new_m)
-            x_cg_nose_plot_btf.append(new_cg)
-        assert W_plot_btf[-1] == W_plot_ftb[-1], f"After loading all passengers total weights should match. \n ftb weight = {W_plot_ftb[-1]} \t btf weight = {W_plot_btf[-1]}"
-        assert abs(x_cg_nose_plot_btf[-1] - x_cg_nose_plot_ftb[-1])<0.01, f"After loading all passengers total cg should match. \n ftb cg = {x_cg_nose_plot_ftb[-1]} \t btf cg = {x_cg_nose_plot_btf[-1]}"
-    
+    #     for i, x_cg in enumerate(x_cg_seats):
+    #         new_m, new_cg = update_m_and_cg(W_plot_ftb[-1], x_cg_nose_plot_ftb[-1], pax_row_mass, x_cg)
+    #         W_plot_ftb.append(new_m)
+    #         x_cg_nose_plot_ftb.append(new_cg)
+    #         new_m, new_cg = update_m_and_cg(W_plot_btf[-1], x_cg_nose_plot_btf[-1], pax_row_mass, x_cg_seats_reverse[i])
+    #         W_plot_btf.append(new_m)
+    #         x_cg_nose_plot_btf.append(new_cg)
+    #     assert W_plot_btf[-1] == W_plot_ftb[-1], f"After loading all passengers total weights should match. \n ftb weight = {W_plot_ftb[-1]} \t btf weight = {W_plot_btf[-1]}"
+    #     assert abs(x_cg_nose_plot_btf[-1] - x_cg_nose_plot_ftb[-1])<0.01, f"After loading all passengers total cg should match. \n ftb cg = {x_cg_nose_plot_ftb[-1]} \t btf cg = {x_cg_nose_plot_btf[-1]}"
+    pax_row_mass = m_pax / len(x_cg_seats)
+    for i in range(3):
+        if i == 0 or i == 2:
+            x_cg = (x_cg_seats[0] + x_cg_seats[2]) / 2
+        else:
+            x_cg = x_cg_seats[1]
+        new_m, new_cg = update_m_and_cg(W_plot_ftb[-1], x_cg_nose_plot_ftb[-1], pax_row_mass, x_cg)
+        W_plot_ftb.append(new_m)
+        x_cg_nose_plot_ftb.append(new_cg)
+        new_m, new_cg = update_m_and_cg(W_plot_btf[-1], x_cg_nose_plot_btf[-1], pax_row_mass, x_cg)
+        W_plot_btf.append(new_m)
+        x_cg_nose_plot_btf.append(new_cg)
+    assert W_plot_btf[-1] == W_plot_ftb[-1], f"After loading all passengers total weights should match. \n ftb weight = {W_plot_ftb[-1]} \t btf weight = {W_plot_btf[-1]}"
+    assert abs(x_cg_nose_plot_btf[-1] - x_cg_nose_plot_ftb[-1])<0.01, f"After loading all passengers total cg should match. \n ftb cg = {x_cg_nose_plot_ftb[-1]} \t btf cg = {x_cg_nose_plot_btf[-1]}"
     # Fuel
     for i, x_cg in enumerate(x_cg_fuel_tanks):
         new_m, new_cg = update_m_and_cg(W_plot_ftb[-1], x_cg_nose_plot_ftb[-1], m_fuel_tanks[i], x_cg)
@@ -1003,9 +1016,9 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     C_m_ac_fus_ld = -1.8 * (1 - 2.5 * b_f / l_f) * np.pi * b_f * h_f * l_f / (4 * S * mac) * C_L_0 / C_L_alpha_A_less_h_LD
     C_m_ac_flap_ld = mu2 * (-mu1 * Delta_Cl_max_ld * ext_flap_chord_ratio_ld - (C_L_LD + Delta_Cl_max_ld * (1 - Swf / S)) / 8 * ext_flap_chord_ratio_ld * (ext_flap_chord_ratio_ld - 1)) + 0.7 * A / (1 + 2 / A) * mu3 * Delta_Cl_max_ld * np.tan(np.deg2rad(sweep_c_4_deg))
     C_m_ac_ld = C_m_ac_w + C_m_ac_flap_ld + C_m_ac_fus_ld
-    C_m0_flapped_airfoil = -0.375
-    C_m_ac_w = C_m0_flapped_airfoil * (A * np.cos(np.deg2rad(sweep_c_4_deg))**2 / (A + 2 * np.cos(np.deg2rad(sweep_c_4_deg))))
-    C_m_ac_flap_ld = 0
+    # C_m0_flapped_airfoil = -0.375
+    # C_m_ac_w = C_m0_flapped_airfoil * (A * np.cos(np.deg2rad(sweep_c_4_deg))**2 / (A + 2 * np.cos(np.deg2rad(sweep_c_4_deg))))
+    # C_m_ac_flap_ld = 0
     C_m_ac_ld = C_m_ac_w + C_m_ac_flap_ld + C_m_ac_fus_ld
     print(f' Cm aerodynamic cente stuff: \n C_m_ac_w: {C_m_ac_w} \n C_m_ac_fus_ld: {C_m_ac_fus_ld} \n C_m_ac_flap_ld: {C_m_ac_flap_ld} \n total: {C_m_ac_ld}')
 

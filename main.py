@@ -100,7 +100,7 @@ ac8 = Aircraft('Boosted_turboprop_tricycle',
 #                 loader.load('concepts/fuselage_tricycle.yaml', Fuselage),
 #                 loader.load('concepts/engine_h2.yaml', Engine))
 acs = [ac1, ac3, ac6, ac8]
-for ac in [ac8]:
+for ac in [ac6]:
     ''' STEPS:
         - Preliminary drag estimation       DONE
         - Class I mass                      DONE
