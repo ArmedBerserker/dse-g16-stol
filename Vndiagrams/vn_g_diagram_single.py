@@ -30,6 +30,8 @@ def calculate_characteristic_speeds(ac: Aircraft, rho: float, weight: float):
 
     # Stall Speeds
     #V_s_la = ac.requirements.general['stall_speed'] * KTS_TO_MS * np.sqrt(rho/1.225)
+    V_s_la = np.sqrt((2 * weight)/(rho * ac.wing.area * ac.requirements.landing['as_CL_max_la'])) * np.sqrt(rho/1.225)
+    V_s_to = np.sqrt((2 * weight)/(rho * ac.wing.area * ac.requirements.take_off['as_CL_max_to'])) * np.sqrt(rho/1.225)
     V_s_clean = np.sqrt((2 * weight)/(rho * ac.wing.area * ac.requirements.climb['as_CL_max'])) * np.sqrt(rho/1.225)
 
     # Design Speeds
@@ -49,7 +51,7 @@ def calculate_characteristic_speeds(ac: Aircraft, rho: float, weight: float):
 
     V_a = V_s_clean * np.sqrt(n_max)
 
-    return V_s_clean, V_c, V_d, V_a, V_ne
+    return V_s_clean, V_c, V_d, V_a, V_s_la, V_s_to, V_ne
 
 def compute_gust_lines(ac: Aircraft, V, rho, weight, Ude):
     """
@@ -99,7 +101,7 @@ def generate_vn_envelope(ac: Aircraft, flight: str = 'cruise', condition: str = 
         else ac.weights.m_empty * g
     )
 
-    V_s_clean, V_c, V_d, V_a, V_ne = calculate_characteristic_speeds(ac, rho, weight)
+    V_s_clean, V_c, V_d, V_a, V_s_la, V_s_to, V_ne = calculate_characteristic_speeds(ac, rho, weight)
 
     # Airspeed Vector
     V_vec = np.linspace(0, V_d, 500)
@@ -107,8 +109,14 @@ def generate_vn_envelope(ac: Aircraft, flight: str = 'cruise', condition: str = 
     # Maneuvering limit loads
     n_max = ac.requirements.general['n_max']
     n_min = ac.requirements.general['n_min']
+    n_max_flaps = 2.0  # CS23 req
 
     n_pos = np.where(V_vec <= V_a, (V_vec / V_s_clean) ** 2, n_max)
+
+    # Flap limit (n_flap)
+    n_flap_la = np.minimum((V_vec / V_s_la) ** 2, n_max_flaps)
+
+    n_flap_to = np.minimum((V_vec / V_s_to) ** 2, n_max_flaps)
 
     # Negative maneuvering limit
     n_neg_stall = -(V_vec / V_s_clean) ** 2
@@ -146,8 +154,9 @@ def generate_vn_envelope(ac: Aircraft, flight: str = 'cruise', condition: str = 
         "n_g_vc_low": n_g_vc_low,
         "n_g_vd_up": n_g_vd_up,
         "n_g_vd_low": n_g_vd_low,
-
-        "speeds": {"Vsclean": V_s_clean, "Vc": V_c, "Vd": V_d, "Va": V_a, "Vne": V_ne}
+        "n_flap_la": n_flap_la,
+        "n_flap_to": n_flap_to,
+        "speeds": {"Vsla": V_s_la, "Vsto": V_s_to, "Vsclean": V_s_clean, "Vc": V_c, "Vd": V_d, "Va": V_a, "Vne": V_ne}
     }
 
 
@@ -183,93 +192,6 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_G_Diagram.p
     nDp, nDm = gust_load_at_speed(
         ac, Vd, rho, weight, Ude_Vd)
 
-    # ==========================================================
-    # COMBINED ENVELOPE BOUNDARY
-    # ==========================================================
-
-    # Upper gust segments
-    m_AC = (nCp - 1.0) / Vc
-    m_CD = (nDp - nCp) / (Vd - Vc)
-
-    # ==========================================================
-    # ROBUST GUST–MANEUVER INTERSECTION LOGIC
-    # ==========================================================
-
-    # Value of gust line at Vd
-    n_gust_at_Vd = nCp + m_CD * (Vd - Vc)
-
-    # Check if gust ever reaches n_max
-    if n_gust_at_Vd <= n_max:
-        # CASE B: gust never reaches maneuver limit
-        V_gust_maneuver = Vd
-        use_plateau = False
-    else:
-        # CASE A: gust intersects n_max inside VC–VD
-        if abs(m_CD) > 1e-12:
-            V_gust_maneuver = Vc + (n_max - nCp) / m_CD
-        else:
-            V_gust_maneuver = Vd
-
-        V_gust_maneuver = np.clip(V_gust_maneuver, Vc, Vd)
-        use_plateau = True
-
-    # Lower gust segments
-    m_AF = (nCm - 1.0) / Vc
-    m_FE = (nDm - nCm) / (Vd - Vc)
-
-    # ----------------------------
-    # Stall ↔ Gust intersections
-    # ----------------------------
-
-    n_AC = 1.0 + m_AC * V
-    n_AF = 1.0 + m_AF * V
-
-    idx_upper = np.argmin(np.abs(results["n_pos"] - n_AC))
-    idx_lower = np.argmin(np.abs(results["n_neg"] - n_AF))
-
-    V_upper_int = V[idx_upper]
-    V_lower_int = V[idx_lower]
-
-    # ----------------------------
-    # Upper branch
-    # ----------------------------
-
-    V_upper_1 = V[:idx_upper + 1]
-    n_upper_1 = results["n_pos"][:idx_upper + 1]
-
-    V_upper_2 = V[(V > V_upper_int) & (V <= Vc)]
-    n_upper_2 = 1.0 + m_AC * V_upper_2
-
-    # C' -> G
-    V_upper_3 = V[(V > Vc) & (V <= V_gust_maneuver)]
-    n_upper_3 = (nCp + m_CD * (V_upper_3 - Vc))
-
-    # G -> VD
-    if use_plateau:
-        # G → VD plateau at n_max
-        V_upper_4 = V[V > V_gust_maneuver]
-        n_upper_4 = np.full_like(V_upper_4, n_max)
-    else:
-        # NO plateau: gust controls all the way to VD
-        V_upper_4 = np.array([])
-        n_upper_4 = np.array([])
-
-    # ----------------------------
-    # Lower branch
-    # ----------------------------
-
-    V_lower_1 = V[:idx_lower + 1]
-    n_lower_1 = results["n_neg"][:idx_lower + 1]
-
-    V_lower_2 = V[(V > V_lower_int) & (V <= Vc)]
-    n_lower_2 = 1.0 + m_AF * V_lower_2
-
-    V_lower_3 = V[V > Vc]
-    n_lower_3 = nCm + m_FE * (V_lower_3 - Vc)
-
-
-    ##### Actual Plotting #####
-
     fig, ax = plt.subplots(figsize=(10, 6))
 
 
@@ -280,14 +202,14 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_G_Diagram.p
     poly_y = [1, nCp, nDp, nDm, nCm, 1]
     n_max_env = max(poly_y)
 
-    ax.plot(poly_x, poly_y, 'k--', linewidth=2)
+
 
     # Plot gust envelopes
     #ax.plot(V, results["n_g_vc_up"], 'k--', label=f'Gust line ({Ude_Vc} m/s ; 50 ft/s)')
     #ax.plot(V, results["n_g_vc_low"], 'k--')
 
-    ax.plot(V, results["n_g_vd_up"], 'k--')
-    ax.plot(V, results["n_g_vd_low"], 'k--')
+    ax.plot(V, results["n_g_vd_up"], 'gray', linestyle='--')
+    ax.plot(V, results["n_g_vd_low"], 'gray', linestyle='--')
 
     # Positive gust rays
     #ax.plot([0, Vc],[1, nCp],'k--',alpha=0.7)
@@ -298,88 +220,32 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_G_Diagram.p
     #ax.plot([0, Vd],[1, nDm],'k--',alpha=0.7)
 
     #Plot Envelopes
-    ax.plot(V, results["n_pos"], 'k--', linewidth=2.5, zorder=10)
-    ax.plot(V, results["n_neg"], 'k--', linewidth=2.5, zorder=10)
+    ax.plot(V, results["n_pos"], 'k-', linewidth=2.5, label='Maneuvering Envelope', zorder=100)
+    ax.plot(V, results["n_neg"], 'k-', linewidth=2.5, zorder=10)
 
-    # ==========================================================
-    # TRUE COMBINED ENVELOPE
-    # ==========================================================
+    ax.plot(poly_x, poly_y, 'gray', linestyle='--' , linewidth=2, label='Gust Envelope', zorder=10)
 
-    ax.plot(
-        V_upper_1,
-        n_upper_1,
-        color='black',
-        linewidth=3,
-        label='Combined Envelope',
-        zorder=100
-    )
+    # Plot Flaps (Limited to Vf)
+    # Landing flaps
+    V_f_la = max(1.8 * speeds["Vsla"], 1.4 * speeds["Vsclean"])
+    mask_la = V <= V_f_la
+    V_la_plot = np.append(V[mask_la], V_f_la)
+    n_la_plot = np.append(results["n_flap_la"][mask_la], 0.0)
 
-    ax.plot(
-        V_upper_2,
-        n_upper_2,
-        color='black',
-        linewidth=3,
-        zorder=100
-    )
+    # ax.plot(V_la_plot, n_la_plot, 'b', label='Flap Envelope Landing')
+    ax.plot(V_la_plot, n_la_plot, 'b', linewidth=2, label=fr'$Flap_{{LA}}$ Envelope ($V_{{F,LA}}$ = {V_f_la:.1f} m/s)')
 
-    ax.plot(
-        V_upper_3,
-        n_upper_3,
-        color='black',
-        linewidth=3,
-        zorder=100
-    )
+    # Takeoff flaps
+    V_f_to = max(1.8 * speeds["Vsto"], 1.4 * speeds["Vsclean"])
+    mask_to = V <= V_f_to
+    V_to_plot = np.append(V[mask_to], V_f_to)
+    n_to_plot = np.append(results["n_flap_to"][mask_to], 0.0)
 
-    ax.plot(
-        V_upper_4,
-        n_upper_4,
-        color='black',
-        linewidth=3,
-        zorder=100
-    )
-
-    if use_plateau:
-        y_top = n_max
-    else:
-        y_top = nDp  # or max(nDp, nDm) depending on visual preference
-
-    ax.plot(
-        [Vd, Vd],
-        [nDm, y_top],
-        color='black',
-        linewidth=3,
-        zorder=100
-    )
-
-    ax.plot(
-        V_lower_3,
-        n_lower_3,
-        color='black',
-        linewidth=3,
-        zorder=100
-    )
-
-    ax.plot(
-        V_lower_2,
-        n_lower_2,
-        color='black',
-        linewidth=3,
-        zorder=100
-    )
-
-    ax.plot(
-        V_lower_1,
-        n_lower_1,
-        color='black',
-        linewidth=3,
-        zorder=100
-    )
-
-
-
+    # ax.plot(V_to_plot, n_to_plot, 'r', label='Flap Envelope Take-Off')
+    ax.plot(V_to_plot, n_to_plot, 'r', linewidth=2, label=fr'$Flap_{{TO}}$ Envelope ($V_{{F,TO}}$ = {V_f_to:.1f} m/s)')
 
     # Vertical line at Vd
-    ax.plot([speeds["Vd"], speeds["Vd"]], [0, n_max],'k--', linewidth=2)
+    ax.plot([speeds["Vd"], speeds["Vd"]], [0, n_max],'k-', linewidth=2, zorder=20)
 
     # Reference Lines
     ax.axhline(0, color='black', lw=1)
@@ -395,16 +261,22 @@ def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_G_Diagram.p
     ax.plot([speeds["Va"], speeds["Va"]], [n_max, 0], 'm--', alpha=0.5, label=f'$V_A$ ({speeds["Va"]:.1f} m/s)')
     ax.plot([speeds["Vc"], speeds["Vc"]],[n_max, n_min],'g--', alpha=0.5, label=f'$V_C$ ({speeds["Vc"]:.1f} m/s)')
     ax.plot([speeds["Vd"], speeds["Vd"]], [n_max, 0], color='black', linestyle='--', alpha=0.5, label=f'$V_D$ ({speeds["Vd"]:.1f} m/s)')
-    ax.plot([speeds["Vne"], speeds["Vne"]], [n_max, 0], color='black', linestyle='--', alpha=0.5, label=f'$V_{{NE}}$ ({speeds["Vne"]:.1f} m/s)')
+    #ax.plot([speeds["Vne"], speeds["Vne"]], [n_max, 0], color='black', linestyle='--', alpha=0.5, label=f'$V_{{NE}}$ ({speeds["Vne"]:.1f} m/s)')
 
 
     # Labels below axis
-    y_text = 0.28
+    y_text = 0.25
     ax.text(speeds["Vsclean"] + 1.5, y_text,r"$V_S$", ha='center', va='top', fontsize=11, color='orange')
     ax.text(speeds["Va"] + 1.5, y_text, r"$V_A$", ha='center', va='top', fontsize=11, color='m')
     ax.text(speeds["Vc"] + 1.5, y_text, r"$V_C$", ha='center', va='top', fontsize=11, color='g')
     ax.text(speeds["Vd"] + 1.5, y_text,r"$V_D$", ha='center', va='top', fontsize=11, color='black')
-    ax.text(speeds["Vne"] + 1.8, y_text, r"$V_{NE}$", ha='center', va='top', fontsize=11, color='black')
+    #ax.text(speeds["Vne"] + 1.8, y_text, r"$V_{NE}$", ha='center', va='top', fontsize=11, color='black')
+
+    # Flap speed labels
+    y_text1 = -0.1
+    ax.text(V_f_la, y_text1, r"$V_{F,LA}$", ha='center', va='top', fontsize=11, color='b')
+    y_text2 = -0.3
+    ax.text(V_f_to, y_text2, r"$V_{F,TO}$", ha='center', va='top', fontsize=11, color='r')
 
 
 

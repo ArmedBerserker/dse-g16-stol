@@ -151,7 +151,7 @@ def generate_vn_envelope(ac: Aircraft, flight: str = 'cruise', condition: str = 
     }
 
 
-def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_G_Diagram.png', show_plot: bool = False):
+def plot_vn_diagram(ac: Aircraft, output_filepath: str = 'outputs/Vn_G_Diagram_True.png', show_plot: bool = False):
     """
     Generates and saves the V-n Diagram plot.
     """
