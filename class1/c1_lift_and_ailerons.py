@@ -263,8 +263,8 @@ def Roll_rate_deg(ac: Aircraft, speed, aileron_defl_deg, Clda, Clp):
 def size_ailerons(ac: Aircraft, update_ac: bool = False):
     # Sets outer position of aileron along span and finds required inner position based on landing and take-off CS-23 requirements
     w = ac.wing
-    y_out = 0.98 * w.span
-    y_in = np.arange(0.5, 1, 0.01) * w.span
+    y_out = 0.98 * w.span / 2
+    y_in = np.arange(0.5, 1, 0.01) * w.span / 2
     Clp = Roll_damping_coefficient(ac)
     Clda = Aileron_control_dtive(ac, y_in, y_out)
     # Calc roll rates at TO and LD speeds required

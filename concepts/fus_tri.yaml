@@ -47,8 +47,8 @@ max_perimeter: 0  # m
 start_cabin: 0 # [m]
 l_cabin: 0  # m
 vol_cabin_and_cargo: 0 # m
-x_pos_seats: [2.92, 5, 6]  # m 
-x_cargo_holds: 4 # list if multiple, if multiple uncomment the line below for lift of mass fractions (sum to 1) 
+x_pos_seats: [3.15, 4.6, 5.8] # [2.92, 5, 6]  # m 
+x_cargo_holds: 6.5 # list if multiple, if multiple uncomment the line below for lift of mass fractions (sum to 1) 
 # mass_frac_cargo_holds: null
 n_pax: 6 # 
 n_window_seats: 2 # 
