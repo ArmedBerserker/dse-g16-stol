@@ -1,6 +1,6 @@
 
-m_takeoff: 2000
-m_empty: 1172
+m_takeoff: 1919.6823065326362
+m_empty: 1070.7893779271874
 m_payload: 704  # kg CHANGE VALUE (assumed 6 pax * 84 kg + 200 kg)
 m_energy: null
 m_fuel: null

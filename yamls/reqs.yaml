@@ -1,7 +1,7 @@
 take_off:
   to_altitude: 2000 # [ft] take-off altitude requirement as specified by stakeholders
   to_temp_shift: 20  # [K] take-off temperature requirement as specified by stakeholders
-  as_CL_max_to: 2.60892  # [-] assumed C_L_max during take-off, will be updated after first class I/II iteration
+  as_CL_max_to: 2.5691680428425423  # [-] assumed C_L_max during take-off, will be updated after first class I/II iteration
 
   to_distance: 200  # [m]
   dist_balance_fl: False  # Check if the distance given is total or not
@@ -21,8 +21,8 @@ climb:
   cl_altitude: null  # ft
   cl_temperature_shift: null  # K
   cl_mass_frac: null
-  as_CL_max: 1.7  # assumed C_L_max during cruise, will be updated after first class I/II iteration
-  lift_slope: 0.097   # [1/deg] per deg
+  as_CL_max: 1.3851755796043206  # assumed C_L_max during cruise, will be updated after first class I/II iteration
+  lift_slope: 0.08719632618615471   # [1/deg] per deg
   n_eng: 1
 
 cruise:
@@ -33,7 +33,7 @@ cruise:
 landing:
   la_altitude: 2000  # [ft] landing altitude requirement as specified by stakeholders
   la_temp_shift: 20  # [K] landing temperature requirement as specified by stakeholders
-  as_CL_max_la: 2.83615  # [-] assumed C_L_max during landing, will be updated after first class I/II iteration
+  as_CL_max_la: 2.5691680428425423  # [-] assumed C_L_max during landing, will be updated after first class I/II iteration
 
   la_mass_frac: 0.90 # [-] assumed landing mass fraction, to be updated with a more accurate value
   dist_balance_fl_condition: False  # check if landing field distance is landing field length or ground roll
@@ -58,4 +58,4 @@ general:
   max_wing_loading: 90  # kg/m2
   n_max: 3.8  # [-] structural load limits
   n_min: -1.5 # [-] structural load limits
-  mac: 1.792426
+  mac: 1.7463430725851221
