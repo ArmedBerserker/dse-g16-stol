@@ -87,7 +87,7 @@ def lift_slope_rad(ac: Aircraft, M):
     # atm = Atmosphere(ac.requirements.cruise['cr_altitude'] * FT_TO_M, delta_T=0)
     # M = V / np.sqrt(1.4 * 287 * atm.temp)
     beta = np.sqrt(1 - M**2)                                                        #We also have a beta function defined in c2_m, use that??
-    CLa = 2 * np.pi * ac.wing.aspect_ratio / (2 + np.sqrt(4 + (ac.wing.aspect_ratio * beta / 0.95)**2 * (1 + ac.wing.sweep_c_2_deg**2 / beta**2)))
+    CLa = 2 * np.pi * ac.wing.aspect_ratio / (2 + np.sqrt(4 + (ac.wing.aspect_ratio * beta / 0.95)**2 * (1 + (np.tan(np.deg2rad(ac.wing.sweep_c_2_deg)))**2 / beta**2)))
     return CLa
 
 # def high_AR_method1(ac: Aircraft, flight_condition,):      #make this flexible to calculate cl at various airspeeds, thus landing and take-off?
@@ -419,37 +419,39 @@ def size_HLD(ac: Aircraft, update_ac: bool = False):
 
     flap_index = int(input('Select the index of the flaps required'))
     slat_index = int(input('Select the index of the slats required'))
+    flap = flap_types[flap_index]
+    slat = slat_types[slat_index]
 
     flap_DCLmax_to, Dalpha0L_fto = Delta_CLmax_and_alpha0L_deg_flaps(ac, flap, y_in, y_out, flight_condition='take-off')
     wing_lift_slope_flapped_to = flapped_wing_slope(ac, lift_slope_to, Swf, flap, flight_condition='take-off')
     slat_DCLmax_to, Dalpha0L_sto = Delta_CLmax_and_alpha0L_deg_flaps(ac, slat, y_in, y_out_slat, flight_condition='take-off')
     
     flap_DCLmax_ld, Dalpha0L_fld = Delta_CLmax_and_alpha0L_deg_flaps(ac, flap, y_in, y_out, flight_condition='landing')
-    wing_lift_slope_flapped_ld = flapped_wing_slope(ac, lift_slope_to, Swf, flap, flight_condition='landing')
+    wing_lift_slope_flapped_ld = flapped_wing_slope(ac, lift_slope_ld, Swf, flap, flight_condition='landing')
     slat_DCLmax_ld, Dalpha0L_sld = Delta_CLmax_and_alpha0L_deg_flaps(ac, slat, y_in, y_out_slat, flight_condition='landing')
     
     if update_ac:
-        ac.hld_and_ailerons.flaps['flap_type'] = flap_types[flap_index]
+        ac.hld_and_ailerons.flaps['flap_type'] = flap
         
-        ac.hld_and_ailerons.flaps['Delta_c_cf_to'] = deltaC_Cf(flap_types[flap_index], flap_deflections_to_ld(flap_types[flap_index], 'take-off'))
-        ac.hld_and_ailerons.flaps['Delta_c_cf_ld'] = deltaC_Cf(flap_types[flap_index], flap_deflections_to_ld(flap_types[flap_index], 'landing'))
+        ac.hld_and_ailerons.flaps['Delta_c_cf_to'] = deltaC_Cf(flap, flap_deflections_to_ld(flap, 'take-off'))
+        ac.hld_and_ailerons.flaps['Delta_c_cf_ld'] = deltaC_Cf(flap, flap_deflections_to_ld(flap, 'landing'))
         ac.hld_and_ailerons.flaps['cdash_cf_to'] = ac.hld_and_ailerons.flaps['Delta_c_cf_to'] + 1 / ac.hld_and_ailerons.flaps['cf_c']
         ac.hld_and_ailerons.flaps['cdash_cf_ld'] = ac.hld_and_ailerons.flaps['Delta_c_cf_ld'] + 1 / ac.hld_and_ailerons.flaps['cf_c']
         ac.hld_and_ailerons.flaps['cdash_c_to'] = ac.hld_and_ailerons.flaps['cdash_cf_to'] * ac.hld_and_ailerons.flaps['cf_c']
         ac.hld_and_ailerons.flaps['cdash_c_ld'] = ac.hld_and_ailerons.flaps['cdash_cf_ld'] * ac.hld_and_ailerons.flaps['cf_c']
         ac.hld_and_ailerons.flaps['S_wf'] = Swf
         ac.hld_and_ailerons.flaps['y_flap_in'] = y_in
-        ac.hld_and_ailerons.flaps['y_flap_out'] = y_out_slat
-        ac.hld_and_ailerons.flaps['ld_deflection'] = flap_deflections_to_ld(flap_types[flap_index], 'landing')
-        ac.hld_and_ailerons.flaps['to_deflection'] = flap_deflections_to_ld(flap_types[slat_index], 'take-off')
-        ac.hld_and_ailerons.slats['slat_type'] = slat_types[slat_index]
+        ac.hld_and_ailerons.flaps['y_flap_out'] = y_out
+        ac.hld_and_ailerons.flaps['ld_deflection'] = flap_deflections_to_ld(flap, 'landing')
+        ac.hld_and_ailerons.flaps['to_deflection'] = flap_deflections_to_ld(flap, 'take-off')
+        ac.hld_and_ailerons.slats['slat_type'] = slat
         ac.hld_and_ailerons.slats['y_slat_in'] = y_in
         ac.hld_and_ailerons.slats['y_slat_out'] = y_out_slat
         ac.hld_and_ailerons.slats['cdash_c_to'] = 1.05
         ac.hld_and_ailerons.slats['cdash_c_ld'] = 1.05
         # else:
-        #     ac.hld_and_ailerons.slats['cdash_c_to'] = (deltaC_Cf(slat_types[slat_index], flap_deflections_to_ld(slat_types[slat_index], 'take-off')) + 1 / ac.hld_and_ailerons.flaps['cf_c']) * ac.hld_and_ailerons.flaps['cf_c']
-        #     ac.hld_and_ailerons.slats['cdash_c_ld'] = (deltaC_Cf(slat_types[slat_index], flap_deflections_to_ld(slat_types[slat_index], 'landing')) + 1 / ac.hld_and_ailerons.flaps['cf_c']) * ac.hld_and_ailerons.flaps['cf_c']
+        #     ac.hld_and_ailerons.slats['cdash_c_to'] = (deltaC_Cf(slat, flap_deflections_to_ld(slat, 'take-off')) + 1 / ac.hld_and_ailerons.flaps['cf_c']) * ac.hld_and_ailerons.flaps['cf_c']
+        #     ac.hld_and_ailerons.slats['cdash_c_ld'] = (deltaC_Cf(slat, flap_deflections_to_ld(slat, 'landing')) + 1 / ac.hld_and_ailerons.flaps['cf_c']) * ac.hld_and_ailerons.flaps['cf_c']
         ac.hld_and_ailerons.slats['S_wf'] = Swf_slat
         ac.hld_and_ailerons.landing_lift['CL_alpha'] = wing_lift_slope_flapped_ld
         ac.hld_and_ailerons.landing_lift['alpha_zero_lift'] = alpha_stall_ld + Dalpha0L_fld + Dalpha0L_sld
@@ -460,7 +462,7 @@ def size_HLD(ac: Aircraft, update_ac: bool = False):
         ac.hld_and_ailerons.clean_lift['CL_alpha'] = lift_slope_cr
         ac.hld_and_ailerons.clean_lift['CL_max'] = CLmax_cr
         ac.hld_and_ailerons.clean_lift['alpha_stall'] = alpha_stall_cr
-    return flap_types[flap_index], slat_types[slat_index], y_in, y_out, y_out_slat
+    return flap, slat, y_in, y_out, y_out_slat
 
 
 

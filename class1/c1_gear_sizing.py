@@ -7,6 +7,7 @@ from lookups.consts import *
 import numpy as np
 import pandas as pd
 from c2_m import chord_at_y_span, x_pos_le_along_span_from_nose
+import matplotlib.pyplot as plt
 
 
 def size_tires(ac: Aircraft, update_ac = False):
@@ -81,6 +82,7 @@ def tire_location(ac: Aircraft, update_ac = False):
     # The coordinate frame assumes [0,0] = [aircraft nose, fuselage bottom]. Z upwards
     X_cg_fwd = ac.weights.x_cg_fwd   # [m]
     X_cg_aft = ac.weights.x_cg_aft   # [m]
+    print(f'\n forward and aft cgs: {X_cg_fwd, X_cg_aft}')
     Z_fus = 0                      # [m]
     fus_pitch = ac.landing_gear.fus_pitch * np.pi/180    # [rad]
     fus_ground_clear = ac.landing_gear.fus_ground_clear  # [m]
@@ -117,14 +119,29 @@ def tire_location(ac: Aircraft, update_ac = False):
         x1 = [X_cg_aft, X_cg_aft + 1]
         z1 = [Z_cg, Z_cg - 1/np.tan(tipover)]
         slope1, intercept1 = np.polyfit(x1, z1, 1)
+        # slope1 = -1 / np.tan(tipover)
+        # intercept1 = Z_cg - slope1 * X_cg_aft
 
         # Scrape constraint line
         x2 = [ac.fuselage.length, ac.fuselage.length + 1]
         z2 = [Z_tcone + ac.fuselage.tail_cone_length * np.tan(upsweep), 
               Z_tcone + ac.fuselage.tail_cone_length * np.tan(upsweep) + np.tan(scrape)]
         slope2, intercept2 = np.polyfit(x2, z2, 1)
+        # slope2 = np.tan(upsweep)
+        # intercept2 = Z_cg - slope2 * X_cg_aft
 
-        # Find intersection point
+        # x = np.arange(0, ac.fuselage.length, 0.1)
+        # z1_plot = slope1 * x + intercept1
+        # z2_plot = slope2 * x + intercept2
+        # plt.plot(x, z1_plot, color='red', label='Tipover')
+        # plt.plot(x, z2_plot, color='blue', label='scrape')
+        # plt.scatter(X_cg_aft, Z_cg, marker='x')
+        # plt.grid(True)
+        # plt.legend()
+        # plt.show()
+
+        # Find intersection point0
+
         X_mlg = (intercept2 - intercept1) / (slope1 - slope2)
         Z_mlg = slope1 * X_mlg + intercept1
         X_nlg_fwd_lim = X_cg_aft - (1/n_min_nlg - 1) * (X_mlg - X_cg_aft)
@@ -132,13 +149,16 @@ def tire_location(ac: Aircraft, update_ac = False):
         # X_nlg_fwd_lim = X_cg_aft + (X_cg_aft - X_mlg) * n_min_nlg / (1 - n_min_nlg)
         # X_nlg_aft_lim = X_cg_fwd + (X_cg_fwd - X_mlg) * n_max_nlg / (1 - n_max_nlg)
 
-        print(f' \n Most forward and aft landing gear positions: {X_nlg_fwd_lim, X_nlg_aft_lim}')
+        print(f' \n Most aft cg: {X_cg_aft}, X_mlg: {X_mlg}')
+        print(f' \n Most forward and aft nose landing gear positions: {X_nlg_fwd_lim, X_nlg_aft_lim}')
 
         # # Other intersection point method:
         # X_mlg = (Z_cg + X_cg_aft * np.tan(1 / tipover) + X_tcone * np.tan(scrape)) / (np.tan(scrape) + np.tan(1 / tipover))
         # Z_mlg = (X_mlg - X_tcone) * np.tan(scrape)
-        # X_nlg_fwd_lim = X_cg_aft - (1/n_min_nlg - 1)*(X_mlg - X_cg_aft)
-        # X_nlg_aft_lim = X_cg_fwd - (1/n_max_nlg - 1)*(X_mlg - X_cg_fwd)
+        # # X_nlg_fwd_lim = X_cg_aft - (1/n_min_nlg - 1)*(X_mlg - X_cg_aft)
+        # # X_nlg_aft_lim = X_cg_fwd - (1/n_max_nlg - 1)*(X_mlg - X_cg_fwd)
+        # X_nlg_fwd_lim = X_cg_aft + (X_cg_aft - X_mlg) * n_min_nlg / (1 - n_min_nlg)
+        # X_nlg_aft_lim = X_cg_fwd + (X_cg_fwd - X_mlg) * n_max_nlg / (1 - n_max_nlg)
 
         # location of nlg should be chosen as the most fwd possible one if structurally allowed.
         if X_nlg_fwd_lim < 0:

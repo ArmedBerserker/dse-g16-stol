@@ -44,7 +44,7 @@ def check_power_requirement(ac: Aircraft):
     P_a_cr = e.eta_3 * e.engine_power_cruise
     P_r_cr = e.power_cr
     phi = (e.super_cap_power) / (e.super_cap_power + e.engine_power_cruise)
-    P_a_to = e.engine_power_takeoff * e.eta_3 + e.eta_2 * e.super_cap_power * e.eta_3
+    P_a_to = e.engine_power_takeoff * e.eta_3 + e.eta_2 * e.super_cap_power * e.eta_3  # * 0.85
     P_r_to = e.power_to
     condition_cr = P_r_cr < P_a_cr
     condition_to = P_r_to < P_a_to
@@ -71,7 +71,7 @@ class DesignLoopConfig:
     # Parameters checked for convergence.
     # Paths use dot-notation into the nested dataclass tree.
     convergence_params: list[ConvergenceParam] = field(default_factory=lambda: [
-        ConvergenceParam("weights.m_takeoff", 1.0),    # kg
+        ConvergenceParam("weights.m_takeoff", 0.01),    # kg
         ConvergenceParam("wing.area",         0.01),   # m2
         ConvergenceParam("wing.ld",           0.001),
         # add / remove entries as your model grows
@@ -85,6 +85,11 @@ class DesignLoopConfig:
 #       - Order of execution defined in ITERATION_STEPS
 
 def pre_loop_calculations(ac: Aircraft) -> Aircraft:
+    # Change effective aspect ratio:
+    if ac.wing.wingtip != None:
+        h = ac.wing.winglet_height
+        A = ac.wing.aspect_ratio
+        ac.wing.aspect_ratio += 1.9 * h / ac.wing.span * A
     # Calculate L/D for range eqn
     if ac.engine.count == 1:
         type = "Single Engine Propeller Driven"
@@ -130,6 +135,7 @@ def compute_aerodynamics(ac: Aircraft) -> Aircraft:
     return ac
 
 def compute_landing_gear_positions(ac: Aircraft, epoch) -> Aircraft:
+    print(f'\n Main loop LG: \nforward and aft cgs: {ac.weights.x_cg_fwd, ac.weights.x_cg_aft}')
     ac = c1_gear_sizing.size_tires(ac, update_ac=True)
     ac = c1_gear_sizing.tire_location(ac, update_ac=True)
     Z1 = ac.landing_gear.height_mlg
@@ -199,6 +205,7 @@ def compute_class_II_mass_and_cg(ac: Aircraft, iteration: int) -> Aircraft:
     x_cg_struc, x_cg_data, ac = x_cg_structural_from_nose(ac, update_ac=True)
     fwd_cg, aft_cg, ac, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w, ac, update_ac_cgs=True)
     ac.weights.z_cg = ac.fuselage.height * 0.85 - ac.wing.c_root * ac.wing.t_c_max * 0.5
+    print(f'\n Main loop CII mass: \nforward and aft cgs: {ac.weights.x_cg_fwd, ac.weights.x_cg_aft}')
     return ac
 
 def tail_sizing_wing_positioning(ac: Aircraft, epoch: int) -> Aircraft:
@@ -255,7 +262,6 @@ def run_iteration(ac: Aircraft,
     Returns the updated aircraft AND whether the inner mass loop
     (class I vs class II) converged this epoch.
     """
-
     # Class I mass
     if epoch > 1:
         ac = compute_class_I_mass(ac)
@@ -269,7 +275,7 @@ def run_iteration(ac: Aircraft,
     for step in ITERATION_STEPS1:
         ac = step(ac)
 
-    if epoch > 1:
+    if epoch < 2:
         # Initial loading
         c1_loading_and_empennage.classI_loading_and_cgs_2(ac, update_ac=True)
 
@@ -448,10 +454,14 @@ def run_design_loop(
 
         # Stop if not enough power
         if insufficient_to_power_counter >1:
-            print(f"\n⚠  Insufficient take-off power for 6 consecutive epochs.")
+            print(f"\n⚠  Insufficient take-off power for 2 consecutive epochs.")
             break
         if insufficient_cr_power_counter >1:
-            print(f"\n⚠  Insufficient cruise power for 6 consecutive epochs.")
+            print(f"\n⚠  Insufficient cruise power for 2 consecutive epochs.")
+            e = ac.engine
+            P_a_cr = e.eta_3 * e.engine_power_cruise
+            P_r_cr = e.power_cr
+            print(f' Power actually available: {P_a_cr}, required: {P_r_cr}')
             break
 
         if converged:
@@ -576,7 +586,7 @@ if __name__ == "__main__":
         max_epochs   = 8,
         history_file = "aircraft_history.json",
         convergence_params = [
-            ConvergenceParam("weights.m_empty", 0.01)
+            ConvergenceParam("weights.m_empty", 1.0)
         ],
     )
 

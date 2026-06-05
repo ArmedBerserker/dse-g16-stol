@@ -112,7 +112,8 @@ def cruise_speed_matching(ac: Aircraft,
         alpha_p = 1
     elif ac.engine.alpha_p_id == 'piston':
         alpha_p = alpha_p_electric * ac.engine.Phi + alpha_p_piston * (1 - ac.engine.Phi)
-        alpha_p = 1.0
+        # alpha_p = 0.85
+        alpha_p = 1
     elif ac.engine.alpha_p_id == 'hydrogen':
         alpha_p = alpha_p_electric
 

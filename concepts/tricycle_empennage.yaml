@@ -19,7 +19,7 @@ horizontal_tail:
   type: fully moving
 
 vertical_tail:
-  volume_coefficient: 0.06275
+  volume_coefficient: 0.056  # 0.06275
   aspect_ratio: 1.4
   taper_ratio: 0.5
   x_v_frac_lf: 0.97

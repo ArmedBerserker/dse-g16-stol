@@ -198,7 +198,7 @@ def CD0_flap_profile(ac: Aircraft, flap_type, t_c_max, flap_deflection, wing_dra
 def CD0_flap_interference(CD0flap_profile, flap_type):
     return CD0flap_profile * flap_interference_factor(flap_type)
 
-def CD0_gear(x_nlg, height_nlg, n_main_wheels, n_nose_wheels, nlg_tire_diameter, nlg_tire_width, mlg_tire_diameter, mlg_tire_width, S, fairing_type: str = 'B', gear_type_roskam: int = 2):
+def CD0_gear(x_nlg, height_nlg, n_main_wheels, n_nose_wheels, nlg_tire_diameter, nlg_tire_width, mlg_tire_diameter, mlg_tire_width, S, fairing_type: str = 'C', gear_type_roskam: int = 2):
     # Type 1 landing gear (fig 4.54 Roskam VI)
     if gear_type_roskam == 1:
         if fairing_type == 'A':
@@ -439,11 +439,7 @@ def C_D_L(ac: Aircraft,
         flap_deflection = ac.hld_and_ailerons.flaps['ld_deflection']
     
     # General
-    A = ac.wing.aspect_ratio
-    A_wing_tip = 0.004  # NOTE: add wing tip effect here
-    if wing_tip:
-        A_wing_tip = ...
-    A_eff = A + A_wing_tip 
+    A_eff = ac.wing.aspect_ratio
     c_r = ac.wing.c_root
     b = ac.wing.span
     taper = ac.wing.taper_ratio

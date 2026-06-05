@@ -175,6 +175,9 @@ class Wing:
     cm_c4: float | None = None
     drag_bucket_cl: list | None = None
     stall_type: str | None = None
+    wingtip: str | None = None
+    winglet_height: float | None = None
+    aspect_ratio_geometric: float | None = None
 
 
     # ADD WHATEVER IS NEEDED

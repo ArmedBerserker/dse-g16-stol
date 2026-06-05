@@ -46,7 +46,7 @@ def size_wing_planform(ac: Aircraft):
         - mac and its spanwise position
     '''
     w = ac.wing
-    A = w.aspect_ratio
+    A = w.aspect_ratio_geometric
     S = w.area
     taper = w.taper_ratio
     sweep_c_4_deg = w.sweep

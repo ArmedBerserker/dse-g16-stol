@@ -1,6 +1,7 @@
 area: 17.10
 span: 14.55
 aspect_ratio: 9
+aspect_ratio_geometric: 9
 taper_ratio: 0.4
 sweep: 0
 c_f: 0.0035
@@ -36,3 +37,5 @@ cl_max_2d: 1.60
 cm_c4: -0.015
 drag_bucket_cl: [0.1, 0.4]
 stall_type: Sharp
+wingtip: winglet
+winglet_height: 1.0  # m
