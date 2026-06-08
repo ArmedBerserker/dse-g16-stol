@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from Propeller_performance import curve,D_ft
-
+from classes.isa import *
 #conversion
 kntstofps=1.68781
 kgm3_to_slugft3=0.00194032
@@ -19,6 +19,7 @@ h_L=50 #[feet] CS23 requirement
 V_sl_isa = 50 * kntstofps  # knots since close to MTOW and will go down with density
 mu=0.4#assume hard turf
 P_TO=270.886/2 #hp per engine
+delta_T=20 #Kelvin
 """
 might not be useful but maybe 
 S_LG=0.265*Vs_L**2 #ground run after touchdown [feet]
@@ -60,22 +61,23 @@ def Roskam_landing():
 T_STATIC = 2*curve(D_ft,rho*1/kgm3_to_slugft3,P_TO)
 T_BR=0.07*T_STATIC
 #T_BR=-0.4*T_STATIC
-S=269.1 #surface area of wing [feet2]
+S=260.1 #surface area of wing [feet2]
 S_flaps=2.4*sqmetertofeetmeter*2 #surface of two side of flaps
 AR=9
-e= 0.7830160860700998
+e= 0.7521
 
 
 C_l0=2.5
 C_lalpha=1 #we dont care anymore
-C_d0=0.07517854464158887
+C_d0=0.058668
 
-h=(2.7)*mstofps #height of wing above ground [feet]
+h=(3)*mstofps #height of wing above ground [feet]
 b=49.2#span of wing [feet]
 
 theta_app = np.radians(3)  # radians or 6 check both
 
 #calculations
+
 def CDi_ground_effect(h,b,c_Di):
     hb = h / b
     if hb < 0.033:
@@ -88,23 +90,25 @@ def CDi_ground_effect(h,b,c_Di):
 def GORENBEEK_landing(W_LD,rho):
     deltaf = 40  # flap deflection
     V_TD=V_BR=1.1*V_sl_isa
-    h_f=0.1512*V_sl_isa**2*(1-np.cos(theta_app))
+    h_f=0.1512*V_sl_isa**2*(1-np.cos(theta_app))#feet
     S_A=(h_L-h_f)/np.tan(theta_app)#verified
     S_F=0.1512*V_sl_isa**2*(np.sin(theta_app))#verified
     S_FR=V_TD#verified
     #cl and cd estimations
-    #alpha assumed 0 after the breaking sequence starts
-    alpha_LDG=0
-    C_L_ldg=C_l0+C_lalpha*alpha_LDG #Cl values after touchdown
+    #alpha assumed 0 after the breaking sequence starts*
+    C_Lland=2*W_LD/(rho*S*(1.3*V_sl_isa)**2)#double check
+    C_L_ldg=C_Lland-0.4 #speed break
     R=0.3
     delta1=179.32*R**4-111.6*R**3+28.29*R**2+2.3705*R-0.0089#check with flaps thcicness
     delta2= -3.9877e-12*deltaf**6 + 1.1685e-9*deltaf**5 - 1.2846e-7*deltaf**4 + 6.1742e-6*deltaf**3 - 9.89444e-5*deltaf**2 + 6.8324e-4*deltaf - 3.892e-4#check again
     delta_Cd=delta1*delta2*(S_flaps/S)
+
     C_di= C_L_ldg**2 / (np.pi*AR*e)
 
     C_di_ge=CDi_ground_effect(h,b,C_di)
 
-    C_D_ldg= C_d0+delta_Cd+C_di_ge#Cd values after touchdown wasnt able to check that wiht the example
+
+    C_D_ldg= C_d0+delta_Cd+C_di_ge+0.04#Cd values after touchdown wasnt able to check that wiht the example speed brake add 0.4
 
     D_lg=1/2*C_D_ldg*rho*(V_BR/np.sqrt(2))**2*S #verified
     L_ld=1/2*C_L_ldg*rho*(V_BR/np.sqrt(2))**2*S #verified
@@ -114,9 +118,6 @@ def GORENBEEK_landing(W_LD,rho):
     S_GR=S_FR+S_BR
     return S_LDG,S_GR,D_lg,L_ld
 
-
-def rho_at_altitude(h_ft):
-    return rho * (1 - 6.875e-6 * h_ft) ** 4.2559
 
 print("Results ROSKAM")
 s_L,s_LG,s_AIR=Roskam_landing()
@@ -141,7 +142,8 @@ def sensitivity_altitude():
     for deg in slopes_deg:
         S = []
         for h in altitudes:
-            rho_ref = rho_at_altitude(h)
+            atmos_model = Atmosphere(h, delta_T)
+            rho_ref = atmos_model.density[0]*kgm3_to_slugft3
             rad=np.radians(deg)
             V_0 = 1.1 * V_sl_isa
             V = 0
@@ -171,7 +173,8 @@ def sensitivity_altitude():
     for t in temps:
         S = []
         for h in altitudes:
-            rho_ref = rho_at_altitude(h)
+            atmos_model = Atmosphere(h, delta_T)
+            rho_ref = atmos_model.density[0]*kgm3_to_slugft3
             V_0 = 1.1 * V_sl_isa
             V = 0
             S_FR = V_0
@@ -201,7 +204,8 @@ def sensitivity_altitude():
         S = []
         for h in altitudes:
             W_LDc=w * W_LD
-            rho_ref = rho_at_altitude(h)
+            atmos_model = Atmosphere(h, delta_T)
+            rho_ref = atmos_model.density[0]*kgm3_to_slugft3
             V_0 = 1.1 * V_sl_isa
             V = 0
             S_FR = V_0
@@ -226,5 +230,5 @@ def sensitivity_altitude():
     plt.tight_layout()
     plt.show()
 
-sensitivity_altitude()
+#sensitivity_altitude()
 
