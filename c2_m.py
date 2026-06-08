@@ -1070,8 +1070,11 @@ def overlay_wing_pos_and_scissor_plot(ac: Aircraft,
     x_cg_lemac_mac_plot = np.arange(-1.5, 1.5, 0.01)
     fwd_cg = np.zeros_like(x_le_w_fus_length_arr)
     aft_cg = np.zeros_like(x_le_w_fus_length_arr)
+    og_x_le = ac.wing.x_le
     for i, x_le_w_fus_length in enumerate(x_le_w_fus_length_arr):
-        fwd_cg_nose, aft_cg_nose, ac1, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w_fus_length * ac.fuselage.length, ac, update_ac_cgs=False, show_plot=False)
+        ac1 = ac
+        ac1.wing.x_le = x_le_w_fus_length * ac.fuselage.length
+        fwd_cg_nose, aft_cg_nose, ac1, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w_fus_length * ac.fuselage.length, ac1, update_ac_cgs=False, show_plot=False)
         fwd_cg[i] = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length * ac.fuselage.length, fwd_cg_nose, ac)
         aft_cg[i] = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length * ac.fuselage.length, aft_cg_nose, ac)
     x_le_w_l_fus = x_le_w_fus_length_arr
