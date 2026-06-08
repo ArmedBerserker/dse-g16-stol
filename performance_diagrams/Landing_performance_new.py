@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+from Propeller_performance import curve,D_ft
 
 #conversion
 kntstofps=1.68781
@@ -11,14 +11,14 @@ mstofps=3.28084
 d_lG=492.126 #[feet] max landing distance
 Vs_L=50#stall speed in landing configuration at MTOW and sea level [knots]
 rho=1.07896*kgm3_to_slugft3#density at landing altitude 2000t ISA +20°C #slug/feet^3
-W_TO=1988.8*kgtolbs#[lbs]#change
+W_TO=1821*kgtolbs#[lbs]#change
 W_LD=0.99*W_TO #[lbs]
 g=32.2 #[feet/s**2]
-CLmax_L=2.62#change
+CLmax_L=2.5#change
 h_L=50 #[feet] CS23 requirement
 V_sl_isa = 50 * kntstofps  # knots since close to MTOW and will go down with density
 mu=0.4#assume hard turf
-P_TO=402.307#max shaft power in horsepower during take off all engines operating
+P_TO=270.886/2 #hp per engine
 """
 might not be useful but maybe 
 S_LG=0.265*Vs_L**2 #ground run after touchdown [feet]
@@ -55,15 +55,18 @@ def Roskam_landing():
 #METHOD 2 GORENBEEK
 
 #unknowns
-efficiency=0.65 #efficiency at VB/Sqrt2
-P_BHP=0.07*400 #power at VB/Sqrt2
+#efficiency=0.65 #efficiency at VB/Sqrt2
+#P_BHP=0.07*270.886 #power at VB/Sqrt2
+T_STATIC = 2*curve(D_ft,rho*1/kgm3_to_slugft3,P_TO)
+T_BR=0.07*T_STATIC
+#T_BR=-0.4*T_STATIC
 S=269.1 #surface area of wing [feet2]
 S_flaps=2.4*sqmetertofeetmeter*2 #surface of two side of flaps
 AR=9
 e= 0.7830160860700998
 
 
-C_l0=2.62
+C_l0=2.5
 C_lalpha=1 #we dont care anymore
 C_d0=0.07517854464158887
 
@@ -71,6 +74,7 @@ h=(2.7)*mstofps #height of wing above ground [feet]
 b=49.2#span of wing [feet]
 
 theta_app = np.radians(3)  # radians or 6 check both
+
 #calculations
 def CDi_ground_effect(h,b,c_Di):
     hb = h / b
@@ -105,7 +109,7 @@ def GORENBEEK_landing(W_LD,rho):
     D_lg=1/2*C_D_ldg*rho*(V_BR/np.sqrt(2))**2*S #verified
     L_ld=1/2*C_L_ldg*rho*(V_BR/np.sqrt(2))**2*S #verified
 
-    S_BR=-(V_BR**2*W_LD)/(2*g*((np.sqrt(2)*efficiency*550*P_BHP)/V_BR-D_lg-mu*(W_LD-L_ld)))
+    S_BR=-(V_BR**2*W_LD)/(2*g*((T_BR-D_lg-mu*(W_LD-L_ld))))
     S_LDG=S_A+S_F+S_FR+S_BR
     S_GR=S_FR+S_BR
     return S_LDG,S_GR,D_lg,L_ld
@@ -145,7 +149,7 @@ def sensitivity_altitude():
             #Assume thurst, drag and lift at Vbr/sqrt(2)
             # Static thrust max from where
             # Rough estimate for fixed-pitch/variable-pitch propeller
-            T_STATIC = 2.5 * P_TO  # [lbs]
+            T_STATIC = curve(D_ft,rho_ref*1/kgm3_to_slugft3,P_TO)
             T=0.07*T_STATIC  #formula from table 22.4 GA aircraft design for constant speed propeller
             S_LDG, S_GR, D_lg, L_ld= GORENBEEK_landing(W_LD, rho_ref)
             a = g / W_LD * (T - D_lg- mu * (W_LD * np.cos(rad) - L_ld) + W_LD * np.sin(rad))
@@ -174,7 +178,7 @@ def sensitivity_altitude():
             # Assume thurst, drag and lift at Vbr/sqrt(2)
             # Static thrust max from where
             # Rough estimate for fixed-pitch/variable-pitch propeller
-            T_STATIC = 2.5 * P_TO  # [lbs]
+            T_STATIC = curve(D_ft,rho*1/kgm3_to_slugft3,P_TO) # [lbs]
             T = 0.07 * T_STATIC  # formula from table 22.4 GA aircraft design for constant speed propeller
             S_LDG, S_GR, D_lg, L_ld = GORENBEEK_landing(W_LD, rho_ref)
             a = g / W_LD * (T - D_lg - mu * (W_LD - L_ld))
@@ -204,7 +208,7 @@ def sensitivity_altitude():
             # Assume thurst, drag and lift at Vbr/sqrt(2)
             # Static thrust max from where
             # Rough estimate for fixed-pitch/variable-pitch propeller
-            T_STATIC = 2.5 * P_TO  # [lbs]
+            T_STATIC = curve(D_ft,rho*1/kgm3_to_slugft3,P_TO) # [lbs]
             T = 0.07 * T_STATIC  # formula from table 22.4 GA aircraft design for constant speed propeller
             S_LDG, S_GR, D_lg, L_ld = GORENBEEK_landing(W_LDc, rho_ref)
             a = g / W_LDc * (T - D_lg - mu * (W_LDc - L_ld))

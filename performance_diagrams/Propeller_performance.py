@@ -106,8 +106,9 @@ def cp_calculation(D_ft, rho_kgm3, P_bhp,RPM):
     n = RPM / 60.0                          # rev/s
     P_fps = P_bhp * 550.0                   # ft·lbf/s
     print("rho input =", rho_kgm3)
-    print("rho_slug =", rho_slug)  
+    print("rho_slug =", rho_slug)
     return P_fps / (rho_slug * n**3 * D_ft**5)
+
 
 def eff(D_ft,rho_kgm3,P_bhp,J):
     RPM=P_to_RPM(P_bhp)
@@ -142,6 +143,8 @@ def curve( D_ft,rho_kgm3,P_bhp):
     RPM = P_to_RPM(P_bhp)
     n = RPM / 60
     J=V/(n*D_ft)
+    Sc = np.pi * (0.63*mstofps / 2) ** 2  # max area of nacelle
+    J = J * (1 - 0.329 * Sc / D_ft ** 2)  # change diameter based on the one selected
 
     lam=J
     eff2,ctcp,Cp=eff(D_ft,rho_kgm3,P_bhp,J)
@@ -159,7 +162,9 @@ def curve( D_ft,rho_kgm3,P_bhp):
     #eff1=2/(1+np.sqrt(1+T/(q*A))) #other flight mechanics book
 
     P_useful = eff1 * P_bhp
-    T_static= ctcp*550*P_bhp/(n*D_ft)#t_static according to Raymer
+    #T_static= ctcp*550*P_bhp/(n*D_ft)#t_static according to Raymer
+    T_static=(P_bhp*550)**(2/3)*(2*rho_kgm3*desnityconversion*A)**(1/3)
+
 
     P_useful_w = P_useful * 745.7*2 #both engines in watts
     V_ms = Vnew * 0.3048
