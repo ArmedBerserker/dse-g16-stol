@@ -10,6 +10,7 @@ from lookups.consts import *
 import matplotlib.pyplot as plt
 from pathlib import Path
 from performance_diagrams import *
+from Propeller_performance import *
 
 
 alts = np.arange(0,3001,50)
@@ -20,23 +21,28 @@ print((alts))
 def stall_speed(mtow, C_l_max, rho, S):
     return math.sqrt((2 * mtow)/(rho * S * C_l_max))
 
-def h_v_plot(alts, mtow,cd0,S,AR,e,P_a,c_l_max):
+def h_v_plot(alts, mtow,cd0,S,AR,e,c_l_max, D_ft, P_bhp):
     ROC = np.zeros((len(alts), 100))
     He = np.zeros((len(alts), 100))
+    
     for i, alt in enumerate(alts):
         rho = Atmosphere(alt, 0).density[0]
-        V_array=np.linspace(stall_speed(mtow,c_l_max, rho, S), 101, 100)
+        V_array= np.linspace(1.3 * stall_speed(mtow, c_l_max, rho, S), 90, 100)
+        T_static, P_available_curve, V_prop = curve(D_ft, rho, P_bhp)
+
         for j, V in enumerate(V_array):
             Cl = mtow / (0.5 * rho * V**2 * S)
             Cd = cd0 + Cl**2/(np.pi*AR*e)
             P_r = 0.5 * rho * V**3 * S * Cd
+            P_a = np.interp(V, V_prop, P_available_curve)
+
             P_a = P_a
             ROC[i,j] = (P_a-P_r)/mtow
             He[i, j] = alt + V**2 / (2 * 9.81)
     
    
     print(np.max(ROC))
-    cs = plt.contour(V_array,alts, ROC,levels=[0,1,2,3,4,5,6,7,7.5,8,8.5])
+    cs = plt.contour(V_array,alts, ROC,levels=[0,1,2,3,4,4.5,5,5.5])
     
     plt.clabel(cs)
     he_cs = plt.contour(V_array, alts, He, levels=np.arange(0, 11000, 500),
@@ -45,7 +51,11 @@ def h_v_plot(alts, mtow,cd0,S,AR,e,P_a,c_l_max):
     plt.clabel(he_cs)
     plt.xlabel("Velocity [m/s]")
     plt.ylabel("Altitude [m]")
-    plt.show()
+    save_path=Path(__file__).parent / "performance_figures/energy_height.png"
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    
 
 
     he_flat = He.flatten()
@@ -93,5 +103,5 @@ def h_v_plot(alts, mtow,cd0,S,AR,e,P_a,c_l_max):
     print(f"Minimum time to climb = {time_to_climb:.1f} s")
 
     return time_to_climb
-time_to_climb = h_v_plot(alts,1821*9.81,0.03376,24.23,10.18,0.7521,202000,1.38)   
+time_to_climb = h_v_plot(alts,1821*9.81,0.03376,24.23,10.18,0.7521,1.38,5.66667,135.443)   
 print(time_to_climb)

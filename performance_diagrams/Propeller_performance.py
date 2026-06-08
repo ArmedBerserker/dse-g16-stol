@@ -38,7 +38,7 @@ Pmax=160 #[hp] maximum power per engine
 
 graphtorrenbeek=np.sqrt(Vcruise*fpskph*P_to)
 maxdiameter=2*mstofps
-print(graphtorrenbeek)
+# print(graphtorrenbeek)
 
 value=4.1 #find on graph toreenbeedk hp/feet2
 
@@ -105,7 +105,6 @@ def cp_calculation(D_ft, rho_kgm3, P_bhp,RPM):
     rho_slug = rho_kgm3*desnityconversion    # slug/ft³
     n = RPM / 60.0                          # rev/s
     P_fps = P_bhp * 550.0                   # ft·lbf/s
-
     return P_fps / (rho_slug * n**3 * D_ft**5)
 
 
@@ -191,5 +190,5 @@ def curve( D_ft,rho_kgm3,P_bhp):
     return T_static
 
 D_ft=5.66667
-curve(D_ft,1.02,160)
+# curve(D_ft,1.02,160)
 
