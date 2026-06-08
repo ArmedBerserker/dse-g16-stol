@@ -96,7 +96,7 @@ def required_airspeed(aod_unpowered, C_L, W,S,rho):
     return V_req
 
 # def descent_perf(delta_T, W, cd0,S,AR,e,T, C_l_max)
-descent_perf(0, 19502, 0.075, 25,9, 0.783, 200000,1.38)
+descent_perf(0, (1821*9.81), 0.03376, 24.23,10.18, 0.7521, 200000,1.38)
 
 
 #high AR negative effect on stall vs optimal

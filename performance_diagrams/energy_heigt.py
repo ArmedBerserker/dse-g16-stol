@@ -12,7 +12,7 @@ from pathlib import Path
 from performance_diagrams import *
 
 
-alts = np.arange(0,2551,50)
+alts = np.arange(0,10001,50)
 print((alts))
 #V_array = np.arange(1,101,1)
 #print(np.shape(V_array))
