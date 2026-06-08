@@ -12,7 +12,7 @@ from pathlib import Path
 from performance_diagrams import *
 
 
-alts = np.arange(0,10001,50)
+alts = np.arange(0,3001,50)
 print((alts))
 #V_array = np.arange(1,101,1)
 #print(np.shape(V_array))
@@ -58,6 +58,7 @@ def h_v_plot(alts, mtow,cd0,S,AR,e,P_a,c_l_max):
     )
     
     roc_max = []
+    he_at_max = []
 
     for k in range(len(he_bins) - 1):
 
@@ -67,22 +68,27 @@ def h_v_plot(alts, mtow,cd0,S,AR,e,P_a,c_l_max):
         )
 
         if np.any(mask):
-            roc_max.append(np.max(roc_flat[mask]))
+
+            roc_bin = roc_flat[mask]
+            he_bin = he_flat[mask]
+
+            idx = np.argmax(roc_bin)
+
+            roc_max.append(roc_bin[idx])
+            he_at_max.append(he_bin[idx])
+
         else:
             roc_max.append(np.nan)
+            he_at_max.append(np.nan)
 
     roc_max = np.array(roc_max)
+    he_at_max = np.array(he_at_max)
 
-    # Energy-height coordinate corresponding to roc_max
-    he_mid = 0.5 * (he_bins[:-1] + he_bins[1:])
+    dh = np.diff(he_bins)
 
-    # Remove NaNs and non-positive climb rates
     valid = np.isfinite(roc_max) & (roc_max > 0)
 
-    time_to_climb = np.trapz(
-        1 / roc_max[valid],
-        he_mid[valid]
-    )
+    time_to_climb = np.sum(dh[valid] / roc_max[valid])
 
     print(f"Minimum time to climb = {time_to_climb:.1f} s")
 

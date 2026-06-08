@@ -9,21 +9,29 @@ from classes.isa import *
 from lookups.consts import *
 import matplotlib.pyplot as plt
 from pathlib import Path
+from Propeller_performance import *
 
 
 def stall_speed(mtow, C_l_max, rho, S):
     return math.sqrt((2 * mtow)/(rho * S * C_l_max))
 
 
-def power_calc(cd0, e, AR, mtow, V, S,alt_m, eta_p, P_shaft,Delta_T):
+def power_calc(cd0, e, AR, mtow, V, S,alt_m, P_shaft,Delta_T, D_ft):
     #one altitude
+    
     atmos_model = Atmosphere(alt_m, Delta_T)
     rho = atmos_model.density[0]
+    T_engine, P_useful_w = curve(D_ft, rho, P_shaft)
     C_l = mtow / (0.5 * rho * V ** 2 * S)
     C_d = cd0 + 0.95**2*C_l ** 2 / (np.pi * AR * e)
     P_r = C_d * 0.5 * rho * V ** 3 * S #DV
-    P_a = eta_p * P_shaft #eta p will be variable
+    P_a = P_useful_w #eta p will be variable
     excess_power = P_a - P_r
+    # print("Pa", P_a)
+    # print("P_r", P_r)
+    # print("excess", excess_power)
+    plt.plot(V, P_a)
+    plt.show()
     return excess_power,P_r, P_a
 
 # V = np.linspace(1.3 * stall_speed((1920*9.81), 1.38, 1.25, 25),110, 5000)
@@ -42,6 +50,7 @@ def RoC_vs_V(excess_power, V, mtow):
     save_path=Path(__file__).parent / "performance_figures/roc_v.png"
     plt.xlabel("Velocity [m/s]")
     plt.ylabel("Rate of Climb [m/s]")
+    plt.ylim(-4,6)
     plt.grid(True)
     plt.plot(V, RoC)
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -84,7 +93,7 @@ def power_curves_altitude(cd0, e, AR, mtow, S, P_a, alt_m, delta_T):
 
         atmos_model = Atmosphere(alt, delta_T)
         rho = atmos_model.density[0]
-        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho, S), 80, 5000)
+        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho, S), 90, 151)
         V_alts.append(V)
 
         C_l = mtow / (0.5 * rho * V**2 * S)
@@ -98,7 +107,7 @@ def power_curves_altitude(cd0, e, AR, mtow, S, P_a, alt_m, delta_T):
         
 
         line, = plt.plot(V, P_r, label=f"{alt: .0f} m")
-        plt.plot(V, P_a, color=line.get_color())
+        plt.plot(V, P_a, linestyle='--',color=line.get_color())
     save_path=Path(__file__).parent / "performance_figures/power_curves_alt.png"
     plt.xlabel("Velocity [m/s]")
     plt.ylabel("Power [W]")
@@ -125,6 +134,7 @@ def RoC_multiple_alts(P_a_alts, P_r_alts, V_alts, mtow,alt_m):
     save_path=Path(__file__).parent / "performance_figures/roc_alt.png"
     plt.xlabel("Velocity [m/s]")
     plt.ylabel("Rate of Climb [m/s]")
+    plt.ylim(-4,6)
     plt.grid(True)
     plt.legend()
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -140,7 +150,7 @@ def max_RoC_altitude(mtow, P_a, cd0, S, AR, e, delta_T):
     for a in alts:
         atmos_model = Atmosphere(a, delta_T)
         rho = atmos_model.density[0]
-        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho, S), 80, 5000)
+        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho, S), 80, 151)
 
         C_l = mtow / (0.5 * rho * V ** 2 * S)
         C_d = cd0 + 0.95**2*C_l ** 2 / (np.pi * AR * e)
@@ -157,6 +167,7 @@ def max_RoC_altitude(mtow, P_a, cd0, S, AR, e, delta_T):
     save_path=Path(__file__).parent / "performance_figures/max_roc_alt.png"
     plt.xlabel("Maximum Rate of Climb [m/s]")
     plt.ylabel("Altitude [m]")
+    # plt.ylim(-4,6)
     plt.grid(True)
     plt.plot(max_RoCs, alts)
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -176,7 +187,7 @@ def envelope(C_l_max, mtow, S, cd0, AR, e, P_a, rho_0, n, delta_T):
     for a in alts:
         atmos_model = Atmosphere(a, delta_T)
         rho = atmos_model.density[0]
-        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho, S), 110, 5000)
+        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho, S), 110, 151)
 
         V_s = math.sqrt((2 * mtow)/(rho * S * C_l_max))
         V_s_list.append(V_s)
@@ -267,22 +278,28 @@ if __name__ == '__main__':
     # ---- Design parameters ----
     e = 0.752
     AR = 10.2
-    mtow = 1912 * g  # [N]
+    mtow = 1821 * 9.81  # [N]
 
     atmos_model = Atmosphere(alt, delta_T)
     rho_0 = atmos_model.density[0]
-
+    
     C_l_max = 1.38 #cruise
-    S = 24.3
+    S = 24.23
     n = 1
-    cd0 = 0.0342
-
-    V = np.linspace(1.3 * stall_speed(mtow, C_l_max, rho_0, S),90, 5000)
-    eta_p = 0.84
+    print(rho_0)
+    print(mtow)
+    print(S)
+    print(C_l_max)
+    cd0 = 0.03376
+    D_ft=5.66667 #propeller diameter
+    V = np.linspace(1.3 * stall_speed(mtow, C_l_max, rho_0, S), 90, 151)
+    print(V)
     cruise_alt = 2500 #m cruise alt
     alt_m = [0,500,1000,1500,2000,2500,3000]
-    P_shaft = 202000
-    excess_power, P_r, P_a = power_calc(cd0, e, AR,mtow, V, S,cruise_alt,eta_p,P_shaft,0)
+    P_shaft = 135.443 #hp
+
+    excess_power, P_r, P_a = power_calc(cd0, e, AR,mtow, V, S,cruise_alt,P_shaft,0,D_ft)
+
     roc = RoC_vs_V(excess_power, V, mtow) #cruise
     Aoc = AoC_vs_V(P_a, P_r, mtow, V) #cruise
     P_a_alts, P_r_alts, V_alts = power_curves_altitude(cd0, e, AR, mtow, S, P_a,alt_m, 0)

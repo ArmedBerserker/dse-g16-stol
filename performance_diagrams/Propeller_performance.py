@@ -4,7 +4,7 @@ from scipy.interpolate import CubicSpline
 import pandas as pd
 from scipy.optimize import curve_fit
 #propeller chosen https://www.propellor.com/ap431hapf-snl68e
-graphdata = pd.read_csv("ctcp")
+graphdata = pd.read_csv("performance_diagrams\ctcp")
 
 #check units
 ktastofeet= 1.68781
@@ -105,6 +105,8 @@ def cp_calculation(D_ft, rho_kgm3, P_bhp,RPM):
     rho_slug = rho_kgm3*desnityconversion    # slug/ft³
     n = RPM / 60.0                          # rev/s
     P_fps = P_bhp * 550.0                   # ft·lbf/s
+    print("rho input =", rho_kgm3)
+    print("rho_slug =", rho_slug)  
     return P_fps / (rho_slug * n**3 * D_ft**5)
 
 def eff(D_ft,rho_kgm3,P_bhp,J):
@@ -126,13 +128,16 @@ def eff(D_ft,rho_kgm3,P_bhp,J):
     plt.grid()
     plt.show()
     """
+    # print("Cp range in chart:", x.min(), x.max())
+    # print("Cp used:", Cp)
 
+    # print("Y range in chart:", y.min(), y.max())
     efficiency=ctcp*J
     return efficiency,ctcp,Cp
 
 def curve( D_ft,rho_kgm3,P_bhp):
     #power shaft in horsepower per singel engine
-    V = np.linspace(1, 150, 151) #knots
+    V = np.linspace(65, 300, 151) #knots
     Vnew=V*ktastofeet
     RPM = P_to_RPM(P_bhp)
     n = RPM / 60
@@ -150,28 +155,36 @@ def curve( D_ft,rho_kgm3,P_bhp):
     num = 2*(1 -lam ** 2 * np.log(1 + 1/(lam ** 2)) )
     den = 1 + np.sqrt(1+T/(q*A))-2* lam **2* np.log(1 + 1/(lam ** 2))
 
-    #eff1=num/den#new because other gave me linear relationships
-    eff1=2/(1+np.sqrt(1+T/(q*A))) #other flight mechanics book
+    eff1=num/den#new because other gave me linear relationships
+    #eff1=2/(1+np.sqrt(1+T/(q*A))) #other flight mechanics book
 
     P_useful = eff1 * P_bhp
     T_static= ctcp*550*P_bhp/(n*D_ft)#t_static according to Raymer
 
+    P_useful_w = P_useful * 745.7*2 #both engines in watts
+    V_ms = Vnew * 0.3048
 
-    plt.figure()
-    plt.plot( Vnew , eff1)
-    plt.xlabel("Velocity [fps]")
-    plt.ylabel("Propeller efficiency")
-    plt.grid()
+    # print("RPM =", RPM)
+    # print("J range =", J.min(), J.max())
+    # print("Cp =", Cp)
+    # print("ctcp =", ctcp)
+    # print("efficiency =", eff2)
+    # print("eff1 max =", np.max(eff1))
+    # plt.figure()
+    # plt.plot( Vnew , eff1)
+    # plt.xlabel("Velocity [fps]")
+    # plt.ylabel("Propeller efficiency")
+    # plt.grid()
 
-    plt.figure()
-    plt.plot(Vnew , P_useful)
-    plt.xlabel("Velocity [fps]")
-    plt.ylabel("Useful power [hp]")
-    plt.grid()
+    # plt.figure()
+    # plt.plot(V_ms , P_useful_w)
+    # plt.xlabel("Velocity [ms]")
+    # plt.ylabel("Useful power [w]")
+    # plt.grid()
 
-    plt.show()
+    # plt.show()
 
-    return T_static
+    return T_static,P_useful_w
 
 D_ft=5.66667
 curve(D_ft,1.02,160)
