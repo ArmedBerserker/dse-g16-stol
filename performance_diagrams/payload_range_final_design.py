@@ -21,11 +21,13 @@ def calculate_payload_range_parameters(m_mto, m_e, m_f_des, m_f_max, m_pl_max, m
                                        eta_p, eta_eng, e_f, R_des, h_cr, V_cr):
 
     L_D_max = 0.5 * math.sqrt((math.pi * A * e) / (C_d0))
+    print(f"Max L/D: {L_D_max}")
     R_lost = 1 / 0.7 * L_D_cr * (h_cr + V_cr ** 2 / (2 * g))
     t_e = 45 * 60
     R_eq_res = t_e * V_cr
 
     R_eq = R_des + R_lost + R_eq_res
+    print(f"Equivalent range: {R_eq}")
     R_aux = R_eq - R_des
 
     m_f_required = fuel_required_condition(m_mto, R_eq, eta_eng, eta_p, e_f, L_D_max)
@@ -98,25 +100,25 @@ def plot_payload_range(payload_range_points, m_pl_des, R_des,
 
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
-
     print(f"Figure saved to: {save_path}")
 
+    plt.close()
 
 if __name__ == '__main__':
     # WEIGHTS
-    m_mto = 2013
-    m_e = 1091.8
-    m_pl_des = 704
-    m_pl_max = 800
-    m_pilot = 84
+    m_mto = 1809
+    m_e = 970
+    m_pl_des = 662
+    m_pl_max = 750
+    m_pilot = 77
     m_f_des = m_mto - m_e - m_pl_des
     m_f_max = 250
 
     # AERODYNAMICS
-    A = 9
-    e = 0.8
-    C_d0 = 0.04
-    L_D_cr = 10
+    A = 10.2
+    e = 0.752
+    C_d0 = 0.0346
+    L_D_cr = 12.12
 
     # PROPULSION
     eta_p = 0.8
