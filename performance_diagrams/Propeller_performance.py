@@ -136,7 +136,7 @@ def eff(D_ft,rho_kgm3,P_bhp,J):
 
 def curve( D_ft,rho_kgm3,P_bhp):
     #power shaft in horsepower per singel engine
-    V = np.linspace(65, 300, 151) #knots
+    V = np.linspace(5, 300, 1000) #knots
     Vnew=V*ktastofeet
     RPM = P_to_RPM(P_bhp)
     n = RPM / 60

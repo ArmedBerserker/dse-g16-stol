@@ -10,7 +10,7 @@ from lookups.consts import *
 import matplotlib.pyplot as plt
 from pathlib import Path
 from Propeller_performance import *
-
+from scipy.optimize import brentq
 
 def stall_speed(mtow, C_l_max, rho, S):
     return math.sqrt((2 * mtow)/(rho * S * C_l_max))
@@ -21,7 +21,7 @@ def power_calc(cd0, e, AR, mtow, V, S,alt_m, P_shaft,Delta_T, D_ft):
     
     atmos_model = Atmosphere(alt_m, Delta_T)
     rho = atmos_model.density[0]
-    T_engine, P_useful_w = curve(D_ft, rho, P_shaft)
+    T_engine, P_useful_w, V_ms = curve(D_ft, rho, P_shaft)
     C_l = mtow / (0.5 * rho * V ** 2 * S)
     C_d = cd0 + 0.95**2*C_l ** 2 / (np.pi * AR * e)
     P_r = C_d * 0.5 * rho * V ** 3 * S #DV
@@ -93,7 +93,7 @@ def power_curves_altitude(cd0, e, AR, mtow, S, P_a, alt_m, delta_T):
 
         atmos_model = Atmosphere(alt, delta_T)
         rho = atmos_model.density[0]
-        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho, S), 90, 151)
+        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho, S), 90, 1000)
         V_alts.append(V)
 
         C_l = mtow / (0.5 * rho * V**2 * S)
@@ -143,14 +143,14 @@ def RoC_multiple_alts(P_a_alts, P_r_alts, V_alts, mtow,alt_m):
 
 
 def max_RoC_altitude(mtow, P_a, cd0, S, AR, e, delta_T):
-    alts = np.arange(0, 10000, 1)  # [m]
+    alts = np.arange(0, 3000, 1)  # [m]
 
     max_RoCs = []
 
     for a in alts:
         atmos_model = Atmosphere(a, delta_T)
         rho = atmos_model.density[0]
-        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho, S), 80, 151)
+        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho, S), 80, 1000)
 
         C_l = mtow / (0.5 * rho * V ** 2 * S)
         C_d = cd0 + 0.95**2*C_l ** 2 / (np.pi * AR * e)
@@ -176,97 +176,215 @@ def max_RoC_altitude(mtow, P_a, cd0, S, AR, e, delta_T):
     return max_RoCs, alts
 
 
-def envelope(C_l_max, mtow, S, cd0, AR, e, P_a, rho_0, n, delta_T):
-    alts = np.arange(0, 10000, 1)  # [m]
+#def envelope(C_l_max, mtow, S, cd0, AR, e, P_a, rho_0, n, delta_T):
+    # alts = np.arange(0, 10000, 1)  # [m]
+
+    # V_s_list = []
+    # V_max_list = []
+    # V_max_ROC_list = []
+    # V_max_AOC_list = []
+    # V_min_list = []
+
+    # for a in alts:
+    #     atmos_model = Atmosphere(a, delta_T)
+    #     rho = atmos_model.density[0]
+    #     V = np.linspace(50, 110, 1000)
+
+    #     V_s = math.sqrt((2 * mtow)/(rho * S * C_l_max))
+    #     V_s_list.append(V_s)
+
+    #     C_l = mtow / (0.5 * rho * V ** 2 * S)
+    #     C_d = cd0 + C_l ** 2 / (np.pi * AR * e)
+
+    #     P_r = C_d * 0.5 * rho * V ** 3 * S
+
+
+    #     P_a = np.ones_like(V) * P_a
+
+    #     RoC = (P_a - P_r) / mtow
+    #     idx_max = np.argmax(RoC)
+    #     Vmax_RoC = V[idx_max]
+    #     V_max_ROC_list.append(Vmax_RoC)
+
+    #     V_aoc = np.linspace(1.3*V_s, 110, 1000)
+    #     AoC = np.arcsin((P_a - P_r) / (mtow * V_aoc))
+    #     AoC = np.rad2deg(AoC)
+    #     idx_max = np.argmax(AoC)
+    #     V_max_AoC = V_aoc[idx_max]
+    #     V_max_AOC_list.append(V_max_AoC)
+
+    #     diff = P_a - P_r
+    #     crossing_indices = np.where(np.diff(np.sign(diff)) != 0)[0]
+    #     intersections = []
+        
+    #     for i in crossing_indices:
+    #         # Linear interpolation
+    #         x1, x2_ = V[i], V[i + 1]
+    #         d1, d2 = diff[i], diff[i + 1]
+        
+    #         # intersection x
+    #         xi = x1 - d1 * (x2_ - x1) / (d2 - d1)
+        
+    #         # intersection y
+    #         yi = P_a[i] + (P_a[i + 1] - P_a[i]) * (xi - x1) / (x2_ - x1)
+        
+    #         intersections.append((xi, yi))
+        
+    #     #print("Intersection points:")
+    #     # for pt in intersections:
+    #     #     print(pt)
+        
+    #     if len(intersections) == 1:
+    #         i = crossing_indices[0]
+        
+    #         # Check sign change direction
+    #         before = diff[i]
+    #         after = diff[i + 1]
+        
+    #         if before < 0 and after > 0:
+    #             kind = "minimum"
+    #         elif before > 0 and after < 0:
+    #             kind = "maximum"
+    #         else:
+    #             kind = "undetermined"
+        
+    #         #print(f"\nSingle intersection corresponds to a local {kind}.")
+    #     idx = np.where(np.diff(np.sign(P_a - P_r)))[0]
+    #     #print(idx)
+        
+    #     V_max = intersections[-1][0]
+    #     V_max_list.append((V_max))
+    #     V_min = intersections[0][0]
+    #     V_min_list.append(V_min)
+
+    # # print(V_max_list)
+    # #print(V_s_list)\
+    # save_path=Path(__file__).parent / "performance_figures/envelope.png"
+    # plt.xlabel("Velocity [m/s]")
+    # plt.ylabel("Altitude [m]")
+    # plt.grid(True)
+    # plt.plot(V_s_list, alts, label = "stall speed")
+    # plt.plot(V_max_AOC_list, alts, label = "max aoc")
+    # plt.plot(V_max_ROC_list, alts, label = "max roc")
+    # plt.plot(V_max_list,alts, label = "Vmax")
+    # plt.plot(V_min_list, alts, label = "Vmin")
+    # plt.legend()
+    # os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    # plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    # plt.close()
+    
+def envelope(C_l_max, mtow, S, cd0, AR, e, P_a_available, rho_0, n, delta_T):
+
+    alts = np.arange(0, 10000, 1)
 
     V_s_list = []
     V_max_list = []
+    V_min_list = []
     V_max_ROC_list = []
     V_max_AOC_list = []
 
     for a in alts:
+
         atmos_model = Atmosphere(a, delta_T)
         rho = atmos_model.density[0]
-        V = np.linspace(1.3*stall_speed(mtow, C_l_max, rho, S), 110, 151)
 
-        V_s = math.sqrt((2 * mtow)/(rho * S * C_l_max))
+        # Stall speed
+        V_s = np.sqrt((2 * mtow) / (rho * S * C_l_max))
         V_s_list.append(V_s)
 
-        C_l = mtow / (0.5 * rho * V ** 2 * S)
-        C_d = cd0 + C_l ** 2 / (np.pi * AR * e)
+        # Wider velocity range so low-speed intersection is not missed
+        V = np.linspace(max(0.7 * V_s, 20), 110, 1000)
 
-        P_r = C_d * 0.5 * rho * V ** 3 * S
+        # Power required
+        C_l = mtow / (0.5 * rho * V**2 * S)
+        C_d = cd0 + C_l**2 / (np.pi * AR * e)
+        P_r = C_d * 0.5 * rho * V**3 * S
 
+        # Power available
+        P_a = np.full_like(V, P_a_available)
 
-        P_a = np.ones_like(V) * P_a
-
+        # ==========================================================
+        # Maximum Rate of Climb
+        # ==========================================================
         RoC = (P_a - P_r) / mtow
+
         idx_max = np.argmax(RoC)
-        Vmax_RoC = V[idx_max]
-        V_max_ROC_list.append(Vmax_RoC)
+        V_max_ROC_list.append(V[idx_max])
 
-        AoC = np.arcsin((P_a - P_r) / (mtow * V))
-        AoC = np.rad2deg(AoC)
+        # ==========================================================
+        # Maximum Angle of Climb (FIXED)
+        # ==========================================================
+        V_aoc = np.linspace(1.3 * V_s, 110, 1000)
+
+        C_l_aoc = mtow / (0.5 * rho * V_aoc**2 * S)
+        C_d_aoc = cd0 + C_l_aoc**2 / (np.pi * AR * e)
+        P_r_aoc = C_d_aoc * 0.5 * rho * V_aoc**3 * S
+
+        arg = (P_a_available - P_r_aoc) / (mtow * V_aoc)
+
+        # avoid invalid arcsin values
+        arg = np.clip(arg, -1, 1)
+
+        AoC = np.rad2deg(np.arcsin(arg))
+
         idx_max = np.argmax(AoC)
-        V_max_AoC = V[idx_max]
-        V_max_AOC_list.append(V_max_AoC)
+        V_max_AOC_list.append(V_aoc[idx_max])
 
-        diff = P_a - P_r
-        crossing_indices = np.where(np.diff(np.sign(diff)) != 0)[0]
-        intersections = []
-        
+        # ==========================================================
+        # Accurate intersection search using Brent's method
+        # ==========================================================
+        diff = P_a_available - P_r
+        crossing_indices = np.where(diff[:-1] * diff[1:] < 0)[0]
+        roots = []
+
+
         for i in crossing_indices:
-            # Linear interpolation
-            x1, x2_ = V[i], V[i + 1]
-            d1, d2 = diff[i], diff[i + 1]
-        
-            # intersection x
-            xi = x1 - d1 * (x2_ - x1) / (d2 - d1)
-        
-            # intersection y
-            yi = P_a[i] + (P_a[i + 1] - P_a[i]) * (xi - x1) / (x2_ - x1)
-        
-            intersections.append((xi, yi))
-        
-        #print("Intersection points:")
-        # for pt in intersections:
-        #     print(pt)
-        
-        if len(intersections) == 1:
-            i = crossing_indices[0]
-        
-            # Check sign change direction
-            before = diff[i]
-            after = diff[i + 1]
-        
-            if before < 0 and after > 0:
-                kind = "minimum"
-            elif before > 0 and after < 0:
-                kind = "maximum"
-            else:
-                kind = "undetermined"
-        
-            #print(f"\nSingle intersection corresponds to a local {kind}.")
-        idx = np.where(np.diff(np.sign(P_a - P_r)))[0]
-        #print(idx)
-        
-        V_max = intersections[-1][0]
-        V_max_list.append((V_max))
+            v1, v2 = V[i], V[i+1]
+            d1, d2 = diff[i], diff[i+1]
 
-    # print(V_max_list)
-    #print(V_s_list)\
-    save_path=Path(__file__).parent / "performance_figures/envelope.png"
+            root = v1 - d1 * (v2 - v1) / (d2 - d1)
+            roots.append(root)
+        # Remove duplicates
+        roots = np.unique(np.round(roots, 6))
+
+        if len(roots) >= 2:
+            V_min = roots[0]
+            V_max = roots[-1]
+
+        elif len(roots) == 1:
+            # Near absolute ceiling
+            V_min = np.nan
+            V_max = roots[0]
+
+        else:
+            V_min = np.nan
+            V_max = np.nan
+
+        V_min_list.append(V_min)
+        V_max_list.append(V_max)
+
+    # ==============================================================
+    # Plot envelope
+    # ==============================================================
+
+    save_path = Path(__file__).parent / "performance_figures/envelope.png"
+
+    plt.figure(figsize=(8, 6))
     plt.xlabel("Velocity [m/s]")
     plt.ylabel("Altitude [m]")
     plt.grid(True)
-    plt.plot(V_s_list, alts)
-    plt.plot(V_max_AOC_list, alts)
-    plt.plot(V_max_ROC_list, alts)
-    plt.plot(V_max_list,alts)
+
+    plt.plot(V_s_list, alts, label="Stall speed")
+    plt.plot(V_max_AOC_list, alts, label="Max AoC")
+    plt.plot(V_max_ROC_list, alts, label="Max RoC")
+    plt.plot(V_max_list, alts, label="Vmax")
+    plt.plot(V_min_list, alts, label="Vmin")
+
+    plt.legend()
+
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.close()
-    
 
 
 
@@ -292,7 +410,7 @@ if __name__ == '__main__':
     print(C_l_max)
     cd0 = 0.03376
     D_ft=5.66667 #propeller diameter
-    V = np.linspace(1.3 * stall_speed(mtow, C_l_max, rho_0, S), 90, 151)
+    V = np.linspace(1.3 * stall_speed(mtow, C_l_max, rho_0, S), 90, 1000)
     print(V)
     cruise_alt = 2500 #m cruise alt
     alt_m = [0,500,1000,1500,2000,2500,3000]
