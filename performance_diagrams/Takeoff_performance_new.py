@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-
 from Propeller_performance import curve, D_ft
 import numpy as np
 
