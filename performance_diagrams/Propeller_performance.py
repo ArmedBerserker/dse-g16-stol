@@ -4,7 +4,7 @@ from scipy.interpolate import CubicSpline
 import pandas as pd
 from scipy.optimize import curve_fit
 #propeller chosen https://www.propellor.com/ap431hapf-snl68e
-graphdata = pd.read_csv("performance_diagrams\ctcp")
+graphdata = pd.read_csv("ctcp")
 
 #check units
 ktastofeet= 1.68781
@@ -105,8 +105,7 @@ def cp_calculation(D_ft, rho_kgm3, P_bhp,RPM):
     rho_slug = rho_kgm3*desnityconversion    # slug/ft³
     n = RPM / 60.0                          # rev/s
     P_fps = P_bhp * 550.0                   # ft·lbf/s
-    print("rho input =", rho_kgm3)
-    print("rho_slug =", rho_slug)
+
     return P_fps / (rho_slug * n**3 * D_ft**5)
 
 
@@ -158,7 +157,7 @@ def curve( D_ft,rho_kgm3,P_bhp):
     num = 2*(1 -lam ** 2 * np.log(1 + 1/(lam ** 2)) )
     den = 1 + np.sqrt(1+T/(q*A))-2* lam **2* np.log(1 + 1/(lam ** 2))
 
-    eff1=num/den#new because other gave me linear relationships
+    eff1=num/den #new because other gave me linear relationships
     #eff1=2/(1+np.sqrt(1+T/(q*A))) #other flight mechanics book
 
     P_useful = eff1 * P_bhp
@@ -182,14 +181,14 @@ def curve( D_ft,rho_kgm3,P_bhp):
     # plt.grid()
 
     # plt.figure()
-    # plt.plot(V_ms , P_useful_w)
+    #plt.plot(V, P_useful_w)
     # plt.xlabel("Velocity [ms]")
     # plt.ylabel("Useful power [w]")
     # plt.grid()
 
     # plt.show()
 
-    return T_static,P_useful_w
+    return T_static
 
 D_ft=5.66667
 curve(D_ft,1.02,160)

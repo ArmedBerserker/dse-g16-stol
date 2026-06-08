@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from Propeller_performance import curve, D_ft
 import numpy as np
-
+from classes.isa import *
 # UNIT CONVERSION
 kntstofps = 1.68781
 kgtoslug = 0.00194032
@@ -21,7 +21,7 @@ h = 2.7  # height of wing above ground [feet]
 b = 18.2  # span of wing [feet]
 c_Di = 0.04  # lift induced drag coefficient out of ground effect
 C_D0 = 0.04  # cD0 take off run
-
+delta_T = 20  # [K]
 # propulsion
 P_TO = 289.661  # max shaft power in horsepower during take off all engines operating
 efficiency = 0.60  # efficiency of motor at V_LOF/Sqrt2
@@ -389,7 +389,8 @@ def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, 
             slope_rad = np.radians(slope_deg)
             s_LO_list = []
             for alt in altitudes:
-                rho_local = rho_at_altitude(alt)
+                atmos_model = Atmosphere(alt, delta_T)
+                rho_local = atmos_model.density[0]*kgtoslug
                 s_LO = ground_run_for(rho_local, W_TO, slope_rad, dt=dt, max_time=max_time)
                 s_LO_list.append(s_LO)
 
@@ -412,7 +413,8 @@ def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, 
         for dT in delta_T_list:
             s_LO_list = []
             for alt in altitudes:
-                rho_local = rho_at_altitude(alt, delta_T_K=dT)
+                atmos_model = Atmosphere(alt, dT)
+                rho_local = atmos_model.density[0]*kgtoslug
                 s_LO = ground_run_for(rho_local, W_TO, 0, dt=dt, max_time=max_time)
                 s_LO_list.append(s_LO)
 
@@ -436,7 +438,8 @@ def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, 
         for w in weights_lbs:
             s_LO_list = []
             for alt in altitudes:
-                rho_local = rho_at_altitude(alt)
+                atmos_model = Atmosphere(alt, delta_T)
+                rho_local = atmos_model.density[0]*kgtoslug
                 s_LO = ground_run_for(rho_local, w, 0, dt=dt, max_time=max_time)
                 s_LO_list.append(s_LO)
 
@@ -493,9 +496,9 @@ if __name__ == "__main__":
     print(f"    BFL = {BFL:.1f} ft")
 
     # -- Sensitivity analyses --
-    sensitivity_analysis(steep=False)
-    sensitivity_analysis(temperature=False)
-    sensitivity_analysis(weight=False)
+    sensitivity_analysis(steep=True)
+    sensitivity_analysis(temperature=True)
+    sensitivity_analysis(weight=True)
 
 """
 not applicable in the end too big airplanes so other check
