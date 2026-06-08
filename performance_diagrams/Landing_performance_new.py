@@ -77,6 +77,7 @@ b=49.2#span of wing [feet]
 theta_app = np.radians(3)  # radians or 6 check both
 
 #calculations
+
 def CDi_ground_effect(h,b,c_Di):
     hb = h / b
     if hb < 0.033:
@@ -105,6 +106,7 @@ def GORENBEEK_landing(W_LD,rho):
     C_di= C_L_ldg**2 / (np.pi*AR*e)
 
     C_di_ge=CDi_ground_effect(h,b,C_di)
+
 
     C_D_ldg= C_d0+delta_Cd+C_di_ge+0.04#Cd values after touchdown wasnt able to check that wiht the example speed brake add 0.4
 
