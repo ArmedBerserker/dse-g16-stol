@@ -55,7 +55,7 @@ AIRFOIL_DB: List[Airfoil] = [
         cm_c4=-0.100,
         drag_bucket_cl=(0.2, 0.8),
         stall_type="Moderate",
-        alpha_0L=0.0
+        alpha_0L=4.0
     ),
     Airfoil(
         name="NACA 4412",
@@ -95,7 +95,7 @@ AIRFOIL_DB: List[Airfoil] = [
         cm_c4=-0.110,
         drag_bucket_cl=(0.3, 0.9),
         stall_type="Moderate",
-        alpha_0L=0.0
+        alpha_0L=-2
     ),
     Airfoil(
         name="USA 35B",
@@ -152,7 +152,7 @@ AIRFOIL_DB: List[Airfoil] = [
         thickness_pct=12.0,
         camber_pct=1.8,
         cl_max_2d=1.60,
-        cm_c4=-8.7e-3,                
+        cm_c4=-0.011, # -8.7e-3,                
         drag_bucket_cl=(0.1, 0.4),
         stall_type="Sharp",
         alpha_0L=0.0

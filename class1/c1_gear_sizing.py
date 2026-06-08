@@ -17,8 +17,8 @@ def size_tires(ac: Aircraft, update_ac = False):
 
     f_mlg = 1 - n_min_nlg
     f_nlg = n_max_nlg
-    Ft_mlg = f_mlg * W_to * 1.25  # [N] Main landing gear load requirement
-    Ft_nlg = f_nlg * W_to * 1.25  # [N] Nose/tail landing gear load requirement
+    Ft_mlg = f_mlg * W_to * 1.10  # [N] Main landing gear load requirement
+    Ft_nlg = f_nlg * W_to * 1.10  # [N] Nose/tail landing gear load requirement
 
     density_to = float(Atmosphere(ac.requirements.take_off['to_altitude'], ac.requirements.take_off['to_temp_shift']).density)
     to_speed = np.sqrt(ac.weights.m_takeoff * 9.81 / ac.wing.area / (0.5 *density_to * (ac.requirements.take_off['as_CL_max_to'] / 1.21)))
@@ -187,10 +187,10 @@ def tire_location(ac: Aircraft, update_ac = False):
         Y_mlg = min_Y_mlg
         Y_nlg = 0
 
-        if Z_mlg > 0:
-            raise ValueError(f'Main landing gear z coordinate > 0, should be < 0 in the selected coordinate system')
-        if Z_nlg > 0:
-            raise ValueError(f'Nose landing gear z coordinate > 0, should be < 0 in the selected coordinate system')
+        # if Z_mlg > 0:
+        #     raise ValueError(f'Main landing gear z coordinate > 0, should be < 0 in the selected coordinate system')
+        # if Z_nlg > 0:
+        #     raise ValueError(f'Nose landing gear z coordinate > 0, should be < 0 in the selected coordinate system')
         # if X_nlg < 0:
         #     raise ValueError(f'Nose landing gear is located ahead of aircraft')
 

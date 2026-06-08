@@ -351,6 +351,7 @@ def CD0(ac: Aircraft,
     # Propeller
     if n_engine_inoperative != 0:
         wind_milling_inop = CD0_windmilling_prop_inop(eng.n_prop_blades, eng.prop_diameter, S)
+        wind_milling = 0.1 * 0.04 * ac.engine.n_prop_blades * np.pi * 0.25 * ac.engine.prop_diameter**2
         # wind_milling = CD0_windmilling_prop(V_fps=speed*MpS_TO_FpS,
         #                                     q_psf=0.5*density*speed**2/PSF_TO_PA,
         #                                     S_sqft=S*M2_TO_F2,

@@ -249,7 +249,7 @@ def flapped_wing_slope(ac: Aircraft, wing_lift_slope, Swf, flap_type: str, fligh
 # ailerons
 def Aileron_control_dtive(ac: Aircraft, y_in, y_out):
     w = ac.wing
-    cf_c = ac.hld_and_ailerons.flaps['cf_c']
+    cf_c = ac.hld_and_ailerons.ailerons['cf_c']
     tau = interp_value(pd.read_csv('lookups/HLD/tau.csv'), cf_c, 'ratio', 'tau')
     integral = w.c_root / 2 * (y_out**2 - y_in**2) - (w.c_root - w.c_tip) * 2 / (3 * w.span) * (y_out**3 - y_in**3)
     return 2 * 2 * np.pi * tau * integral / (w.area * w.span)
@@ -286,7 +286,7 @@ def size_ailerons(ac: Aircraft, update_ac: bool = False):
 def size_HLD(ac: Aircraft, update_ac: bool = False):
     y_in = ac.fuselage.width / 2 + 0.3
     y_out = ac.hld_and_ailerons.ailerons['y_aileron_in'] - 0.7
-    y_out_slat = 0.96 * ac.wing.span
+    y_out_slat = y_out
 
     Swf = S_wf(ac, y_in, y_out)
     Swf_slat = S_wf(ac, y_in, y_out_slat)

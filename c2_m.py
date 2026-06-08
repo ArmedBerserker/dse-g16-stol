@@ -6,6 +6,8 @@ from scipy.interpolate import RegularGridInterpolator, interp1d
 from scipy.optimize import brentq
 from classes.isa import Atmosphere
 import matplotlib.pyplot as plt
+import os
+import matplotlib.cm as cm
 
 # NOTE: Check how to calculate W_ops for medivac, check fti mass, check if ballasts needed
 # NOTE: Check calculation for x_cg cargo hold 
@@ -537,7 +539,7 @@ def W_emp(ac: Aircraft, update_ac: bool = False):
     # print(f'\n HT weight: \t Cessna: {W_h_c * LBS_TO_KG} \t USAF: {W_h_u * LBS_TO_KG}')
     # print(f'\n VT weight: \t Cessna: {W_v_c * LBS_TO_KG} \t USAF: {W_v_u * LBS_TO_KG}')
 
-    return W_ht * LBS_TO_KG, W_vt * LBS_TO_KG * 3
+    return W_ht * LBS_TO_KG, W_vt * LBS_TO_KG 
 
 def W_fus(ac: Aircraft, update_ac: bool = False):
     fus = ac.fuselage
@@ -1061,7 +1063,7 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     print(f'Scissor plot saved to {output_filepath}')
     return Sh_S_cont, Sh_S_n_stab, Sh_S_stab
 
-def overlay_wing_pos_and_scissor_plot(ac: Aircraft, 
+def overlay_wing_pos_and_scissor_plot2(ac: Aircraft, 
                                       x_le_w_fus_length_arr: np.ndarray,
                                       output_filepath: str = None,
                                       show_plot: bool = False,
@@ -1160,6 +1162,149 @@ def overlay_wing_pos_and_scissor_plot(ac: Aircraft,
     
     Sh_S = selected_points[0]['y_ax1']
     x_le_w_fus = selected_points[0]['y_ax2']
+
+    fwd_cg_nose, aft_cg_nose, ac1, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w_fus * ac.fuselage.length, ac, update_ac_cgs=False)
+    lemac = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, ac.wing.y_MAC, x_le_w_fus * ac.fuselage.length)
+    if update_ac:
+        ac.weights.x_cg_aft = aft_cg_nose
+        ac.weights.x_cg_fwd = fwd_cg_nose
+        ac.empennage.horizontal_tail['area div S'] = Sh_S
+        ac.empennage.horizontal_tail['area'] = Sh_S * ac.wing.area
+        ac.wing.x_le = x_le_w_fus * ac.fuselage.length
+    return Sh_S, lemac, aft_cg_nose, fwd_cg_nose, x_le_w_fus * ac.fuselage.length
+
+def overlay_wing_pos_and_scissor_plot(ac: Aircraft, 
+                                      x_le_w_fus_length_arr: np.ndarray,
+                                      output_filepath: str = None,
+                                      show_plot: bool = False,
+                                      update_ac: bool = False):
+    x_cg_lemac_mac_plot = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length_arr * ac.fuselage.length, x_le_w_fus_length_arr * ac.fuselage.length, ac)
+    x_cg_lemac_mac_plot = np.arange(-1.5, 1.5, 0.01)
+    fwd_cg = np.zeros_like(x_le_w_fus_length_arr)
+    aft_cg = np.zeros_like(x_le_w_fus_length_arr)
+    og_x_le = ac.wing.x_le
+    for i, x_le_w_fus_length in enumerate(x_le_w_fus_length_arr):
+        fwd_cg_nose, aft_cg_nose, ac1, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w_fus_length * ac.fuselage.length, ac, update_ac_cgs=False, show_plot=False)
+        fwd_cg[i] = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length * ac.fuselage.length, fwd_cg_nose, ac)
+        aft_cg[i] = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_fus_length * ac.fuselage.length, aft_cg_nose, ac)
+    x_le_w_l_fus = x_le_w_fus_length_arr
+    Sh_S_cont, Sh_S_n_stab, Sh_S_stab = scissor_plot(ac, x_cg_lemac_mac_plot, output_filepath='outputs/Initial_scissor_plot.png', show_plot=False)
+
+    # ── Static side-by-side figure ────────────────────────────────────────────
+    fig_static, (ax_sc, ax_ld) = plt.subplots(1, 2, figsize=(14, 6))
+    fig_static.suptitle('Tail sizing and wing position', fontsize=13)
+
+    # Left panel – scissor plot
+    ax_sc.plot(x_cg_lemac_mac_plot, Sh_S_cont,  color='navy',      label='Controllability')
+    ax_sc.plot(x_cg_lemac_mac_plot, Sh_S_n_stab, color='steelblue', label='Neutral stability')
+    ax_sc.plot(x_cg_lemac_mac_plot, Sh_S_stab,   color='cornflowerblue', label='Stability (SM=0.05)')
+    ax_sc.set_xlabel(r'$X_{cg}/MAC$')
+    ax_sc.set_ylabel(r'$S_h/S$')
+    ax_sc.set_title('Scissor plot')
+    ax_sc.legend()
+    ax_sc.grid(True)
+
+    # Right panel – wing position / loading diagram
+    ax_ld.plot(fwd_cg, x_le_w_l_fus, color='steelblue', label='Forward CG')
+    ax_ld.plot(aft_cg, x_le_w_l_fus, color='navy',      label='Aft CG')
+    ax_ld.set_xlabel(r'$X_{cg}/MAC$')
+    ax_ld.set_ylabel(r'$X_{LE}/L_{fus}$')
+    ax_ld.set_title('Wing position vs CG range')
+    ax_ld.legend()
+    ax_ld.grid(True)
+
+    # Derive a static output path from the main one (e.g. "outputs/plot.png" → "outputs/plot_static.png")
+    if output_filepath:
+        base, ext = os.path.splitext(output_filepath)
+        static_filepath = f"{base}_side_by_side{ext}"
+        fig_static.savefig(static_filepath, bbox_inches='tight')
+    plt.close(fig_static)
+    # ── End static figure ─────────────────────────────────────────────────────
+
+    fig, ax1 = plt.subplots(figsize=(8, 6))
+
+    line1a = ax1.plot(x_cg_lemac_mac_plot, Sh_S_cont, color='navy', label='Controlability')
+    line1b = ax1.plot(x_cg_lemac_mac_plot, Sh_S_n_stab, color='navy', label='Neutral stability')
+    line1c = ax1.plot(x_cg_lemac_mac_plot, Sh_S_stab, color='navy', label=f'Stability (SM=0.05)')
+    ax1.set_xlabel(r'$X_{cg}/MAC$')
+    ax1.set_ylabel(r'$S_h/S$', color='navy')
+    ax1.tick_params(axis='y', labelcolor='navy')
+
+    ax2 = ax1.twinx()
+    line2a = ax2.plot(fwd_cg, x_le_w_l_fus, color='steelblue', label='Forward cg')
+    line2b = ax2.plot(aft_cg, x_le_w_l_fus, color='steelblue', label='Aft cg')
+    # x_le_w_other = np.linspace(3, 6, 20)
+    # colors = cm.tab20(np.linspace(0, 1, len(x_le_w_other)))
+    # for i in range(len(x_le_w_other)):
+    #     fwd_cg_nosee, aft_cg_nosee, ac1, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w_other[i], ac, update_ac_cgs=False, show_plot=False)
+    #     x_cg = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_other[i], fwd_cg_nosee, ac)
+    #     ax1.axvline(x=x_cg, color=colors[i], linestyle='--', linewidth=1, label=f'x_le_w = {x_le_w_other[i]}')
+    #     x_cg = convert_x_cg_from_nose_to_lemac_frac_mac(x_le_w_other[i], aft_cg_nosee, ac)
+    #     ax1.axvline(x=x_cg, color=colors[i], linestyle='--', linewidth=1)
+    ax2.set_ylabel(r'$X_{LE}/L_{fus}$', color='steelblue')
+    ax2.tick_params(axis='y', labelcolor='steelblue')
+
+    intersection1 = scissor_plot_intersection_points(x1=x_cg_lemac_mac_plot, x2=fwd_cg, y1=Sh_S_cont, y2=x_le_w_l_fus)
+    intersection2 = scissor_plot_intersection_points(x1=x_cg_lemac_mac_plot, x2=aft_cg, y1=Sh_S_stab, y2=x_le_w_l_fus)
+    if intersection1 is not None and intersection2 is not None:
+        ax1.plot(intersection1[0], intersection1[1], 'ko')
+        ax1.plot(intersection2[0], intersection2[1], 'ko')
+        ax1.axhline(max(intersection1[1], intersection2[1]), linestyle='--', color='gray', alpha=0.7)
+    ax1.legend(loc='upper right')
+    ax2.legend(loc='lower right')
+    plt.title('Tail sizing and wing position plot')
+    plt.grid(True)
+
+    # --- Interactive click handling ---
+    selected_points = []
+    click_markers = []
+
+    def on_click(event):
+        if event.inaxes not in (ax1, ax2):
+            return
+        if fig.canvas.toolbar and fig.canvas.toolbar.mode != '':
+            return
+
+        x_data = event.xdata
+
+        y_ax1 = event.ydata if event.inaxes is ax1 else ax1.transData.inverted().transform(
+            ax2.transData.transform((x_data, event.ydata))
+        )[1]
+        y_ax2 = event.ydata if event.inaxes is ax2 else ax2.transData.inverted().transform(
+            ax1.transData.transform((x_data, event.ydata))
+        )[1]
+
+        selected_points.append({
+            'x':     x_data,
+            'y_ax1': y_ax1,
+            'y_ax2': y_ax2,
+        })
+
+        marker, = event.inaxes.plot(x_data, event.ydata, 'rx', markersize=10, markeredgewidth=2)
+        click_markers.append(marker)
+
+        ax1.annotate(
+            f"x={x_data:.3f}\nSh/S={y_ax1:.3f}\nX_LE={y_ax2:.3f}",
+            xy=(x_data, y_ax1), xycoords='data',
+            xytext=(10, 10), textcoords='offset points',
+            fontsize=7,
+            bbox=dict(boxstyle='round,pad=0.3', fc='yellow', alpha=0.7),
+            arrowprops=dict(arrowstyle='->', color='black'),
+        )
+
+        fig.canvas.draw()
+        print(f"[Click {len(selected_points)}]  x={x_data:.4f} | Sh/S (ax1)={y_ax1:.4f} | X_LE/L_fus (ax2)={y_ax2:.4f}")
+
+    fig.canvas.mpl_connect('button_press_event', on_click)
+
+    plt.savefig(output_filepath)
+    if show_plot:
+        plt.show()
+    
+    Sh_S = selected_points[0]['y_ax1']
+    x_le_w_fus = selected_points[0]['y_ax2']
+    # x_le_w = float(input(f'\n enter x_le_w: \n'))
+    # x_le_w_fus = x_le_w / ac.fuselage.length
 
     fwd_cg_nose, aft_cg_nose, ac1, xc_cg_nose_ftb, x_cg_nose_btf = loading_diagram(x_le_w_fus * ac.fuselage.length, ac, update_ac_cgs=False)
     lemac = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, ac.wing.y_MAC, x_le_w_fus * ac.fuselage.length)

@@ -17,6 +17,7 @@ ailerons:
   y_aileron_in: 6.75  # m
   y_aileron_out: 7.4  # m
   deflection: 15  # deg
+  cf_c: 0.4
 slats:
   slat_type: 'slat'
   y_slat_in: 1.125  # m
