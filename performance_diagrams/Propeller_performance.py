@@ -164,14 +164,13 @@ def curve( D_ft,rho_kgm3,P_bhp):
 
     eff1=num/den #new because other gave me linear relationships
     #eff1=2/(1+np.sqrt(1+T/(q*A))) #other flight mechanics book
-    P_bhp_alt = P_bhp * (rho_kgm3 / 1.225)
-    P_useful = eff1 * P_bhp_alt
+    P_useful = eff1 * P_bhp
     #T_static= ctcp*550*P_bhp/(n*D_ft)#t_static according to Raymer
     T_static=0.85*(P_bhp*550)**(2/3)*(2*rho_kgm3*desnityconversion*A)**(1/3) #one engine and overestimate due to the fact they dont take into account blockage
 
 
-    P_useful_w = P_useful * 745.7*2 #both engines in watts
-
+    P_useful_w = T*Vnew* 745.7*2 #both engines in watts
+    P1=P_useful*745.7*2
     V_ms = Vnew * 0.3048
 
     # print("RPM =", RPM)
@@ -180,40 +179,51 @@ def curve( D_ft,rho_kgm3,P_bhp):
     #print("ctcp =", ctcp)
     #print("efficiency =", eff2)
     #print("eff1 max =", np.max(eff1))
-    """
+
     plt.figure()
-    plt.plot( Vnew , eff1)
-    plt.xlabel("Velocity [fps]")
+    plt.plot( V_ms , eff1)
+    plt.xlabel("Velocity [ms]")
     plt.ylabel("Propeller efficiency")
     plt.grid()
 
     plt.figure()
-    plt.plot(V, P_useful)
+    plt.plot(V_ms, P_useful)
     plt.xlabel("Velocity [ms]")
     plt.ylabel("Useful power [w]")
     plt.grid()
-"""
+
     plt.show()
 
-    #return T_static,Vnew,eff1
-    return V_ms,P_useful_w
+    return T_static,Vnew,eff1
+    #return V_ms,P_useful_w
 
 D_ft=5.66667
 curve(D_ft,1.02,160)
-"""
 delta_T=20
 altitudes = np.arange(0, 8000, 50)
 P_available = []
-
+"""
 for alt in altitudes:
     atmos_model = Atmosphere(alt / mstofps, delta_T)
     rho_local = atmos_model.density[0]
-    T_static, Vnew, eff1, P_useful_w= curve(D_ft, rho_local, 160)
-    print(np.max(P_useful_w))
+    T_static, Vnew, eff1, P_useful_w,T= curve(D_ft, rho_local, 160)
     P_available.append(np.max(P_useful_w))
 
 plt.figure()
 plt.plot(P_available, altitudes)
+plt.xlabel("Available power [W]")
+plt.ylabel("Altitude [ft]")
+plt.grid()
+plt.show()
+T_available = []
+for alt in altitudes:
+    atmos_model = Atmosphere(alt / mstofps, delta_T)
+    rho_local = atmos_model.density[0]
+    T_static, Vnew, eff1, P_useful_w,T= curve(D_ft, rho_local, 160)
+    T_available.append(np.max(T))
+
+plt.figure()
+plt.plot(T_available, altitudes)
 plt.xlabel("Available power [W]")
 plt.ylabel("Altitude [ft]")
 plt.grid()
