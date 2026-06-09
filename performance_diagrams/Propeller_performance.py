@@ -152,9 +152,9 @@ def curve( D_ft,rho_kgm3,P_bhp):
 
     lam=J
     eff2,ctcp,Cp=eff(D_ft,rho_kgm3,P_bhp,J)
-    T=ctcp*Cp*rho_kgm3*n**2*(D_ft)**4
+    T=ctcp*Cp*rho_kgm3*desnityconversion*n**2*(D_ft)**4
 
-    q=1/2*rho_kgm3*(Vnew)**2
+    q=1/2*rho_kgm3*desnityconversion*(Vnew)**2
 
     A=np.pi *(D_ft/2)**2
 
@@ -164,13 +164,14 @@ def curve( D_ft,rho_kgm3,P_bhp):
 
     eff1=num/den #new because other gave me linear relationships
     #eff1=2/(1+np.sqrt(1+T/(q*A))) #other flight mechanics book
-
-    P_useful = eff1 * P_bhp
+    P_bhp_alt = P_bhp * (rho_kgm3 / 1.225)
+    P_useful = eff1 * P_bhp_alt
     #T_static= ctcp*550*P_bhp/(n*D_ft)#t_static according to Raymer
     T_static=0.85*(P_bhp*550)**(2/3)*(2*rho_kgm3*desnityconversion*A)**(1/3) #one engine and overestimate due to the fact they dont take into account blockage
 
 
     P_useful_w = P_useful * 745.7*2 #both engines in watts
+
     V_ms = Vnew * 0.3048
 
     # print("RPM =", RPM)
@@ -198,14 +199,16 @@ def curve( D_ft,rho_kgm3,P_bhp):
 
 D_ft=5.66667
 curve(D_ft,1.02,160)
+
 delta_T=20
-altitudes = np.arange(0, 5001, 50)
+altitudes = np.arange(0, 8000, 50)
 P_available = []
 
 for alt in altitudes:
     atmos_model = Atmosphere(alt / mstofps, delta_T)
     rho_local = atmos_model.density[0]
-    T_static, Vnew, eff1, P_useful_w = curve(D_ft, rho_local, 160)
+    T_static, Vnew, eff1, P_useful_w= curve(D_ft, rho_local, 160)
+    print(np.max(P_useful_w))
     P_available.append(np.max(P_useful_w))
 
 plt.figure()
@@ -214,4 +217,3 @@ plt.xlabel("Available power [W]")
 plt.ylabel("Altitude [ft]")
 plt.grid()
 plt.show()
-
