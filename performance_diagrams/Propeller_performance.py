@@ -5,7 +5,9 @@ import pandas as pd
 from classes.isa import *
 from scipy.optimize import curve_fit
 #propeller chosen https://www.propellor.com/ap431hapf-snl68e
-graphdata = pd.read_csv("ctcp")
+#graphdata = pd.read_csv("ctcp")
+graphdata = pd.read_csv("performance_diagrams\ctcp")
+
 
 #check units
 kgtoslug = 0.00194032
@@ -142,7 +144,7 @@ def eff(D_ft,rho_kgm3,P_bhp,J):
 
 def curve( D_ft,rho_kgm3,P_bhp):
     #power shaft in horsepower per singel engine
-    V = np.linspace(5, 150, 1000) #knots
+    V = np.linspace(5, 150, 10000) #knots
     Vnew=V*ktastofeet
     RPM = P_to_RPM(P_bhp)
     n = RPM / 60
@@ -164,8 +166,8 @@ def curve( D_ft,rho_kgm3,P_bhp):
 
     eff1=num/den #new because other gave me linear relationships
     #eff1=2/(1+np.sqrt(1+T/(q*A))) #other flight mechanics book
-    P_bhp_alt = P_bhp * (rho_kgm3 / 1.225)
-    P_useful = eff1 * P_bhp_alt
+    #P_bhp_alt = P_bhp * (rho_kgm3 / 1.225)
+    P_useful = eff1 * P_bhp
     #T_static= ctcp*550*P_bhp/(n*D_ft)#t_static according to Raymer
     T_static=0.85*(P_bhp*550)**(2/3)*(2*rho_kgm3*desnityconversion*A)**(1/3) #one engine and overestimate due to the fact they dont take into account blockage
 
@@ -193,7 +195,7 @@ def curve( D_ft,rho_kgm3,P_bhp):
     plt.ylabel("Useful power [w]")
     plt.grid()
 """
-    plt.show()
+    # plt.show()
 
     #return T_static,Vnew,eff1
     return V_ms,P_useful_w
