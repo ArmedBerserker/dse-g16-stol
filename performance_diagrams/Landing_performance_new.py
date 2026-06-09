@@ -58,8 +58,10 @@ def Roskam_landing():
 #unknowns
 #efficiency=0.65 #efficiency at VB/Sqrt2
 #P_BHP=0.07*270.886 #power at VB/Sqrt2
-T_STATIC = 2*curve(D_ft,rho*1/kgm3_to_slugft3,P_TO)
-T_BR=0.07*T_STATIC
+T_static1,V,eff1= curve(D_ft,rho*1/kgm3_to_slugft3,P_TO)
+T_static=2*int(T_static1)
+T_BR=0.07*T_static
+
 #T_BR=-0.4*T_STATIC
 S=260.1 #surface area of wing [feet2]
 S_flaps=2.4*sqmetertofeetmeter*2 #surface of two side of flaps
@@ -69,7 +71,7 @@ e= 0.7521
 
 C_l0=2.5
 C_lalpha=1 #we dont care anymore
-C_d0=0.058668
+C_d0=0.266
 
 h=(3)*mstofps #height of wing above ground [feet]
 b=49.2#span of wing [feet]
@@ -108,7 +110,7 @@ def GORENBEEK_landing(W_LD,rho):
     C_di_ge=CDi_ground_effect(h,b,C_di)
 
 
-    C_D_ldg= C_d0+delta_Cd+C_di_ge+0.04#Cd values after touchdown wasnt able to check that wiht the example speed brake add 0.4
+    C_D_ldg= C_d0+C_di_ge+0.04#Cd values after touchdown wasnt able to check that wiht the example speed brake add 0.4
 
     D_lg=1/2*C_D_ldg*rho*(V_BR/np.sqrt(2))**2*S #verified
     L_ld=1/2*C_L_ldg*rho*(V_BR/np.sqrt(2))**2*S #verified
@@ -142,7 +144,7 @@ def sensitivity_altitude():
     for deg in slopes_deg:
         S = []
         for h in altitudes:
-            atmos_model = Atmosphere(h, delta_T)
+            atmos_model = Atmosphere(h/mstofps, delta_T)
             rho_ref = atmos_model.density[0]*kgm3_to_slugft3
             rad=np.radians(deg)
             V_0 = 1.1 * V_sl_isa
@@ -151,8 +153,7 @@ def sensitivity_altitude():
             #Assume thurst, drag and lift at Vbr/sqrt(2)
             # Static thrust max from where
             # Rough estimate for fixed-pitch/variable-pitch propeller
-            T_STATIC = curve(D_ft,rho_ref*1/kgm3_to_slugft3,P_TO)
-            T=0.07*T_STATIC  #formula from table 22.4 GA aircraft design for constant speed propeller
+            T=0.07*T_static  #formula from table 22.4 GA aircraft design for constant speed propeller
             S_LDG, S_GR, D_lg, L_ld= GORENBEEK_landing(W_LD, rho_ref)
             a = g / W_LD * (T - D_lg- mu * (W_LD * np.cos(rad) - L_ld) + W_LD * np.sin(rad))
             V_0 = V_0 * np.sqrt(rho /rho_ref)
@@ -160,20 +161,20 @@ def sensitivity_altitude():
             S_GR=S_BR+S_FR
             S.append(S_GR)
         axs[0].plot(S, altitudes, label=f"{deg}°")
-
+    axs[0].axvline(d_lG, linestyle="--", color="red", label=f"Field limit = {d_lG:.0f} ft")
     axs[0].set_title("Slope sensitivity")
     axs[0].set_xlabel("Ground run [ft]")
     axs[0].set_ylabel("Altitude [ft]")
     axs[0].grid()
     axs[0].legend()
 
-    #temperature but will change
-    temps = [0.9, 1.0, 1.1, 1.2] #temperature factor
+    #temperature
+    delta_T_list = np.arange(0, 41, 10)
 
-    for t in temps:
+    for Temp in delta_T_list:
         S = []
         for h in altitudes:
-            atmos_model = Atmosphere(h, delta_T)
+            atmos_model = Atmosphere(h/mstofps, Temp)
             rho_ref = atmos_model.density[0]*kgm3_to_slugft3
             V_0 = 1.1 * V_sl_isa
             V = 0
@@ -181,8 +182,7 @@ def sensitivity_altitude():
             # Assume thurst, drag and lift at Vbr/sqrt(2)
             # Static thrust max from where
             # Rough estimate for fixed-pitch/variable-pitch propeller
-            T_STATIC = curve(D_ft,rho*1/kgm3_to_slugft3,P_TO) # [lbs]
-            T = 0.07 * T_STATIC  # formula from table 22.4 GA aircraft design for constant speed propeller
+            T = 0.07 * T_static  # formula from table 22.4 GA aircraft design for constant speed propeller
             S_LDG, S_GR, D_lg, L_ld = GORENBEEK_landing(W_LD, rho_ref)
             a = g / W_LD * (T - D_lg - mu * (W_LD - L_ld))
             V_0 = V_0 * np.sqrt(rho / rho_ref)
@@ -190,10 +190,11 @@ def sensitivity_altitude():
             S_GR = S_BR + S_FR
             S.append(S_GR)
 
-        axs[1].plot(altitudes, S, label=f"{t:.1f} thrust")
-
-    axs[1].set_title("Temperature / thrust sensitivity not yet done")
-    axs[1].set_xlabel("Altitude [ft]")
+        axs[1].plot(S, altitudes, label=f"{Temp:.1f} temperature")
+    axs[1].axvline(d_lG, linestyle="--", color="red", label=f"Field limit = {d_lG:.0f} ft")
+    axs[1].set_title("Altitude VS temperature [ft]")
+    axs[1].set_xlabel("Ground run")
+    axs[1].set_ylabel("Altitude [ft]")
     axs[1].grid()
     axs[1].legend()
 
@@ -204,7 +205,7 @@ def sensitivity_altitude():
         S = []
         for h in altitudes:
             W_LDc=w * W_LD
-            atmos_model = Atmosphere(h, delta_T)
+            atmos_model = Atmosphere(h / mstofps, delta_T)
             rho_ref = atmos_model.density[0]*kgm3_to_slugft3
             V_0 = 1.1 * V_sl_isa
             V = 0
@@ -212,8 +213,7 @@ def sensitivity_altitude():
             # Assume thurst, drag and lift at Vbr/sqrt(2)
             # Static thrust max from where
             # Rough estimate for fixed-pitch/variable-pitch propeller
-            T_STATIC = curve(D_ft,rho*1/kgm3_to_slugft3,P_TO) # [lbs]
-            T = 0.07 * T_STATIC  # formula from table 22.4 GA aircraft design for constant speed propeller
+            T = 0.07 * T_static  # formula from table 22.4 GA aircraft design for constant speed propeller
             S_LDG, S_GR, D_lg, L_ld = GORENBEEK_landing(W_LDc, rho_ref)
             a = g / W_LDc * (T - D_lg - mu * (W_LDc - L_ld))
             V_0 = V_0 * np.sqrt(rho / rho_ref)
@@ -221,14 +221,15 @@ def sensitivity_altitude():
             S_GR = S_BR + S_FR
             S.append(S_GR)
         axs[2].plot(S, altitudes, label=f"{w:.1f} MTOW")
-
+    axs[2].axvline(d_lG, linestyle="--", color="red", label=f"Field limit = {d_lG:.0f} ft")
     axs[2].set_title("Weight sensitivity")
     axs[2].set_xlabel("ground run [ft]")
+    axs[2].set_ylabel("Altitude [ft]")
     axs[2].grid()
     axs[2].legend()
 
     plt.tight_layout()
     plt.show()
 
-#sensitivity_altitude()
+sensitivity_altitude()
 

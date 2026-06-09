@@ -1,32 +1,39 @@
 import matplotlib.pyplot as plt
+from six import print_
+
 from Propeller_performance import curve, D_ft
 import numpy as np
 from classes.isa import *
+from Propeller_performance import curve, D_ft
+from scipy.interpolate import CubicSpline
 # UNIT CONVERSION
 kntstofps = 1.68781
 kgtoslug = 0.00194032
 kgtolbs = 2.20462
+mstofps=3.28084
 
 # GLOBAL VARIABLE
 rho = 1.07896 * kgtoslug  # density at take off altitude 2000ft ISA +20°C #slug/feet^3
 rho_SL = 1.225 * kgtoslug
 T_ISA_K = 304.188  # temperature at take off altitude 2000ft ISA +20°C #Kelvin
 theta = rho / rho_SL  # ratio of density
-W_TO = 1988.8 * kgtolbs  # [lbs]#change
-S = 269.1  # surface area of wing [feet2]
-D2 = 378  # get value from fomula from naomi
+W_TO = 1821 * kgtolbs  # [lbs]#change
+S = 260.1  # surface area of wing [feet2]
 C_LmaxTO = 2.5  # max take off lift coefficient
 C_LTO = C_LmaxTO / 1.21  # Lift coefficient at lift off
 h = 2.7  # height of wing above ground [feet]
 b = 18.2  # span of wing [feet]
-c_Di = 0.04  # lift induced drag coefficient out of ground effect
-C_D0 = 0.04  # cD0 take off run
+c_Di = 0.04 # lift induced drag coefficient out of ground effect
+C_D0 =0.058668  # cD0 take off run
 delta_T = 20  # [K]
+
+
 # propulsion
-P_TO = 289.661  # max shaft power in horsepower during take off all engines operating
-efficiency = 0.60  # efficiency of motor at V_LOF/Sqrt2
-efficiencyarray = 0.60  # give actual array in function of speed change this
-P_bhp = 160  # max hp per engine during take off
+P_TO = 160+40  # max shaft power in horsepower during take off all engines operating + booster stage
+P_TO_1=P_TO/2 #max take off power one engine
+efficiency = 0.60  # efficiency of motor at V_LOF/Sqrt2 not used
+T_static,V_array,efficiencyarray = curve(D_ft,rho*1/kgtoslug,P_TO_1)  # give actual array in function of speed change this
+
 # performance
 climbangle = np.radians(3.4)  # climb angle in radians
 d_TO = 656.168  # [feet] max take-off distance
@@ -39,7 +46,7 @@ V_STO = np.sqrt(2 * W_TO / (rho * S * C_LmaxTO))  # Stall speed during take off 
 
 
 # ROSKAM METHOD
-def Roskam_TO(C_D0, C_LmaxTO, P_bhp, S_TOG):
+def Roskam_TO(C_D0, C_LmaxTO,P_TO_1 , S_TOG):
     # S_TO = 1.66 * S_TOG  # total take off distance [feet]
     # solve S_TOG=4.9*TOP+0.009*TOP**2 and i checked and deleted the negative solution
     coeff = [0.009, 4.9, -S_TOG]
@@ -50,7 +57,7 @@ def Roskam_TO(C_D0, C_LmaxTO, P_bhp, S_TOG):
     muR = ug + 0.72 * (C_D0 / C_LmaxTO)
     V_LOF = V_STO * 1.2
     # since variable pitch use 5.75, 5.4 since calculated value for graph in propeller sizing value in hp/feet2
-    T = 5.75 * P_bhp * ((theta * 2 * D_ft ** 2 / P_bhp) ** (1 / 3))  # lbs average thrust during take off
+    T = 5.75 * P_TO_1 * ((theta * 2 * D_ft ** 2 / P_TO_1) ** (1 / 3))  # lbs average thrust during take off
     TW = T / (W_TO)
     S_GR = (V_LOF ** 2 / (2 * g)) / (TW - muR)
     return S_GR, TOP, T
@@ -106,15 +113,14 @@ def GORENBEEK_TO_3(dt=0.05, max_time=200):
     V = 0.1
     s = 0.0
     t = 0.0
-
     V_LOF = 1.556 * np.sqrt(W_TO / (rho * S * C_LmaxTO))  # [ft/s]
     V_TR = 1.15 * V_STO  # [ft/s] transition speed
 
     CDi_IGE = CDi_ground_effect(h, b, c_Di)
 
     # Static thrust max from where in propeller
-    T_STATIC = curve(D_ft, 1.07896, P_TO)  # [lbs]²    4
-
+    T_STATIC,V_array,efficiencyarray= curve(D_ft, 1.07896, P_TO_1)  # [lbs]²    4
+    efficiencyfunction = CubicSpline(V_array, efficiencyarray)
     s_LO = None
     V_LO = None
     T_TR = None
@@ -124,14 +130,15 @@ def GORENBEEK_TO_3(dt=0.05, max_time=200):
     trajectory = []
 
     while t < max_time:
+        effiencychange = efficiencyfunction(V)
         q = 0.5 * rho * V ** 2
         L = q * S * C_LTO
         D = q * S * (C_D0 + CDi_IGE)
         # stop it from going to infinity
         if V < 10.0:
-            T = T_STATIC
+            T = T_STATIC*2
         else:
-            T = efficiencyarray * 550.0 * P_TO / V
+            T = effiencychange* 550.0 * P_TO / V
 
         a = g / W_TO * (T - D - mu * (W_TO - L))
 
@@ -149,7 +156,7 @@ def GORENBEEK_TO_3(dt=0.05, max_time=200):
         if V >= 1.3 * V_STO:
             break
 
-        # Integration
+        # Integration part
         V = max(V + a * dt, 0.1)
         s = s + V * dt + 0.5 * a * dt ** 2
         t += dt
@@ -194,16 +201,17 @@ def ground_run_for(rho_local, w_local, slope_rad, dt=0.05, max_time=200.0):
     v_lof_local = 1.556 * np.sqrt(w_local / (rho_local * S * c_lmax_local))
     rho_SI = rho_local / kgtoslug
     CDi_IGE = CDi_ground_effect(h, b, c_Di)
-    T_STATIC = curve(D_ft, rho_SI, P_TO)  # [lbs] #check if  propeller change
-
     V, s, t = 0.1, 0.0, 0.0
+    T_STATIC, V_array, efficiencyarray = curve(D_ft, rho_SI, P_TO_1)  # [lbs] #check if  propeller change
+    efficiencyfunction = CubicSpline(V_array, efficiencyarray)
     s_LO = np.nan
 
     while t < max_time:
+        effiencychange = efficiencyfunction(V)
         q = 0.5 * rho_local * V ** 2
         L = q * S * C_LTO
         D = q * S * (C_D0 + CDi_IGE)
-        T = T_STATIC if V < 10.0 else efficiencyarray * 550.0 * P_TO / V
+        T = T_STATIC*2 if V < 10.0 else effiencychange * 550.0 * P_TO / V
 
         a = (g / w_local) * (T - D - mu * (w_local - L) - w_local * np.sin(slope_rad))
 
@@ -218,24 +226,17 @@ def ground_run_for(rho_local, w_local, slope_rad, dt=0.05, max_time=200.0):
 
         V, s = V_new, s_new
         t += dt
+
     return s_LO
 
 
-def rho_at_altitude(h_ft, delta_T_K=20):
-    # Density at h_ft above sea level (ISA)
-    rho_isa = rho_SL * (1 - 6.875e-6 * h_ft) ** 4.2559
-    # Temperature correction (hot day)
-    T_isa = 288.15 * (1 - 6.875e-6 * h_ft)  # ISA temperature at h_ft [K]
-    rho_hot = rho_isa * (T_isa / (T_isa + delta_T_K))
-    return rho_hot
-
-
+"""
 # other approach to find BFL is when the distabce to stop and go equals the distance to stop and keeo going
 def acceleratego(V1, dt=0.05, max_time=200):
     V, s, t = 0.1, 0.0, 0.0
     V_LOF = 1.556 * np.sqrt(W_TO / (rho * S * C_LmaxTO))  # [ft/s]
     CDi_IGE = CDi_ground_effect(h, b, c_Di)
-    T_STATIC = curve(D_ft, 1.07896, P_TO)  # lbs
+    T_STATIC,V_array,efficiencyarray = curve(D_ft, 1.07896, P_TO)  # lbs
     V_TR = 1.15 * V_STO
     T_TR = None
     # accelerate
@@ -286,7 +287,7 @@ def acceleratestop(V1, dt=0.05, max_time=200):
     V, s, t, t_rec = 0.1, 0.0, 0.0, 0.0
     V_LOF = 1.556 * np.sqrt(W_TO / (rho * S * C_LmaxTO))  # [ft/s]
     CDi_IGE = CDi_ground_effect(h, b, c_Di)
-    T_STATIC = curve(D_ft, 1.07896, P_TO)  # lbs
+    T_STATIC,V_array,efficiencyarray = curve(D_ft, 1.07896, P_TO)  # lbs
     reaction = 2
     mu_break = 0.4  # assume hard turf for braking
     # accelerate
@@ -375,7 +376,7 @@ def V1calculation(d_TO, dt=0.05):
     plt.show()
 
     return V1, BFL
-
+"""
 
 def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, max_time=200.0):
     altitudes = np.arange(0, 5001, 50)  # altitude above 0 [ft]
@@ -389,7 +390,7 @@ def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, 
             slope_rad = np.radians(slope_deg)
             s_LO_list = []
             for alt in altitudes:
-                atmos_model = Atmosphere(alt, delta_T)
+                atmos_model = Atmosphere(alt / mstofps, delta_T)
                 rho_local = atmos_model.density[0]*kgtoslug
                 s_LO = ground_run_for(rho_local, W_TO, slope_rad, dt=dt, max_time=max_time)
                 s_LO_list.append(s_LO)
@@ -413,7 +414,7 @@ def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, 
         for dT in delta_T_list:
             s_LO_list = []
             for alt in altitudes:
-                atmos_model = Atmosphere(alt, dT)
+                atmos_model = Atmosphere(alt / mstofps, dT)
                 rho_local = atmos_model.density[0]*kgtoslug
                 s_LO = ground_run_for(rho_local, W_TO, 0, dt=dt, max_time=max_time)
                 s_LO_list.append(s_LO)
@@ -438,7 +439,7 @@ def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, 
         for w in weights_lbs:
             s_LO_list = []
             for alt in altitudes:
-                atmos_model = Atmosphere(alt, delta_T)
+                atmos_model = Atmosphere(alt / mstofps, delta_T)
                 rho_local = atmos_model.density[0]*kgtoslug
                 s_LO = ground_run_for(rho_local, w, 0, dt=dt, max_time=max_time)
                 s_LO_list.append(s_LO)
@@ -466,7 +467,7 @@ if __name__ == "__main__":
 
     # Roskam
     print("Roskam Method")
-    s_gr_roskam, TOP, T_roskam = Roskam_TO(C_D0, C_LmaxTO, P_bhp, S_TOG)
+    s_gr_roskam, TOP, T_roskam = Roskam_TO(C_D0, C_LmaxTO, P_TO_1, S_TOG)
     print(f"    Ground run  = {s_gr_roskam:.1f} ft")
     print(f"    Avg thrust  = {T_roskam:.1f} lbs")
     print(f"    TOP         = {TOP:.2f} lbs²/(ft²·hp)")
@@ -490,16 +491,16 @@ if __name__ == "__main__":
     print(f"    Airborne distance = {S_OBS:.1f} ft ")
     print(f"    Taake-off distance = {S_TO_total:.1f} ft  ")
 
-    # BFL
-    V1_speed, BFL = V1calculation(d_TO)
-    print(f"    V1  = {V1_speed / kntstofps:.1f} kts")
-    print(f"    BFL = {BFL:.1f} ft")
-
     # -- Sensitivity analyses --
     sensitivity_analysis(steep=True)
     sensitivity_analysis(temperature=True)
     sensitivity_analysis(weight=True)
-
+    """
+        # BFL
+        V1_speed, BFL = V1calculation(d_TO)
+        print(f"    V1  = {V1_speed / kntstofps:.1f} kts")
+        print(f"    BFL = {BFL:.1f} ft")
+    """
 """
 not applicable in the end too big airplanes so other check
 def BFL() : #checked assumpiton is the only check left

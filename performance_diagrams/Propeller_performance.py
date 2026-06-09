@@ -136,11 +136,11 @@ def eff(D_ft,rho_kgm3,P_bhp,J):
 
 def curve( D_ft,rho_kgm3,P_bhp):
     #power shaft in horsepower per singel engine
-    V = np.linspace(5, 300, 1000) #knots
+    V = np.linspace(5, 150, 1000) #knots
     Vnew=V*ktastofeet
     RPM = P_to_RPM(P_bhp)
     n = RPM / 60
-    J=V/(n*D_ft)
+    J=Vnew/(n*D_ft)
     Sc = np.pi * (0.63*mstofps / 2) ** 2  # max area of nacelle
     J = J * (1 - 0.329 * Sc / D_ft ** 2)  # change diameter based on the one selected
 
@@ -161,7 +161,7 @@ def curve( D_ft,rho_kgm3,P_bhp):
 
     P_useful = eff1 * P_bhp
     #T_static= ctcp*550*P_bhp/(n*D_ft)#t_static according to Raymer
-    T_static=(P_bhp*550)**(2/3)*(2*rho_kgm3*desnityconversion*A)**(1/3)
+    T_static=0.85*(P_bhp*550)**(2/3)*(2*rho_kgm3*desnityconversion*A)**(1/3) #one engine and overestimate due to the fact they dont take into account blockage
 
 
     P_useful_w = P_useful * 745.7*2 #both engines in watts
@@ -170,25 +170,26 @@ def curve( D_ft,rho_kgm3,P_bhp):
     # print("RPM =", RPM)
     # print("J range =", J.min(), J.max())
     # print("Cp =", Cp)
-    # print("ctcp =", ctcp)
-    # print("efficiency =", eff2)
-    # print("eff1 max =", np.max(eff1))
-    # plt.figure()
-    # plt.plot( Vnew , eff1)
-    # plt.xlabel("Velocity [fps]")
-    # plt.ylabel("Propeller efficiency")
-    # plt.grid()
+    #print("ctcp =", ctcp)
+    #print("efficiency =", eff2)
+    #print("eff1 max =", np.max(eff1))
+    """
+    plt.figure()
+    plt.plot( Vnew , eff1)
+    plt.xlabel("Velocity [fps]")
+    plt.ylabel("Propeller efficiency")
+    plt.grid()
 
-    # plt.figure()
-    #plt.plot(V, P_useful_w)
-    # plt.xlabel("Velocity [ms]")
-    # plt.ylabel("Useful power [w]")
-    # plt.grid()
+    plt.figure()
+    plt.plot(V, P_useful)
+    plt.xlabel("Velocity [ms]")
+    plt.ylabel("Useful power [w]")
+    plt.grid()
 
-    # plt.show()
-
-    return T_static
+    plt.show()
+    """
+    return T_static,Vnew,eff1
 
 D_ft=5.66667
-# curve(D_ft,1.02,160)
+curve(D_ft,1.02,160)
 
