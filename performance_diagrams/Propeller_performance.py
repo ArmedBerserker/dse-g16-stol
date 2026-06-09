@@ -2,11 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline
 import pandas as pd
+from classes.isa import *
 from scipy.optimize import curve_fit
 #propeller chosen https://www.propellor.com/ap431hapf-snl68e
 graphdata = pd.read_csv("ctcp")
 
 #check units
+kgtoslug = 0.00194032
 ktastofeet= 1.68781
 inchestofeet=1/12
 desnityconversion=0.00194032
@@ -98,6 +100,9 @@ def P_to_RPM(P):
 
     # RPM as a function of Power
     spline = CubicSpline(Power, RPMnew)
+    xfine = np.linspace(Power.min(), Power.max(), 1000)
+    yfine = spline(xfine)
+
 
     return float(spline(P))
 
@@ -116,6 +121,7 @@ def eff(D_ft,rho_kgm3,P_bhp,J):
     y = graphdata.iloc[:, 1] #ct/cp
     spline = CubicSpline(x, y)
     ctcp = spline(Cp)
+
 
     """
     check the graphs and interpolation
@@ -150,7 +156,7 @@ def curve( D_ft,rho_kgm3,P_bhp):
 
     q=1/2*rho_kgm3*(Vnew)**2
 
-    A=np.pi * (D_ft/2)**2
+    A=np.pi *(D_ft/2)**2
 
     #https://www.fzt.haw-hamburg.de/pers/Scholz/transfer/Airport2030_TN_Propeller-Efficiency_13-08-12_SLZ.pdf
     num = 2*(1 -lam ** 2 * np.log(1 + 1/(lam ** 2)) )
@@ -185,11 +191,27 @@ def curve( D_ft,rho_kgm3,P_bhp):
     plt.xlabel("Velocity [ms]")
     plt.ylabel("Useful power [w]")
     plt.grid()
-
+"""
     plt.show()
-    """
-    return T_static,Vnew,eff1
+
+    return T_static,Vnew,eff1,P_useful_w
 
 D_ft=5.66667
 curve(D_ft,1.02,160)
+delta_T=20
+altitudes = np.arange(0, 5001, 50)
+P_available = []
+
+for alt in altitudes:
+    atmos_model = Atmosphere(alt / mstofps, delta_T)
+    rho_local = atmos_model.density[0]
+    T_static, Vnew, eff1, P_useful_w = curve(D_ft, rho_local, 160)
+    P_available.append(np.max(P_useful_w))
+
+plt.figure()
+plt.plot(P_available, altitudes)
+plt.xlabel("Available power [W]")
+plt.ylabel("Altitude [ft]")
+plt.grid()
+plt.show()
 

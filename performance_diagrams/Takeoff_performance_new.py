@@ -29,7 +29,7 @@ delta_T = 20  # [K]
 
 
 # propulsion
-P_TO = 160+40  # max shaft power in horsepower during take off all engines operating + booster stage
+P_TO = 160+40 # max shaft power in horsepower during take off all engines operating + booster stage
 P_TO_1=P_TO/2 #max take off power one engine
 efficiency = 0.60  # efficiency of motor at V_LOF/Sqrt2 not used
 T_static,V_array,efficiencyarray = curve(D_ft,rho*1/kgtoslug,P_TO_1)  # give actual array in function of speed change this
@@ -75,6 +75,19 @@ def CDi_ground_effect(h, b, c_Di):
         print("switch method")
         return 0
 
+# Static thrust max from where in propeller
+T_STATIC, V_array, efficiencyarray = curve(D_ft, 1.07896, P_TO_1)  # [lbs2]
+efficiencyfunction = CubicSpline(V_array, efficiencyarray)
+
+def thrust(V, P_TO):
+    if V <= V_array[0]:
+        return T_STATIC * 2
+    T =efficiencyfunction(V) * 550.0 * P_TO / V
+    if T > T_STATIC * 2:
+        return T_STATIC * 2
+    return T
+
+
 
 # gorenbeek if propeller or jet
 def GORENBEEK_TO_1(P_TO, b, h, c_Di, S,
@@ -82,6 +95,7 @@ def GORENBEEK_TO_1(P_TO, b, h, c_Di, S,
     # for small powered plane VR znd VLOF are assumed to be the same since it lifts off as soon as it rotates
     V_R = 1.1 * V_STO
     V_LOF = 1.556 * np.sqrt(W_TO / (rho * S * C_LmaxTO))
+
     V = V_LOF / np.sqrt(2)  # speed in feet/s at Vlof/sqrt2 to not over or under estimate
     # estimate lift induced drag due to ground effect
     CDi_IGE = CDi_ground_effect(h, b, c_Di)
@@ -115,12 +129,8 @@ def GORENBEEK_TO_3(dt=0.05, max_time=200):
     t = 0.0
     V_LOF = 1.556 * np.sqrt(W_TO / (rho * S * C_LmaxTO))  # [ft/s]
     V_TR = 1.15 * V_STO  # [ft/s] transition speed
-
     CDi_IGE = CDi_ground_effect(h, b, c_Di)
 
-    # Static thrust max from where in propeller
-    T_STATIC,V_array,efficiencyarray= curve(D_ft, 1.07896, P_TO_1)  # [lbs]²    4
-    efficiencyfunction = CubicSpline(V_array, efficiencyarray)
     s_LO = None
     V_LO = None
     T_TR = None
@@ -130,15 +140,11 @@ def GORENBEEK_TO_3(dt=0.05, max_time=200):
     trajectory = []
 
     while t < max_time:
-        effiencychange = efficiencyfunction(V)
         q = 0.5 * rho * V ** 2
         L = q * S * C_LTO
         D = q * S * (C_D0 + CDi_IGE)
-        # stop it from going to infinity
-        if V < 10.0:
-            T = T_STATIC*2
-        else:
-            T = effiencychange* 550.0 * P_TO / V
+        T=thrust(V, P_TO)
+
 
         a = g / W_TO * (T - D - mu * (W_TO - L))
 
@@ -202,16 +208,15 @@ def ground_run_for(rho_local, w_local, slope_rad, dt=0.05, max_time=200.0):
     rho_SI = rho_local / kgtoslug
     CDi_IGE = CDi_ground_effect(h, b, c_Di)
     V, s, t = 0.1, 0.0, 0.0
-    T_STATIC, V_array, efficiencyarray = curve(D_ft, rho_SI, P_TO_1)  # [lbs] #check if  propeller change
-    efficiencyfunction = CubicSpline(V_array, efficiencyarray)
-    s_LO = np.nan
+
+    s_LO =0
 
     while t < max_time:
-        effiencychange = efficiencyfunction(V)
+
         q = 0.5 * rho_local * V ** 2
         L = q * S * C_LTO
         D = q * S * (C_D0 + CDi_IGE)
-        T = T_STATIC*2 if V < 10.0 else effiencychange * 550.0 * P_TO / V
+        T = thrust(V, P_TO)
 
         a = (g / w_local) * (T - D - mu * (w_local - L) - w_local * np.sin(slope_rad))
 
@@ -229,154 +234,6 @@ def ground_run_for(rho_local, w_local, slope_rad, dt=0.05, max_time=200.0):
 
     return s_LO
 
-
-"""
-# other approach to find BFL is when the distabce to stop and go equals the distance to stop and keeo going
-def acceleratego(V1, dt=0.05, max_time=200):
-    V, s, t = 0.1, 0.0, 0.0
-    V_LOF = 1.556 * np.sqrt(W_TO / (rho * S * C_LmaxTO))  # [ft/s]
-    CDi_IGE = CDi_ground_effect(h, b, c_Di)
-    T_STATIC,V_array,efficiencyarray = curve(D_ft, 1.07896, P_TO)  # lbs
-    V_TR = 1.15 * V_STO
-    T_TR = None
-    # accelerate
-    while V < V1 and t < max_time:
-        q = 0.5 * rho * V ** 2
-        L = min(q * S * C_LTO, W_TO)
-        D = q * S * (C_D0 + CDi_IGE)
-        # stop it from going to infinity
-        if V < 10.0:
-            T = T_STATIC
-        else:
-            T = efficiencyarray * 550.0 * P_TO / V
-
-        a = g / W_TO * (T - D - mu * (W_TO - L))
-        # Integration
-        V = max(V + a * dt, 0.1)
-        s = s + V * dt + 0.5 * a * dt ** 2
-        t += dt
-
-    # keep going with half thrust until clear the obstacle is the right distance
-    while V < V_LOF and t < max_time:
-        q = 0.5 * rho * V ** 2
-        L = min(q * S * C_LTO, W_TO)
-        D = q * S * (C_D0 + CDi_IGE)
-        # stop it from going to infinity
-        if V < 10.0:
-            T = T_STATIC / 2
-        else:
-            T = efficiencyarray * 550.0 * P_TO / (V * 2)
-
-        a = g / W_TO * (T - D - mu * (W_TO - L))
-        # Integration
-        if T_TR is None and V >= V_TR:  # check Transisiton thrust
-            T_TR = T
-        V = max(V + a * dt, 0.1)
-        s = s + V * dt + 0.5 * a * dt ** 2
-        t += dt
-
-    if T_TR is None:
-        T_TR = efficiencyarray * 550.0 * (P_TO / 2) / (V_TR)
-    S_OBS, h_TR = rest(T_TR)  # ask paul
-    s += S_OBS
-    return s
-
-
-def acceleratestop(V1, dt=0.05, max_time=200):
-    # accelerate
-    V, s, t, t_rec = 0.1, 0.0, 0.0, 0.0
-    V_LOF = 1.556 * np.sqrt(W_TO / (rho * S * C_LmaxTO))  # [ft/s]
-    CDi_IGE = CDi_ground_effect(h, b, c_Di)
-    T_STATIC,V_array,efficiencyarray = curve(D_ft, 1.07896, P_TO)  # lbs
-    reaction = 2
-    mu_break = 0.4  # assume hard turf for braking
-    # accelerate
-    while V < V1 and t < max_time:
-        q = 0.5 * rho * V ** 2
-        L = min(q * S * C_LTO, W_TO)
-        D = q * S * (C_D0 + CDi_IGE)
-        # stop it from going to infinity
-        if V < 10.0:
-            T = T_STATIC
-        else:
-            T = efficiencyarray * 550.0 * P_TO / V
-
-        a = g / W_TO * (T - D - mu * (W_TO - L))
-        # Integration
-        V = V + a * dt
-        s = s + V * dt + 0.5 * a * dt ** 2
-        t += dt
-
-    # reaction time 3 s t rec + activation of breaking device following CS23
-    while t_rec < reaction and t < max_time:
-        q = 0.5 * rho * V ** 2
-        L = min(q * S * C_LTO, W_TO)
-        D = q * S * (C_D0 + CDi_IGE)
-        # stop it from going to infinity
-        if V < 10.0:
-            T = T_STATIC / 2  # still half the thurst becasue hasnt reacted
-        else:
-            T = efficiencyarray * 550.0 * P_TO / (2 * V)
-
-        a = g / W_TO * (T - D - mu * (W_TO - L))
-        # Integration
-        V = V + a * dt
-        s = s + V * dt + 0.5 * a * dt ** 2
-        t += dt
-        t_rec += dt
-
-    # break applied
-    while V > 0.0 and t < max_time:
-        q = 0.5 * rho * V ** 2
-        L = min(q * S * C_LTO, W_TO)
-        D = q * S * (C_D0 + CDi_IGE)
-        # stop it from going to infinity
-        T = 0
-
-        a = g / W_TO * (T - D - mu_break * (W_TO - L))
-        # Integration
-        V = V + a * dt
-        s = s + V * dt + 0.5 * a * dt ** 2
-        if V < 0:
-            break
-        t += dt
-    return s
-
-
-def V1calculation(d_TO, dt=0.05):
-    V1_candidates = np.linspace(0.5 * V_STO, 1.15 * V_STO, 300)
-    s_stop_list = []
-    s_go_list = []
-
-    for V1 in V1_candidates:
-        s_stop_list.append(acceleratestop(V1, dt=dt))
-        s_go_list.append(acceleratego(V1, dt=dt))
-
-    s_stop = np.array(s_stop_list)
-    s_go = np.array(s_go_list)
-
-    # figure out where they intersect
-    diff = s_go - s_stop
-    idx = np.argmin(np.abs(diff))
-    V1 = V1_candidates[idx]
-    BFL = 0.5 * (s_stop[idx] + s_go[idx])
-
-    # plot
-    fig, ax = plt.subplots(figsize=(9, 5))
-    ax.plot(V1_candidates / kntstofps, s_stop, label="Accelerate-stop")
-    ax.plot(V1_candidates / kntstofps, s_go, label="Accelerate-go")
-    ax.axhline(d_TO, linestyle="--", color="red", label=f"Field limit = {d_TO:.0f} ft")
-    ax.axvline(V1 / kntstofps, linestyle="--", color="gray", label=f"V1 = {V1 / kntstofps:.1f} kts")
-    ax.set_xlabel("V1 [kts]")
-    ax.set_ylabel("Distance [ft]")
-    ax.set_title("Balanced Field Length ")
-    ax.legend()
-    ax.grid(True)
-    plt.tight_layout()
-    plt.show()
-
-    return V1, BFL
-"""
 
 def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, max_time=200.0):
     altitudes = np.arange(0, 5001, 50)  # altitude above 0 [ft]
@@ -661,4 +518,153 @@ plt.minorticks_on()
 plt.legend(ncol=2)
 plt.xlim(0,60)
 plt.show()
+"""
+
+
+"""
+# other approach to find BFL is when the distabce to stop and go equals the distance to stop and keeo going
+def acceleratego(V1, dt=0.05, max_time=200):
+    V, s, t = 0.1, 0.0, 0.0
+    V_LOF = 1.556 * np.sqrt(W_TO / (rho * S * C_LmaxTO))  # [ft/s]
+    CDi_IGE = CDi_ground_effect(h, b, c_Di)
+    T_STATIC,V_array,efficiencyarray = curve(D_ft, 1.07896, P_TO)  # lbs
+    V_TR = 1.15 * V_STO
+    T_TR = None
+    # accelerate
+    while V < V1 and t < max_time:
+        q = 0.5 * rho * V ** 2
+        L = min(q * S * C_LTO, W_TO)
+        D = q * S * (C_D0 + CDi_IGE)
+        # stop it from going to infinity
+        if V < 10.0:
+            T = T_STATIC
+        else:
+            T = efficiencyarray * 550.0 * P_TO / V
+
+        a = g / W_TO * (T - D - mu * (W_TO - L))
+        # Integration
+        V = max(V + a * dt, 0.1)
+        s = s + V * dt + 0.5 * a * dt ** 2
+        t += dt
+
+    # keep going with half thrust until clear the obstacle is the right distance
+    while V < V_LOF and t < max_time:
+        q = 0.5 * rho * V ** 2
+        L = min(q * S * C_LTO, W_TO)
+        D = q * S * (C_D0 + CDi_IGE)
+        # stop it from going to infinity
+        if V < 10.0:
+            T = T_STATIC / 2
+        else:
+            T = efficiencyarray * 550.0 * P_TO / (V * 2)
+
+        a = g / W_TO * (T - D - mu * (W_TO - L))
+        # Integration
+        if T_TR is None and V >= V_TR:  # check Transisiton thrust
+            T_TR = T
+        V = max(V + a * dt, 0.1)
+        s = s + V * dt + 0.5 * a * dt ** 2
+        t += dt
+
+    if T_TR is None:
+        T_TR = efficiencyarray * 550.0 * (P_TO / 2) / (V_TR)
+    S_OBS, h_TR = rest(T_TR)  # ask paul
+    s += S_OBS
+    return s
+
+
+def acceleratestop(V1, dt=0.05, max_time=200):
+    # accelerate
+    V, s, t, t_rec = 0.1, 0.0, 0.0, 0.0
+    V_LOF = 1.556 * np.sqrt(W_TO / (rho * S * C_LmaxTO))  # [ft/s]
+    CDi_IGE = CDi_ground_effect(h, b, c_Di)
+    T_STATIC,V_array,efficiencyarray = curve(D_ft, 1.07896, P_TO)  # lbs
+    reaction = 2
+    mu_break = 0.4  # assume hard turf for braking
+    # accelerate
+    while V < V1 and t < max_time:
+        q = 0.5 * rho * V ** 2
+        L = min(q * S * C_LTO, W_TO)
+        D = q * S * (C_D0 + CDi_IGE)
+        # stop it from going to infinity
+        if V < 10.0:
+            T = T_STATIC
+        else:
+            T = efficiencyarray * 550.0 * P_TO / V
+
+        a = g / W_TO * (T - D - mu * (W_TO - L))
+        # Integration
+        V = V + a * dt
+        s = s + V * dt + 0.5 * a * dt ** 2
+        t += dt
+
+    # reaction time 3 s t rec + activation of breaking device following CS23
+    while t_rec < reaction and t < max_time:
+        q = 0.5 * rho * V ** 2
+        L = min(q * S * C_LTO, W_TO)
+        D = q * S * (C_D0 + CDi_IGE)
+        # stop it from going to infinity
+        if V < 10.0:
+            T = T_STATIC / 2  # still half the thurst becasue hasnt reacted
+        else:
+            T = efficiencyarray * 550.0 * P_TO / (2 * V)
+
+        a = g / W_TO * (T - D - mu * (W_TO - L))
+        # Integration
+        V = V + a * dt
+        s = s + V * dt + 0.5 * a * dt ** 2
+        t += dt
+        t_rec += dt
+
+    # break applied
+    while V > 0.0 and t < max_time:
+        q = 0.5 * rho * V ** 2
+        L = min(q * S * C_LTO, W_TO)
+        D = q * S * (C_D0 + CDi_IGE)
+        # stop it from going to infinity
+        T = 0
+
+        a = g / W_TO * (T - D - mu_break * (W_TO - L))
+        # Integration
+        V = V + a * dt
+        s = s + V * dt + 0.5 * a * dt ** 2
+        if V < 0:
+            break
+        t += dt
+    return s
+
+
+def V1calculation(d_TO, dt=0.05):
+    V1_candidates = np.linspace(0.5 * V_STO, 1.15 * V_STO, 300)
+    s_stop_list = []
+    s_go_list = []
+
+    for V1 in V1_candidates:
+        s_stop_list.append(acceleratestop(V1, dt=dt))
+        s_go_list.append(acceleratego(V1, dt=dt))
+
+    s_stop = np.array(s_stop_list)
+    s_go = np.array(s_go_list)
+
+    # figure out where they intersect
+    diff = s_go - s_stop
+    idx = np.argmin(np.abs(diff))
+    V1 = V1_candidates[idx]
+    BFL = 0.5 * (s_stop[idx] + s_go[idx])
+
+    # plot
+    fig, ax = plt.subplots(figsize=(9, 5))
+    ax.plot(V1_candidates / kntstofps, s_stop, label="Accelerate-stop")
+    ax.plot(V1_candidates / kntstofps, s_go, label="Accelerate-go")
+    ax.axhline(d_TO, linestyle="--", color="red", label=f"Field limit = {d_TO:.0f} ft")
+    ax.axvline(V1 / kntstofps, linestyle="--", color="gray", label=f"V1 = {V1 / kntstofps:.1f} kts")
+    ax.set_xlabel("V1 [kts]")
+    ax.set_ylabel("Distance [ft]")
+    ax.set_title("Balanced Field Length ")
+    ax.legend()
+    ax.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+    return V1, BFL
 """
