@@ -195,11 +195,12 @@ def curve( D_ft,rho_kgm3,P_bhp):
 """
     plt.show()
 
-    return T_static,Vnew,eff1,P_useful_w
+    #return T_static,Vnew,eff1
+    return V_ms,P_useful_w
 
 D_ft=5.66667
 curve(D_ft,1.02,160)
-
+"""
 delta_T=20
 altitudes = np.arange(0, 8000, 50)
 P_available = []
@@ -217,3 +218,4 @@ plt.xlabel("Available power [W]")
 plt.ylabel("Altitude [ft]")
 plt.grid()
 plt.show()
+"""
