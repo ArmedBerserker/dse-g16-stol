@@ -153,6 +153,60 @@ def breguet_prop(ac : Aircraft, frac_source : str) -> float | tuple[float]:
 
     return (1 - fuel_frac, )
 
+def breguet_prop_manual(ld) -> float | tuple[float]:
+    """
+    Compute the fuel fraction required for a conventional propeller aircraft.
+
+    This method applies the Vos and Roskam combined method using Breguet range relation.\n
+
+    Parameters
+    ----------
+    ac : Aircraft
+        Aircraft object containing engine efficiency, fuel energy density, lift-to-drag
+        ratio, range, and aircraft type data.
+    frac_source : str
+        Path to the CSV file containing non-cruise fuel fraction factors for different
+        aircraft categories.
+
+    Returns
+    -------
+    float
+        Fraction of takeoff mass required as fuel for the mission.
+
+    Notes
+    -----
+    If no standard aircraft type is defined in the aircraft requirements, the function
+    defaults to using the 'Homebuilt' aircraft type.
+    """
+    frac_source = 'lookups/fuel_fracs1.csv'
+    ac_type = 'Twin Engine'
+    # if ac.requirements.general['standard_type'] == None:
+    #     print('No standard aircraft type found. Using Homebuilt.')
+    #     ac_type = 'Homebuilt'
+    # else:
+    #     ac_type = ac.requirements.general['standard_type']
+
+
+    data = pd.read_csv(frac_source)
+    rel_data = data[data['Airplane Type'] == ac_type].iloc[0]
+
+    eta_fuel = 0.25
+    eta_prop = 0.8
+    e_f = 43000000
+    R = 500 * 1000 # convert to meters
+    R_eq = 2700 * 132 * KTS_TO_MS + R
+    efg = e_f / 9.81
+    lnfrac = R_eq / (eta_prop * eta_fuel * ld * efg)
+    cruise_frac = np.exp(-lnfrac)
+    fuel_frac = 1.
+    for keys, vals in rel_data.items():
+        if keys == 'Airplane Type':
+            continue
+        fuel_frac *= float(vals)
+    fuel_frac *= cruise_frac
+
+    return (1 - fuel_frac, )
+
 def breguet_bat(ac : Aircraft) -> float:
     """
     Compute the battery mass fraction required for a fully electric aircraft.

@@ -24,30 +24,60 @@ def filter_airports(csv1, csv2):
     airports2 = pd.read_csv(csv2)
     airports = airports1.merge(
         airports2,
-        on="ICAO",
+        left_on="ident",
+        right_on="airport_ident",
         how="inner",
         suffixes=("_airport", "_runway")
     )
-    # Check correct number of airports
-    common = set(airports1["ICAO"]) & set(airports2["ICAO"])
-    if len(common) != len(airports):
-        raise ValueError(f'Merged dataframe has {len(airports)} airports, expecting {len(common)}')
+    common = (
+        set(airports1["ident"])
+        & set(airports2["airport_ident"])
+    )
+
+    # if len(common) != len(airports):
+    #     raise ValueError(
+    #         f"Merged dataframe has {len(airports)} airports, "
+    #         f"expecting {len(common)}"
+    #     )
+    matched1 = airports["ident"].nunique()
+
+    if matched1 != len(common):
+        raise ValueError(
+            f"Matched {matched1} unique airports, expected {len(common)}"
+        )
+    # airports1 = pd.read_csv(csv1)
+    # airports2 = pd.read_csv(csv2)
+    # airports = airports1.merge(
+    #     airports2,
+    #     on="ICAO",
+    #     how="inner",
+    #     suffixes=("_airport", "_runway")
+    # )
+    # # Check correct number of airports
+    # common = set(airports1["ICAO"]) & set(airports2["ICAO"])
+    # if len(common) != len(airports):
+    #     raise ValueError(f'Merged dataframe has {len(airports)} airports, expecting {len(common)}')
     
     # Check if we need margins
+    print(f'Loaded data for {len(airports)} airports')
     airports_left = airports[
         (airports["le_elevation_ft"] <= 2000) |
         (airports["le_elevation_ft"].isna())
     ]
+    print(f'{len(airports_left)} / {len(airports)} left after max elevation selection')
     airports_left = airports_left[
         (airports_left["length_ft"].notna()) &
-        (airports_left["length_ft"] <= 200)
+        (airports_left["length_ft"] >= 200)
     ]
+    print(f'{len(airports_left)} / {len(airports)} left after runway length selection')
     airports_left = airports_left[
         (airports_left["longitude_deg"].notna())
     ]
+    print(f'{len(airports_left)} / {len(airports)} left after longitude selection')
     airports_left = airports_left[
         (airports_left["latitude_deg"].notna())
     ]
+    print(f'{len(airports_left)} / {len(airports)} left after latitude selection')
     types_to_remove = [
         "heliport",
         "seaplane_base",
@@ -57,10 +87,31 @@ def filter_airports(csv1, csv2):
     airports_left = airports_left[
         ~airports_left["type"].isin(types_to_remove)
     ]
-    surface_types_to_remove = ...
-    airports_left = airports_left[
-        ~airports_left["surface"].isin(surface_types_to_remove)
+    print(f'{len(airports_left)} / {len(airports)} left after heliport elimation')
+    airports_left["surface"] = (
+        airports_left["surface"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    surface_types_to_remove = [
+        "ALUM", "ALUM-DECK", "ALUMINUM", "Aluminum rooftop", "CLOSED", 
+        "Deck", "Delete duplicate", "Delete", "G", "GG", "GRASS", "graas", 
+        "Gr", "GRA", "Gra", "GOOD GRASS", "Ice", "Ice - frozen lake", "L", 
+        "lakebed", "Snow", "SNO", "Snow/Ice", "U", "UNK", "Unknown", "Winter snow"
     ]
+    word_lst = ["OIL", "Oil", "GRASS", "Grass", 'grass', "GRAAS", "Graas", 'graas']
+    pattern = "|".join(w.lower() for w in word_lst)
+
+    airports_left = airports_left[
+        ~airports_left["surface"].isin(
+            [s.lower() for s in surface_types_to_remove]
+        )
+        & (airports_left["surface"] != "")
+        & ~airports_left["surface"].str.contains(pattern, regex=True, na=False)
+    ]
+    print(f'{len(airports_left)} / {len(airports)} left after surface selection')
     return airports_left
 
 def reachable_airports(airport_idx,
@@ -78,16 +129,19 @@ def reachable_airports(airport_idx,
 
 if __name__ == "__main__":
 
-    file = ...
-    airports = filter_airports(file)
+    file1 = 'Airport analysis/airports.csv'
+    file2 = 'Airport analysis/runways.csv'
+    airports = filter_airports(file1, file2)
+    n_airports = len(airports)
+    print(f'\n Number of airports that we can land at = {n_airports}')
 
     EARTH_RADIUS = 6371.0  # km
 
-    max_range_km = 4000
+    max_range_km = 600
 
     # Convert coordinates to radians
     coords = np.radians(
-        airports[['latitude', 'longitude']].values
+        airports[['latitude_deg', 'longitude_deg']].values
     )
 
     # Build BallTree
@@ -115,8 +169,8 @@ if __name__ == "__main__":
                 continue
 
             routes.append([
-                airports.iloc[i]['ICAO'],
-                airports.iloc[j]['ICAO'],
+                airports.iloc[i]['ident'],
+                airports.iloc[j]['ident'],
                 dist
             ])
 
@@ -134,15 +188,15 @@ if __name__ == "__main__":
     # lookup dictionaries:
     icao_to_lat = dict(
         zip(
-            airports['ICAO'],
-            airports['latitude']
+            airports['ident'],
+            airports['latitude_deg']
         )
     )
 
     icao_to_lon = dict(
         zip(
-            airports['ICAO'],
-            airports['longitude']
+            airports['ident'],
+            airports['longitude_deg']
         )
     )
 
@@ -170,20 +224,20 @@ if __name__ == "__main__":
         )
 
     plt.scatter(
-        airports.longitude,
-        airports.latitude,
+        airports.longitude_deg,
+        airports.latitude_deg,
         s=1
     )
 
-    plt.xlabel('Longitude')
-    plt.ylabel('Latitude')
+    plt.xlabel('Longitude [deg]')
+    plt.ylabel('Latitude [deg]')
     plt.title(f'Reachable airports from {airport}')
     plt.show()
 
-    # route search for one airport
-    tree = BallTree(coords, metric='haversine')
+    # # route search for one airport
+    # tree = BallTree(coords, metric='haversine')
 
-    reachable_airports(airport_idx=232758,
-                       max_range_km=500,
-                       tree=tree)
+    # reachable_airports(airport_idx=232758,
+    #                    max_range_km=600,
+    #                    tree=tree)
     

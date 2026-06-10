@@ -174,7 +174,8 @@ def size_empennage_planform(ac: Aircraft, epoch: int):
     if epoch == 1:
         S_h = (V_h * S * w.MAC) / ht_moment_arm
     else:
-        S_h = ac.empennage.horizontal_tail['area div S'] * ac.wing.area
+        # S_h = ac.empennage.horizontal_tail['area div S'] * ac.wing.area
+        S_h = ac.empennage.horizontal_tail['area']
 
     # 2. Update geometry dependent on the new area
     b_h = np.sqrt(A_h * S_h)

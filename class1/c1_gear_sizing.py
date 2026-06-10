@@ -28,8 +28,8 @@ def size_tires(ac: Aircraft, update_ac = False):
 
     V_max_tire = V_max_tire * KTS_TO_MPH  # [Mph]
     pt = ac.landing_gear.pt             # [Psi]
-    Load_mlg = Ft_mlg * 1 / (g * LBS_TO_KG / ac.landing_gear.n_wheels_mlg)   # [Lbs] per tire
-    Load_nlg = Ft_nlg * 1 / (g * LBS_TO_KG / ac.landing_gear.n_wheels_nlg)   # [Lbs]
+    Load_mlg = Ft_mlg * 1 / (g * LBS_TO_KG) / ac.landing_gear.n_wheels_mlg   # [Lbs] per tire
+    Load_nlg = Ft_nlg * 1 / (g * LBS_TO_KG) / ac.landing_gear.n_wheels_nlg   # [Lbs]
 
     tire_data = pd.read_csv('lookups/type3_tires.csv')
 

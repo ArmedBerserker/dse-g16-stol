@@ -16,6 +16,6 @@ x_cg_aft: 3.23  # Taildragger
 x_cg_fwd: 2.88
 z_cg: 1.29  # from bottom of fuselage
 ballast_rear: 0 # kg
-x_cg_supercap: 6.7  # m
+x_cg_supercap: 7  # m
 
 

@@ -339,7 +339,7 @@ def W_pwr_and_x_cg_from_nose(ac: Aircraft,
     alpha_p_id = ac.engine.alpha_p_id
     P_to = ac.engine.power_to / HP_TO_W
     W_piston = ac.weights.m_piston
-    W_supercap = ac.weights.m_supercap * 1.5  # Add 50% for surrounding structure
+    W_supercap = 36 * 1.5 / LBS_TO_KG # Add 50% for surrounding structure
     W_eng = ac.weights.m_turboprop / LBS_TO_KG
     if alpha_p_id == 'piston':
         W_eng = W_piston / LBS_TO_KG
@@ -374,13 +374,14 @@ def W_pwr_and_x_cg_from_nose(ac: Aircraft,
         x_cg_pwr1 = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, nac_y, x_le_w) + ac.engine.eng_x_pos * chord_at_y_span(ac.wing.c_root, ac.wing.taper_ratio, ac.engine.eng_y_pos_fuselage+ac.fuselage.width/2, ac.wing.span)
 
     x_cg_eng = x_le_w + ac.engine.eng_x_pos * chord_at_y_span(ac.wing.c_root, ac.wing.taper_ratio, ac.engine.eng_y_pos_fuselage+ac.fuselage.width/2, ac.wing.span)
-    x_cg_prop = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, nac_y, x_le_w) + 0.5
+    x_cg_prop = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, nac_y, x_le_w) - 0.5
     x_cg_fs = x_pos_le_along_span_from_nose(ac.wing.sweep_LE_deg, ac.wing.y_MAC, x_le_w) + (ac.wing.x_c_rear_spar - ac.wing.x_c_front_spar) / 2 * ac.wing.MAC
 
-    Weights = np.array([W_pwr1, W_eng * N_e, W_prop, W_fs, W_supercap])
+    Weights = np.array([W_pwr1, W_eng * N_e, W_prop, W_fs, 36*1.5])
     x_cgs = np.array([x_cg_pwr1, x_cg_eng, x_cg_prop, x_cg_fs, ac.weights.x_cg_supercap])
     x_cg = (Weights@x_cgs)/np.sum(Weights)
     ac.weights.power_system = (np.sum(Weights)) * LBS_TO_KG
+    print(f'Power weights: {Weights * LBS_TO_KG}, \n cgs from nose: {x_cgs}, wing position: {x_le_w}')
     # print(f' \nPower system weight: {(W_pwr1 + W_supercap + W_fs) * LBS_TO_KG}kg \n')
     return (np.sum(Weights)) * LBS_TO_KG, x_cg
 
@@ -463,6 +464,7 @@ def W_feq_and_cg_from_nose(ac: Aircraft,
     # cgs = np.array([x_cg_fc, x_cg_hps, x_cg_els, x_cg_iae, x_cg_api, x_cg_fur, x_cg_ops, x_cg_fti, x_cg_aux, x_cg_bal, x_cg_pt, x_cg_etc])
     cgs = np.array([x_cg_fc, x_cg_hps_els, x_cg_iae, x_cg_api, x_cg_fur, x_cg_ops, x_cg_fti, x_cg_aux, x_cg_bal, x_cg_pt, x_cg_etc])
     x_cg_feq = (Weights@cgs) / W_feq
+    print(f'Feq weights: {Weights * LBS_TO_KG}, \n cgs from nose: {cgs}, wing position: {x_le_w}')
     # x_cg_feq = 3.5
     return W_feq * LBS_TO_KG, x_cg_feq
 
@@ -685,7 +687,8 @@ def x_cg_structural_from_nose(ac: Aircraft,
         raise ValueError(f"Number of engines = {n_eng}, need an even number")
     if n_eng == 2:
         y_pos_eng: float = ac.engine.eng_y_pos_fuselage + ac.fuselage.width / 2
-        x_cg_nac = 0.4 * l_nacelle + x_pos_le_along_span_from_nose(LE_sweep_deg(w_sweep_c_4_deg, w_c_r, b_w, w_taper), y_pos_eng, x_le_w) + nac_mount_dist
+        x_cg_nac = nac_mount_dist - 0.1 * l_nacelle
+        # x_cg_nac = 0.4 * l_nacelle + x_pos_le_along_span_from_nose(LE_sweep_deg(w_sweep_c_4_deg, w_c_r, b_w, w_taper), y_pos_eng, x_le_w) + nac_mount_dist
     elif n_eng > 2:
         y_pos_eng: list = ac.engine.eng_y_pos_fuselage + ac.fuselage.width / 2  # NOTE: get a list/array or someting with engine y-positions for one side
         if len(y_pos_eng) != n_eng // 2:
@@ -695,8 +698,7 @@ def x_cg_structural_from_nose(ac: Aircraft,
             )
         x_cg_nac = 0
         for i, y_pos in enumerate(y_pos_eng):
-            x_cg_nac_elem = 0.4 * l_nacelle + x_pos_le_along_span_from_nose(LE_sweep_deg(w_sweep_c_4_deg, w_c_r, b_w, w_taper), y_pos, x_le_w) + nac_mount_dist
-            x_cg_nac += 2 * x_cg_nac_elem / n_eng
+            x_cg_nac = nac_mount_dist - 0.1 * l_nacelle
 
     # Landing gear:
     x_cg_nlg = x_nlg
@@ -712,6 +714,7 @@ def x_cg_structural_from_nose(ac: Aircraft,
     # print(f'Weights: {[W_wing(ac), W_ht, W_vt, W_fus(ac), W_mlg, W_nlg, W_nac(ac)]}')
     Weights = np.array([weight_wing, W_ht, W_vt, W_fuselage, W_mlg, W_nlg, W_nacelle])
     cgs = np.array([x_cg_w, x_cg_ht, x_cg_vt, x_cg_fus, x_cg_mlg, x_cg_nlg, x_cg_nac])
+    print(f'Structural weights: {Weights * LBS_TO_KG}, \n cgs from nose: {cgs}, wing position: {x_le_w}')
     x_cg_struc = (Weights @ cgs) / np.sum(Weights)
     if update_ac:
         ac.weights.x_cg_structural = x_cg_data
@@ -921,7 +924,7 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
     sweep_LE_deg = ac.wing.sweep_LE_deg  # LE_sweep_deg(sweep_c_4_deg, c_r, b, taper)
     C_m0_airfoil = ac.wing.cm_c4
     C_L_0 = np.abs(ac.hld_and_ailerons.landing_lift['alpha_zero_lift']) * ac.hld_and_ailerons.landing_lift['CL_alpha']  # CL of flapped wing at alpha = 0
-    C_L_LD = ac.requirements.landing['as_CL_max_la'] / 1.21
+    C_L_LD = ac.requirements.landing['as_CL_max_la'] / 1.21 # 1.69
     mac = ac.wing.MAC
     mgc = S/b
 
@@ -1011,13 +1014,13 @@ def scissor_plot(ac: Aircraft, x_cg_lemac_mac: np.ndarray, SM: float = 0.05, out
         V_h_V2 = 1.0
 
     # Cm_ac
-    CL_ld = -ac.hld_and_ailerons.landing_lift['alpha_zero_lift'] * ac.hld_and_ailerons.landing_lift['CL_alpha']
+    CL_ld = 1.94  # -ac.hld_and_ailerons.landing_lift['alpha_zero_lift'] * ac.hld_and_ailerons.landing_lift['CL_alpha']
     CL_clean = -ac.wing.alpha_0L * ac.hld_and_ailerons.clean_lift['CL_alpha']
-    # C_m_ac_flap_ld = interp_value(pd.read_csv('lookups/HLD/Cm0_flaps.csv'), CL_clean-CL_ld, 'x', 'y')
+    C_m_ac_flap_ld = interp_value(pd.read_csv('lookups/HLD/Cm0_flaps.csv'), CL_clean-CL_ld, 'x', 'y')
 
     C_m_ac_w = C_m0_airfoil * (A * np.cos(np.deg2rad(sweep_c_4_deg))**2 / (A + 2 * np.cos(np.deg2rad(sweep_c_4_deg))))
     C_m_ac_fus_ld = -1.8 * (1 - 2.5 * b_f / l_f) * np.pi * b_f * h_f * l_f / (4 * S * mac) * C_L_0 / C_L_alpha_A_less_h_LD
-    C_m_ac_flap_ld = mu2 * (-mu1 * Delta_Cl_max_ld * ext_flap_chord_ratio_ld - (C_L_LD + Delta_Cl_max_ld * (1 - Swf / S)) / 8 * ext_flap_chord_ratio_ld * (ext_flap_chord_ratio_ld - 1)) + 0.7 * A / (1 + 2 / A) * mu3 * Delta_Cl_max_ld * np.tan(np.deg2rad(sweep_c_4_deg))
+    # C_m_ac_flap_ld = mu2 * (-mu1 * Delta_Cl_max_ld * ext_flap_chord_ratio_ld - (C_L_LD + Delta_Cl_max_ld * (1 - Swf / S)) / 8 * ext_flap_chord_ratio_ld * (ext_flap_chord_ratio_ld - 1)) + 0.7 * A / (1 + 2 / A) * mu3 * Delta_Cl_max_ld * np.tan(np.deg2rad(sweep_c_4_deg))
     C_m_ac_ld = C_m_ac_w + C_m_ac_flap_ld + C_m_ac_fus_ld
     # C_m0_flapped_airfoil = -0.375
     # C_m_ac_w = C_m0_flapped_airfoil * (A * np.cos(np.deg2rad(sweep_c_4_deg))**2 / (A + 2 * np.cos(np.deg2rad(sweep_c_4_deg))))
@@ -1303,6 +1306,7 @@ def overlay_wing_pos_and_scissor_plot(ac: Aircraft,
     
     Sh_S = selected_points[0]['y_ax1']
     x_le_w_fus = selected_points[0]['y_ax2']
+    # x_le_w_fus = 4.6 / ac.fuselage.length
     # x_le_w = float(input(f'\n enter x_le_w: \n'))
     # x_le_w_fus = x_le_w / ac.fuselage.length
 

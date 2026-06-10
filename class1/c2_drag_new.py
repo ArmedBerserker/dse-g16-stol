@@ -1,3 +1,8 @@
+import sys
+import os
+
+# Fix path FIRST, before any local imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from classes.aircraft_2 import Aircraft
 from c2_m import Snet, LE_sweep_deg, sweep_at_x_c_deg, lift_slope, S_wf, closest_value, chord_at_y_span
 from lookups.consts import *
@@ -7,6 +12,7 @@ from scipy.interpolate import RegularGridInterpolator, interp1d
 from scipy.optimize import brentq
 from classes.isa import Atmosphere
 import matplotlib.pyplot as plt
+from class1 import matching_diagram, c1_m
 
 ''' How to reduce drag:
 
@@ -301,10 +307,10 @@ def CD0(ac: Aircraft,
 
     # Wing
     wing = CD0_wing(M, R_N_fuselage, 
-                    sweep_t_c_max_deg = sweep_at_x_c_deg(LE_sweep_deg, c_r, b, taper, w.x_c_t_c_max), 
+                    sweep_t_c_max_deg = sweep_at_x_c_deg(LE_sweep_deg, c_r, b, taper, 0.3), 
                     R_N_w = R_N(density, speed, exposed_wing_area_and_mgc(S, b, taper, c_r, b_f)[1], mu), 
-                    t_c_max = w.t_c_max, 
-                    x_c_t_c_max = w.x_c_t_c_max, 
+                    t_c_max = 0.12, 
+                    x_c_t_c_max = 0.3, 
                     S_exp=exposed_wing_area_and_mgc(S, b, taper, c_r, b_f)[0], 
                     surface_type='wing', S=S)
 
@@ -332,6 +338,8 @@ def CD0(ac: Aircraft,
                       S = vt['area'])
     
     # Nacelle
+    b_n = 0.63
+    l_n = 1.1
     nacelle_isolated = CD0_fuselage(M, R_N_fus=R_N(density, speed, eng.length_nac, mu),
                                     l_fus=eng.length_nac,
                                     d_fus_max=eng.nac_diameter,
@@ -342,16 +350,18 @@ def CD0(ac: Aircraft,
                                     S_fus_max=eng.nac_diameter**2 / 4 * np.pi,
                                     surface_type='nacelle')
     
-    nacelle_interference = CD0_wing_nacelle_interference(i_n_deg=eng.i_n, 
-                                                         nacelle_above_wing=eng.eng_above_wing,
-                                                         chord_at_nacelle=chord_at_y_span(c_r, taper, y=eng.eng_y_pos_fuselage+b_f/2, b=b),
-                                                         b_n=eng.nac_diameter,
+    nacelle_interference = CD0_wing_nacelle_interference(i_n_deg=0, 
+                                                         nacelle_above_wing=False,
+                                                         chord_at_nacelle=chord_at_y_span(c_r, taper, y=1.42+b_f/2, b=b),
+                                                         b_n=b_n,
                                                          S=S)
     
     # Propeller
+    prop_d = 1.72
+    n_blades = 3
     if n_engine_inoperative != 0:
-        wind_milling_inop = CD0_windmilling_prop_inop(eng.n_prop_blades, eng.prop_diameter, S)
-        wind_milling = 0.1 * 0.04 * ac.engine.n_prop_blades * np.pi * 0.25 * ac.engine.prop_diameter**2
+        wind_milling_inop = CD0_windmilling_prop_inop(n_blades, prop_d, S)
+        wind_milling = 0.1 * 0.04 * n_blades * np.pi * 0.25 * prop_d**2
         # wind_milling = CD0_windmilling_prop(V_fps=speed*MpS_TO_FpS,
         #                                     q_psf=0.5*density*speed**2/PSF_TO_PA,
         #                                     S_sqft=S*M2_TO_F2,
@@ -360,13 +370,15 @@ def CD0(ac: Aircraft,
     else:
         wind_milling_inop = 0
         wind_milling = 0
+    if flight_condition == 'landing':
+        wind_milling = 0.1 * 0.04 * n_blades * np.pi * 0.25 * prop_d**2
     
-    propeller = wind_milling * eng.count + wind_milling_inop * n_engine_inoperative
+    propeller = wind_milling * 2 + wind_milling_inop * n_engine_inoperative
     
     # Flaps and Slats
     if flight_condition != 'cruise':
-        flap_profile = CD0_flap_profile(ac, flap_type=flap['flap_type'], 
-                                        t_c_max=w.t_c_max, 
+        flap_profile = CD0_flap_profile(ac, flap_type='plain', 
+                                        t_c_max=0.12, 
                                         flap_deflection=flap_deflection, 
                                         wing_drag=wing, 
                                         flight_condition=flight_condition, 
@@ -376,7 +388,7 @@ def CD0(ac: Aircraft,
         flap_drag = flap_profile + flap_interference
 
         slat_profile = CD0_flap_profile(ac, flap_type=slat['slat_type'],
-                                        t_c_max=w.t_c_max,
+                                        t_c_max=0.12,
                                         flap_deflection=None, 
                                         wing_drag=wing,
                                         flight_condition=flight_condition,
@@ -404,6 +416,220 @@ def CD0(ac: Aircraft,
     if update_ac:
         w.CD0 = CD0
     return CD0
+
+
+def CD0_manual(n_engine_inoperative: int = 0, 
+        flight_condition: str = 'cruise' # 'cruise' or 'landing' or 'take-off'
+        ):
+    S = 31.4
+    MTOW = 1839
+    Sh_S = 3.924545
+    if flight_condition == 'cruise':
+        temp_shift = 0
+        alt = 8500 * FT_TO_M
+        speed = 132 * KTS_TO_MS
+    elif flight_condition == 'take-off':
+        C_L = 1.4
+        temp_shift = 20
+        alt = 2000 * FT_TO_M
+        mass_frac = 0.99
+        Atm = Atmosphere(alt, temp_shift)
+        temp = float(Atm.temp)
+        density = float(Atm.density)
+        speed = np.sqrt(mass_frac * MTOW * 9.81 / (0.5 * density * C_L * S))
+        flap_deflection = 20
+        cdash_c_flap = 1
+        cdash_c_slat = 1
+    elif flight_condition == 'landing':
+        C_L = 0.997
+        temp_shift = 20
+        alt = 2000 * FT_TO_M
+        Atm = Atmosphere(alt, temp_shift)
+        temp = float(Atm.temp)
+        density = float(Atm.density)
+        mass_frac = 0.9
+        # speed = 1.3 * ac.requirements.general['stall_speed'] * KTS_TO_MS
+        speed = 1.3 * np.sqrt(mass_frac * MTOW * 9.81 / (0.5 * density * C_L * S))
+        flap_deflection = 60
+        cdash_c_flap = 1
+        cdash_c_slat = 1
+    else:
+        raise ValueError(f' Flight condition given: {flight_condition}, not "cruise" or "landing" or "take-off" ')
+    
+    # Atmosphere
+    Atm = Atmosphere(alt, temp_shift)
+    temp = float(Atm.temp)
+    density = float(Atm.density)
+    mu = float(mu_air(temp))
+    M = speed / np.sqrt(1.4 * 287 * temp)
+
+    # Geometry
+    b = 16.8
+    LE_sweep_deg = 0
+    taper = 0.99999999
+    c_r = 1.87
+    b_f = 1.45
+    h_f = 1.7
+    l_f = 11
+    d_fus_max = max(h_f, b_f)
+    S_base = 0.1
+    d_base = np.sqrt(S_base * 4 / np.pi)
+    Swf = 0.5
+
+    # Reynolds numbers
+    R_N_fuselage = R_N(density, speed, l_f, mu)
+
+    # Wing
+    wing = CD0_wing(M, R_N_fuselage, 
+                    sweep_t_c_max_deg = sweep_at_x_c_deg(LE_sweep_deg, c_r, b, taper, x_c=0.3), 
+                    R_N_w = R_N(density, speed, c_r, mu), 
+                    t_c_max = 0.12, 
+                    x_c_t_c_max = 0.3, 
+                    S_exp=S-b_f*c_r, 
+                    surface_type='wing', S=S)
+
+    # Fuselage
+    nose_cone_length = 3.4650000000000007
+    tail_cone_length = 4.429687500000001
+    max_cross_section_area = 2.26649330114264
+    fuselage = CD0_fuselage(M, R_N_fuselage, l_f, d_fus_max, nose_cone_length, tail_cone_length, S, d_base, max_cross_section_area, surface_type='fuselage')
+
+    # HT
+    sweep_LE_deg_h = 2.2
+    S_h = Sh_S * S
+    A_h = 6.0
+    b_h = np.sqrt(A_h * S_h)
+    taper_h = 0.7
+    c_r_h = 2 * S_h / (b_h * (1 + taper_h))
+    loc_t_c_max_h = 0.3
+    mac_h = (2 / 3) * c_r_h * (1 + taper_h + taper_h**2) / (1 + taper_h)
+    x_le_ht = 10.4 - 0.25 * mac_h
+    t_c_max_h = 0.14
+    h_tail = CD0_wing(M, R_N_fuselage, 
+                      sweep_t_c_max_deg = sweep_at_x_c_deg(sweep_LE_deg_h, c_r_h, b_h, taper_h, loc_t_c_max_h), 
+                      R_N_w = R_N(density, speed, exposed_vt_area_and_mgc(S_base, l_f, tail_cone_length, x_le_ht, S_h/2, b_h/2, taper_h, c_r_h, h_f)[1], mu), 
+                      t_c_max = t_c_max_h, 
+                      x_c_t_c_max = loc_t_c_max_h, 
+                      S_exp = exposed_vt_area_and_mgc(S_base, l_f, tail_cone_length, x_le_ht, S_h/2, b_h/2, taper_h, c_r_h, h_f)[0], 
+                      surface_type = 'ht', 
+                      S = S_h)
+    
+    # VT
+    V_v = 0.056
+    sweep_LE_deg_v = 13.8
+    S_v = V_v * S * b / (10.4 - 0.5)
+    A_v = 1.4
+    b_v = np.sqrt(A_v * S_v)
+    taper_v = 0.8
+    c_r_v = 2 * S_v / (b_v * (1 + taper_v))
+    loc_t_c_max_v = 0.3
+    mac_v = (2 / 3) * c_r_v * (1 + taper_v + taper_v**2) / (1 + taper_v)
+    x_le_vt = 10.4 - 0.25 * mac_v
+    t_c_max_v = 0.14
+    v_tail = CD0_wing(M, R_N_fuselage, 
+                      sweep_t_c_max_deg = sweep_at_x_c_deg(sweep_LE_deg_v, c_r_v, b_v, taper_v, loc_t_c_max_v), 
+                      R_N_w = R_N(density, speed, exposed_vt_area_and_mgc(S_base, l_f, tail_cone_length, x_le_vt, S_v, b_v, taper_v, c_r_v, h_f)[1], mu), 
+                      t_c_max = t_c_max_v, 
+                      x_c_t_c_max = loc_t_c_max_v, 
+                      S_exp = exposed_vt_area_and_mgc(S_base, l_f, tail_cone_length, x_le_vt, S_v, b_v, taper_v, c_r_v, h_f)[0], 
+                      surface_type = 'vt', 
+                      S = S_v)
+    
+    # Nacelle
+        # Nacelle
+    b_n = 0.63
+    l_n = 1.5
+    nacelle_isolated = CD0_fuselage(M, R_N_fus=R_N(density, speed, l_n, mu),
+                                    l_fus=l_n,
+                                    d_fus_max=b_n,
+                                    l_nosecone=None,
+                                    l_tailcone=None,
+                                    S=S,
+                                    d_b=0.5*b_n,
+                                    S_fus_max=b_n**2 / 4 * np.pi,
+                                    surface_type='nacelle')
+    
+    nacelle_interference = CD0_wing_nacelle_interference(i_n_deg=0, 
+                                                         nacelle_above_wing=False,
+                                                         chord_at_nacelle=chord_at_y_span(c_r, taper, y=1.42+b_f/2, b=b),
+                                                         b_n=b_n,
+                                                         S=S)
+    
+    # Propeller
+    prop_d = 1.72
+    n_blades = 3
+    if n_engine_inoperative != 0:
+        wind_milling_inop = CD0_windmilling_prop_inop(n_blades, prop_d, S)
+        wind_milling = 0.1 * 0.04 * n_blades * np.pi * 0.25 * prop_d**2
+        # wind_milling = CD0_windmilling_prop(V_fps=speed*MpS_TO_FpS,
+        #                                     q_psf=0.5*density*speed**2/PSF_TO_PA,
+        #                                     S_sqft=S*M2_TO_F2,
+        #                                     SHP_max=eng.SHP_max)
+        wind_milling = 0
+    else:
+        wind_milling_inop = 0
+        wind_milling = 0
+    if flight_condition == 'landing':
+        wind_milling = 0.1 * 0.04 * n_blades * np.pi * 0.25 * prop_d**2
+    
+    propeller = wind_milling * 2 + wind_milling_inop * n_engine_inoperative
+    
+    # Flaps and Slats
+    if flight_condition != 'cruise':
+        # flap_profile = CD0_flap_profile(ac, flap_type='plain', 
+        #                                 t_c_max=w.t_c_max, 
+        #                                 flap_deflection=flap_deflection, 
+        #                                 wing_drag=wing, 
+        #                                 flight_condition=flight_condition, 
+        #                                 slat_or_flap='flap', 
+        #                                 cdash_c=cdash_c_flap)
+        if flight_condition == 'landing':
+            flap_profile = 0.179 * Swf / S
+        else:
+            flap_profile = 0.021 * Swf / S
+        # flap_interference = CD0_flap_interference(flap_profile, flap['flap_type'])
+        flap_interference = 0
+        flap_drag = flap_profile + flap_interference
+
+        slat_profile = 0
+        slat_interference = 0
+
+        # slat_profile = CD0_flap_profile(ac, flap_type=slat['slat_type'],
+        #                                 t_c_max=w.t_c_max,
+        #                                 flap_deflection=None, 
+        #                                 wing_drag=wing,
+        #                                 flight_condition=flight_condition,
+        #                                 slat_or_flap='slat',
+        #                                 cdash_c=cdash_c_slat)
+        # slat_interference = CD0_flap_interference(slat_profile, slat['slat_type'])
+        slat_drag = slat_profile + slat_interference
+    else:
+        flap_drag = 0
+        slat_drag = 0
+    
+    # Landing Gear
+    e = 0.8
+    Dt = 13.25 * 2.54 / 100
+    a = 0.876667
+    # gear = CD0_gear(x_nlg=lg.longitudinal_nlg, height_nlg=lg.height_nlg,
+    #                 n_main_wheels=lg.n_wheels_mlg,
+    #                 n_nose_wheels=lg.n_wheels_nlg,
+    #                 nlg_tire_diameter=lg.selected_nlg_tire["Outside Diameter Max (In)"] * 2.54 / 100,
+    #                 nlg_tire_width=lg.selected_nlg_tire["Section Width Max (In)"] * 2.54 / 100,
+    #                 mlg_tire_diameter=lg.selected_mlg_tire["Outside Diameter Max (In)"] * 2.54 / 100,
+    #                 mlg_tire_width=lg.selected_mlg_tire["Section Width Max (In)"] * 2.54 / 100,
+    #                 S=S)
+    main_gear = 2 * 0.49 * (5.05 * 2.54 / 100) * (13.25 * 2.54 / 100) / S
+    nose_gear = 0.44 * (5.05 * 2.54 / 100) * (13.25 * 2.54 / 100) / S
+    gear = main_gear + nose_gear
+
+    CD0 = wing + fuselage + h_tail + v_tail + nacelle_isolated + nacelle_interference + propeller + flap_drag + slat_drag + gear
+    # print(f' Speed: {speed}, density: {density}, dynamic pressure: {0.5*density*speed**2}')
+    print(f' \n CD0 overview: \n wing: {wing} \n fuselage: {fuselage} \n ht: {h_tail} \n vt: {v_tail} \n isolated nacelle: {nacelle_isolated} \n nacelle interference: {nacelle_interference} \n propeller: {propeller} \n flap drag: {flap_drag} \n slat drag: {slat_drag} \n landing gear: {gear} \n \n total: {CD0}')
+    # if update_ac:
+    #     w.CD0 = CD0
+    return CD0
+
 
 def C_D_L(ac: Aircraft, 
           CD0,
@@ -466,3 +692,88 @@ def C_D_L(ac: Aircraft,
         ac.wing.ld = ld
         # ac.wing.aspect_ratio = A_eff
     return CDi, e, K, ld
+
+def cruise_speed_matching(MTOW, CD0):
+
+    W_S = 9.81 * MTOW / 31.4
+    V_cr = 132 * KTS_TO_MS
+
+    cruise_altitude = 8500 * FT_TO_M
+    atmos_model = Atmosphere(cruise_altitude, 0)
+    rho = atmos_model.density
+    sigma = atmos_model.density_ratio
+
+    cruise_mass_frac = 0.95
+    # CD0 = cd0(ac, type_to_use, friction_source, s_wet_source)
+
+    A = 9
+    e = 0.783
+    # _, e = k(ac)
+
+    eta_p = 0.84
+
+    # NOTE: first eqn for piston, second for turboprop, third for electric, check ADSEE I book for details (dep on propeller type)
+    # engine.Phi: power split parameter
+    alpha_p_piston = 1.132 * sigma - 0.132
+    alpha_p_turboprop = sigma ** 0.75
+    alpha_p_electric = 1
+
+    alpha_p = 1
+    # if ac.engine.alpha_p_id == 'turboprop':
+    #     alpha_p = alpha_p_electric * ac.engine.Phi + alpha_p_turboprop * (1 - ac.engine.Phi)
+    #     alpha_p = 1
+    # elif ac.engine.alpha_p_id == 'piston':
+    #     alpha_p = alpha_p_electric * ac.engine.Phi + alpha_p_piston * (1 - ac.engine.Phi)
+    #     # alpha_p = 0.85
+    #     alpha_p = 1
+    # elif ac.engine.alpha_p_id == 'hydrogen':
+    #     alpha_p = alpha_p_electric
+
+    # alpha_p = alpha_p_electric * ac.engine.Phi + alpha_p_turboprop * (1 - ac.engine.Phi)
+
+    W_P = eta_p * alpha_p / cruise_mass_frac / (CD0 * 0.5 * rho * V_cr ** 3 / (cruise_mass_frac * W_S) + cruise_mass_frac * W_S / (np.pi * A * e * 0.5 * rho * V_cr))
+
+    return W_P, W_S
+
+def MTOW_update(m_pl, fuel_mass_frac, m_oe, MTOW):
+    return m_pl / (1 - fuel_mass_frac - m_oe / MTOW)
+
+if __name__ == '__main__':
+    CD0_cruise = CD0_manual(n_engine_inoperative=0, flight_condition='cruise')
+    CD0_to = CD0_manual(n_engine_inoperative=0, flight_condition='take-off')
+    CD0_ld = CD0_manual(n_engine_inoperative=0, flight_condition='landing')
+    print(f'Cruise zero-lift drag: {CD0_cruise}')
+    print(f'take-off zero-lift drag: {CD0_to}')
+    print(f'landing zero-lift drag: {CD0_ld}')
+    A = 9
+    e = 1.78 * (1 - 0.045 * A**0.68) - 0.64
+    print(f'e = {e}')
+    print(f'e_to = {e + 0.0046 * 20}')
+    print(f'e_ld = {e + 0.0046 * 50}')
+
+    ld = 0.5 * np.sqrt(np.pi * A * e / CD0_cruise)
+    ld_to = 0.5 * np.sqrt(np.pi * A * e / CD0_to)
+    ld_ld = 0.5 * np.sqrt(np.pi * A * e / CD0_ld)
+    print(f'L/D = {ld}')
+    print(f'L/D_to = {ld_to}')
+    print(f'L/D_ld = {ld_ld}')
+    fuel_mass_frac = c1_m.breguet_prop_manual(ld)[0]
+    print(f'fuel mass frac: {fuel_mass_frac}')
+    
+    m_pl = 662  # kg
+    m_oe = 1010 # 892  # kg -> maybe add 54 for an extra supercap
+    MTOW_diff = 40
+    init_mtow = 1839
+    MTOW = [init_mtow]
+    oew_mtow = [m_oe/init_mtow]
+
+    while MTOW_diff>10:
+        mtow_new = MTOW_update(m_pl, fuel_mass_frac, m_oe, MTOW[-1])
+        MTOW_diff = np.abs(MTOW[-1] - mtow_new)
+        MTOW.append(mtow_new)
+        oew_mtow.append(m_oe/mtow_new)
+
+    print(f'Design converged given input oew and pl: \nMTOW = {MTOW[-1]} kg, \nconvergence history: {MTOW}, \nfuel mass = {fuel_mass_frac*MTOW[-1]} kg, \n oew fraction = {oew_mtow}')
+
+    W_P, W_S = cruise_speed_matching(MTOW[-1], CD0_cruise)
+    print(f'\nW/P = {W_P} \t W/S = {W_S}\nP_cr = {MTOW[-1] * 9.81 / W_P}')
