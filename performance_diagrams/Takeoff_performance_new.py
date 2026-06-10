@@ -17,22 +17,24 @@ rho = 1.07896 * kgtoslug  # density at take off altitude 2000ft ISA +20°C #slug
 rho_SL = 1.225 * kgtoslug
 T_ISA_K = 304.188  # temperature at take off altitude 2000ft ISA +20°C #Kelvin
 theta = rho / rho_SL  # ratio of density
-W_TO = 1821 * kgtolbs  # [lbs]#change
-S = 260.1  # surface area of wing [feet2]
-C_LmaxTO = 2.5  # max take off lift coefficient
+W_TO = 1839 * kgtolbs  # [lbs]#change
+S = 333.6812 # surface area of wing [feet2]
+C_LmaxTO = 0.8*1.68 # max take off lift coefficient
 C_LTO = C_LmaxTO / 1.21  # Lift coefficient at lift off
-h = 2.7  # height of wing above ground [feet]
-b = 18.2  # span of wing [feet]
-c_Di = 0.04 # lift induced drag coefficient out of ground effect
-C_D0 =0.058668  # cD0 take off run
+h = 2.5# height of wing above ground [feet]
+b = 16.8 # span of wing [feet]
+C_D0 =0.03306  # cD0 take off run
+A=9 #aspect ratio unitless
+c_Di = 1/(np.pi*A*0.783)*C_LTO**2 # lift induced drag coefficient out of ground effect
 delta_T = 20  # [K]
 
 
+
 # propulsion
-P_TO = 160+40 # max shaft power in horsepower during take off all engines operating + booster stage
+P_TO = 314 # max shaft power in horsepower during take off all engines operating + booster stage
 P_TO_1=P_TO/2 #max take off power one engine
 efficiency = 0.60  # efficiency of motor at V_LOF/Sqrt2 not used
-T_static,V_array,efficiencyarray = curve(D_ft,rho*1/kgtoslug,P_TO_1)  # give actual array in function of speed change this
+
 
 # performance
 climbangle = np.radians(3.4)  # climb angle in radians
@@ -78,8 +80,8 @@ def CDi_ground_effect(h, b, c_Di):
 # Static thrust max from where in propeller
 T_STATIC, V_array, efficiencyarray = curve(D_ft, 1.07896, P_TO_1)  # [lbs2]
 efficiencyfunction = CubicSpline(V_array, efficiencyarray)
-
 def thrust(V, P_TO):
+
     if V <= V_array[0]:
         return T_STATIC * 2
     T =efficiencyfunction(V) * 550.0 * P_TO / V
