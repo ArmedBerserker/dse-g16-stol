@@ -40,6 +40,7 @@ def calculate_characteristic_speeds(ac: Aircraft, rho: float, weight: float):
     #V_c_a = ac.requirements.cruise['cr_speed'] * KTS_TO_MS * np.sqrt(rho/1.225)
     #V_c = max(V_c_a, V_c_min)
     V_c = V_c_min
+    #V_c = 150 * KTS_TO_MS
     #if V_c_a < V_c_min:
         #print(f"Your cruise speed is too low to adhere to CS23, it needs to at least be: {V_c_min:.2f} m/s")
 
