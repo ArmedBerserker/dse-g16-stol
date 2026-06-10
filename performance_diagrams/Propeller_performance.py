@@ -25,7 +25,7 @@ W_TO=1809*kgtolbs#[lbs]#change
 S=236.80603#surface area of wing [feet2]
 C_LmaxTO=2.55#max take off cl
 V_STO=np.sqrt(2*W_TO/(rho_TO*S*C_LmaxTO))
-q=1.1*V_STO*ktastofeet #[f/s]
+Vto=1.1*V_STO*ktastofeet #[f/s]
 P_to=254.7942/2#hp change per engine
 Mtipmax=0.80
 z=(1.7+0.65-0.21) #distance from center of engine to ground meter
@@ -35,6 +35,8 @@ P_hbpTO=160  #of engine at 3258
 P_hbpCR=137 #of engine at 3100
 
 Pmax=160 #[hp] maximum power per engine
+
+
 
 graphtorrenbeek=np.sqrt(Vcruise*fpskph*P_to)
 maxdiameter=2*mstofps
@@ -79,6 +81,9 @@ def RPM_from_tip_limit(V_fps,T_K,D_ft):
 
 def advance_ratio(RPM,D_ft,V):
     return 60*V/(RPM*D_ft)
+
+
+
 
 
 """
@@ -149,9 +154,10 @@ def curve( D_ft,rho_kgm3,P_bhp):
     lam=J
     eff2,ctcp,Cp=eff(D_ft,rho_kgm3,P_bhp,J)
     T=ctcp*Cp*rho_kgm3*desnityconversion*n**2*(D_ft)**4
+
     q=1/2*rho_kgm3*desnityconversion*(Vnew)**2
+
     A=np.pi *(D_ft/2)**2
-    print(T)
 
     #https://www.fzt.haw-hamburg.de/pers/Scholz/transfer/Airport2030_TN_Propeller-Efficiency_13-08-12_SLZ.pdf
     num =2*(1 -lam ** 2 * np.log(1 + 1/(lam ** 2)) )
