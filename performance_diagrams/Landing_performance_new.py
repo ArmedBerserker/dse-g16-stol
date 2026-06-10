@@ -15,7 +15,7 @@ rho=1.07896*kgm3_to_slugft3#density at landing altitude 2000t ISA +20°C #slug/f
 W_TO=1839*kgtolbs#[lbs]#change
 W_LD=0.99*W_TO #[lbs]
 g=32.2 #[feet/s**2]
-CLmax_L=1.75#change
+CLmax_L=1.7#change
 h_L=50 #[feet] CS23 requirement
 V_sl_isa = 50 * kntstofps  # knots since close to MTOW and will go down with density
 mu=0.4#assume hard turf
@@ -69,7 +69,7 @@ AR=9
 e= 0.783
 C_l0=2.5 #not needed
 C_lalpha=1 #we dont care anymore
-C_d0=0.02591+0.017
+C_d0=0.08777
 deltaf =60  # flap deflection
 h=2.5 #height of wing above ground [m]
 b=16.8 #span of wing [m]
@@ -97,8 +97,8 @@ def GORENBEEK_landing(W_LD,rho):
     #cl and cd estimations
     #alpha assumed 0 after the breaking sequence starts*
     C_Lland=2*W_LD/(rho*S_w*(1.3*V_STO_L)**2)#double check
-    C_L_ldg = C_Lland  # without speed break
-    #C_L_ldg=C_Lland-0.4 #speed break
+    #C_L_ldg = C_Lland  # without speed break
+    C_L_ldg=C_Lland-0.4 #speed break
     R=0.25 #chord
     delta1=-21.090*R**3+14.091*R**2+3.165*R-0.00103#check with flaps thcicness
     delta2= -3.795e-7*deltaf**3+5.387e-5*deltaf**2 -6.843e-4*deltaf-1.4729e-3 #check again
@@ -106,7 +106,7 @@ def GORENBEEK_landing(W_LD,rho):
     C_di= C_L_ldg**2 / (np.pi*AR*e)
     C_di_ge=CDi_ground_effect(h,b,C_di)
     C_D_ldg = C_d0 + C_di_ge   # without speed breaks
-    #C_D_ldg= C_d0+C_di_ge+ 0.04#Cd values after touchdown wasnt able to check that wiht the example speed brake add 0.4
+    C_D_ldg= C_d0+C_di_ge+ 0.04#Cd values after touchdown wasnt able to check that wiht the example speed brake add 0.4
 
     D_lg=1/2*C_D_ldg*rho*(V_BR/np.sqrt(2))**2*S_w #verified
     L_ld=1/2*C_L_ldg*rho*(V_BR/np.sqrt(2))**2*S_w #verified
