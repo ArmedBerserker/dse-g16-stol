@@ -8,17 +8,18 @@ kgm3_to_slugft3=0.00194032
 kgtolbs=2.20462
 sqmetertofeetmeter=10.7639
 mstofps=3.28084
+
 d_lG=492.126 #[feet] max landing distance
 Vs_L=50#stall speed in landing configuration at MTOW and sea level [knots]
 rho=1.07896*kgm3_to_slugft3#density at landing altitude 2000t ISA +20°C #slug/feet^3
-W_TO=1821*kgtolbs#[lbs]#change
+W_TO=1839*kgtolbs#[lbs]#change
 W_LD=0.99*W_TO #[lbs]
 g=32.2 #[feet/s**2]
-CLmax_L=2.5#change
+CLmax_L=1.7#change
 h_L=50 #[feet] CS23 requirement
 V_sl_isa = 50 * kntstofps  # knots since close to MTOW and will go down with density
 mu=0.4#assume hard turf
-P_TO=270.886/2 #hp per engine
+P_TO=314/2 #hp per engine
 delta_T=20 #Kelvin
 """
 might not be useful but maybe 
@@ -54,28 +55,25 @@ def Roskam_landing():
 
 
 #METHOD 2 GORENBEEK
-
 #unknowns
 #efficiency=0.65 #efficiency at VB/Sqrt2
 #P_BHP=0.07*270.886 #power at VB/Sqrt2
 T_static1,V,eff1= curve(D_ft,rho*1/kgm3_to_slugft3,P_TO)
-T_static=2*int(T_static1)
+T_static=2*T_static1
 T_BR=0.07*T_static
 
-#T_BR=-0.4*T_STATIC
-S=260.1 #surface area of wing [feet2]
-S_flaps=2.4*sqmetertofeetmeter*2 #surface of two side of flaps
+#T_BR=-0.4*T_STATIC reverse thrust
+S_w=333.6812 #surface area of wing [feet2]
+S_flaps=2.8*sqmetertofeetmeter*2 #surface of two side of flaps not needed because naomi calculated drag from flaps
 AR=9
-e= 0.7521
-
-
-C_l0=2.5
+e= 0.783
+C_l0=2.5 #not needed
 C_lalpha=1 #we dont care anymore
-C_d0=0.266
-
-h=(3)*mstofps #height of wing above ground [feet]
-b=49.2#span of wing [feet]
-
+C_d0=0.08777
+deltaf =60  # flap deflection
+h=2.5 #height of wing above ground [m]
+b=16.8 #span of wing [m]
+V_STO_L = np.sqrt(2 * W_TO / (rho * S_w * CLmax_L))  # Stall speed during take off [feet/s]
 theta_app = np.radians(3)  # radians or 6 check both
 
 #calculations
@@ -90,32 +88,31 @@ def CDi_ground_effect(h,b,c_Di):
         return 0
 
 def GORENBEEK_landing(W_LD,rho):
-    deltaf = 40  # flap deflection
-    V_TD=V_BR=1.1*V_sl_isa
-    h_f=0.1512*V_sl_isa**2*(1-np.cos(theta_app))#feet
+
+    V_TD=V_BR=1.1*V_STO_L
+    h_f=0.1512*V_STO_L**2*(1-np.cos(theta_app))#feet
     S_A=(h_L-h_f)/np.tan(theta_app)#verified
-    S_F=0.1512*V_sl_isa**2*(np.sin(theta_app))#verified
+    S_F=0.1512*V_STO_L**2*(np.sin(theta_app))#verified
     S_FR=V_TD#verified
     #cl and cd estimations
     #alpha assumed 0 after the breaking sequence starts*
-    C_Lland=2*W_LD/(rho*S*(1.3*V_sl_isa)**2)#double check
+    C_Lland=2*W_LD/(rho*S_w*(1.3*V_STO_L)**2)#double check
+    #C_L_ldg = C_Lland  # without speed break
     C_L_ldg=C_Lland-0.4 #speed break
-    R=0.3
-    delta1=179.32*R**4-111.6*R**3+28.29*R**2+2.3705*R-0.0089#check with flaps thcicness
-    delta2= -3.9877e-12*deltaf**6 + 1.1685e-9*deltaf**5 - 1.2846e-7*deltaf**4 + 6.1742e-6*deltaf**3 - 9.89444e-5*deltaf**2 + 6.8324e-4*deltaf - 3.892e-4#check again
-    delta_Cd=delta1*delta2*(S_flaps/S)
-
+    R=0.25 #chord
+    delta1=-21.090*R**3+14.091*R**2+3.165*R-0.00103#check with flaps thcicness
+    delta2= -3.795e-7*deltaf**3+5.387e-5*deltaf**2 -6.843e-4*deltaf-1.4729e-3 #check again
+    delta_Cd=delta1*delta2*(S_flaps/S_w)
     C_di= C_L_ldg**2 / (np.pi*AR*e)
-
     C_di_ge=CDi_ground_effect(h,b,C_di)
+    C_D_ldg = C_d0 + C_di_ge   # without speed breaks
+    C_D_ldg= C_d0+C_di_ge+ 0.04#Cd values after touchdown wasnt able to check that wiht the example speed brake add 0.4
 
-
-    C_D_ldg= C_d0+C_di_ge+0.04#Cd values after touchdown wasnt able to check that wiht the example speed brake add 0.4
-
-    D_lg=1/2*C_D_ldg*rho*(V_BR/np.sqrt(2))**2*S #verified
-    L_ld=1/2*C_L_ldg*rho*(V_BR/np.sqrt(2))**2*S #verified
+    D_lg=1/2*C_D_ldg*rho*(V_BR/np.sqrt(2))**2*S_w #verified
+    L_ld=1/2*C_L_ldg*rho*(V_BR/np.sqrt(2))**2*S_w #verified
 
     S_BR=-(V_BR**2*W_LD)/(2*g*((T_BR-D_lg-mu*(W_LD-L_ld))))
+    #a=g*(T_BR - D_lg - mu * (W_LD - L_ld))/W_LD
     S_LDG=S_A+S_F+S_FR+S_BR
     S_GR=S_FR+S_BR
     return S_LDG,S_GR,D_lg,L_ld
@@ -147,7 +144,7 @@ def sensitivity_altitude():
             atmos_model = Atmosphere(h/mstofps, delta_T)
             rho_ref = atmos_model.density[0]*kgm3_to_slugft3
             rad=np.radians(deg)
-            V_0 = 1.1 * V_sl_isa
+            V_0 = 1.1 * V_STO_L
             V = 0
             S_FR = V_0
             #Assume thurst, drag and lift at Vbr/sqrt(2)
@@ -176,7 +173,7 @@ def sensitivity_altitude():
         for h in altitudes:
             atmos_model = Atmosphere(h/mstofps, Temp)
             rho_ref = atmos_model.density[0]*kgm3_to_slugft3
-            V_0 = 1.1 * V_sl_isa
+            V_0 = 1.1 * V_STO_L
             V = 0
             S_FR = V_0
             # Assume thurst, drag and lift at Vbr/sqrt(2)
@@ -207,7 +204,7 @@ def sensitivity_altitude():
             W_LDc=w * W_LD
             atmos_model = Atmosphere(h / mstofps, delta_T)
             rho_ref = atmos_model.density[0]*kgm3_to_slugft3
-            V_0 = 1.1 * V_sl_isa
+            V_0 = 1.1 * V_STO_L
             V = 0
             S_FR = V_0
             # Assume thurst, drag and lift at Vbr/sqrt(2)

@@ -5,9 +5,7 @@ import pandas as pd
 from classes.isa import *
 from scipy.optimize import curve_fit
 #propeller chosen https://www.propellor.com/ap431hapf-snl68e
-#graphdata = pd.read_csv("ctcp")
-graphdata = pd.read_csv("performance_diagrams\ctcp")
-
+graphdata = pd.read_csv("ctcp")
 
 #check units
 kgtoslug = 0.00194032
@@ -94,7 +92,7 @@ J=J*(1-0.329*Sc/Dtor**2) #change diameter based on the one selected
 """
 
 def P_to_RPM(P):
-
+    #if need add the capacitor
     Power = np.array([48,60,78,104,126,142,160])
     RPM = np.array([3000,3500,4000,4500,5000,5500,5800])
 
@@ -144,8 +142,9 @@ def eff(D_ft,rho_kgm3,P_bhp,J):
 
 def curve( D_ft,rho_kgm3,P_bhp):
     #power shaft in horsepower per singel engine
-    V = np.linspace(5, 150, 10000) #knots
-    Vnew=V*ktastofeet
+    V = np.linspace(20, 150, 1000)  # knots
+    Vnew = V * ktastofeet
+
     RPM = P_to_RPM(P_bhp)
     n = RPM / 60
     J=Vnew/(n*D_ft)
@@ -161,11 +160,10 @@ def curve( D_ft,rho_kgm3,P_bhp):
     A=np.pi *(D_ft/2)**2
 
     #https://www.fzt.haw-hamburg.de/pers/Scholz/transfer/Airport2030_TN_Propeller-Efficiency_13-08-12_SLZ.pdf
-    num = 2*(1 -lam ** 2 * np.log(1 + 1/(lam ** 2)) )
+    num =2*(1 -lam ** 2 * np.log(1 + 1/(lam ** 2)) )
     den = 1 + np.sqrt(1+T/(q*A))-2* lam **2* np.log(1 + 1/(lam ** 2))
-
-    eff1=num/den #new because other gave me linear relationships
-    #eff1=2/(1+np.sqrt(1+T/(q*A))) #other flight mechanics book
+    eff1 =num / den#new because other gave me linear relationships
+    eff1=2/(1+np.sqrt(1+T/(q*A))) #other flight mechanics book
     P_useful = eff1 * P_bhp
     #T_static= ctcp*550*P_bhp/(n*D_ft)#t_static according to Raymer
     T_static=0.85*(P_bhp*550)**(2/3)*(2*rho_kgm3*desnityconversion*A)**(1/3) #one engine and overestimate due to the fact they dont take into account blockage
@@ -181,7 +179,9 @@ def curve( D_ft,rho_kgm3,P_bhp):
     #print("ctcp =", ctcp)
     #print("efficiency =", eff2)
     #print("eff1 max =", np.max(eff1))
-
+    """
+    V = np.linspace(20, 150, 1000) #knots
+    Vnew=V*ktastofeet
     plt.figure()
     plt.plot( V_ms , eff1)
     plt.xlabel("Velocity [ms]")
@@ -195,15 +195,17 @@ def curve( D_ft,rho_kgm3,P_bhp):
     plt.grid()
 
     plt.show()
-
+    """
     return T_static,Vnew,eff1
     #return V_ms,P_useful_w
 
 D_ft=5.66667
-curve(D_ft,1.02,160)
+T_static,Vnew,eff1=curve(D_ft,1.02,230/2)
+
 delta_T=20
 altitudes = np.arange(0, 8000, 50)
 P_available = []
+
 """
 for alt in altitudes:
     atmos_model = Atmosphere(alt / mstofps, delta_T)
