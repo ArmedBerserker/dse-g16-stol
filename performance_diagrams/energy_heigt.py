@@ -29,13 +29,13 @@ def h_v_plot(alts, mtow,cd0,S,AR,e,c_l_max, D_ft, P_bhp):
         rho = Atmosphere(alt, 0).density[0]
         # V_array= np.linspace(1.3 * stall_speed(mtow, c_l_max, rho, S), 90, 100)
         V_array= np.linspace(0.1, 90, 100)
-        T_static, P_available_curve, V_prop = curve(D_ft, rho, P_bhp)
+        V_ms, P_available_curve= curve(D_ft, rho, P_bhp)
 
         for j, V in enumerate(V_array):
             Cl = mtow / (0.5 * rho * V**2 * S)
             Cd = cd0 + Cl**2/(np.pi*AR*e)
             P_r = 0.5 * rho * V**3 * S * Cd
-            P_a = np.interp(V, V_prop, P_available_curve)
+            P_a = np.interp(V, V_ms, P_available_curve)
 
             P_a = P_a
             ROC[i,j] = (P_a-P_r)/mtow
