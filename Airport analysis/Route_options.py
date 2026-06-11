@@ -150,40 +150,44 @@ if __name__ == "__main__":
     # Angular radius
     radius = max_range_km / EARTH_RADIUS
 
-    routes = []
+    # routes = []
 
-    for i in tqdm(range(len(airports))):
+    # for i in tqdm(range(len(airports))):
 
-        neighbors = tree.query_radius(
-            coords[i:i+1],
-            r=radius,
-            return_distance=True
-        )
+    #     neighbors = tree.query_radius(
+    #         coords[i:i+1],
+    #         r=radius,
+    #         return_distance=True
+    #     )
 
-        idxs = neighbors[0][0]
-        dists = neighbors[1][0] * EARTH_RADIUS
+    #     idxs = neighbors[0][0]
+    #     dists = neighbors[1][0] * EARTH_RADIUS
 
-        for j, dist in zip(idxs, dists):
+    #     for j, dist in zip(idxs, dists):
 
-            if i == j:
-                continue
+    #         if i == j:
+    #             continue
 
-            routes.append([
-                airports.iloc[i]['ident'],
-                airports.iloc[j]['ident'],
-                dist
-            ])
+    #         routes.append([
+    #             airports.iloc[i]['ident'],
+    #             airports.iloc[j]['ident'],
+    #             dist
+    #         ])
 
-    routes = pd.DataFrame(
-        routes,
-        columns=[
-            'origin',
-            'destination',
-            'distance_km'
-        ]
-    )
+    # routes = pd.DataFrame(
+    #     routes,
+    #     columns=[
+    #         'origin',
+    #         'destination',
+    #         'distance_km'
+    #     ]
+    # )
 
-    print(routes.head())
+    # routes.to_csv('Airport analysis/routes.csv')
+
+    # print(routes.head())
+
+    routes = pd.read_csv('Airport analysis/routes.csv')
 
     # lookup dictionaries:
     icao_to_lat = dict(
