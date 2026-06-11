@@ -3,12 +3,7 @@ import control as ctr
 #from derivatives_parameters import *
 from test_params import *
 
-Ixx = 1609.57013  # kg*m2
-Iyy = 8767.774  # kg*m2
-Izz = 8643.30418  # kg*m2
-Ixy = 0  # kg*m2
-Iyz = 0  # kg*m2
-Ixz = 186.6324083  # kg*m2
+
 
 def C1SymGen(muc, dc,CZadot, KY2, Cmadot):
     C1Sym = np.zeros((4, 4))

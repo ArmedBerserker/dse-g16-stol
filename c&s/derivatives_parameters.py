@@ -13,21 +13,22 @@ file_path = 'yamls/aircraft.yaml'
 target_class = Aircraft
 aircraft = loader.load(file_path, target_class)
 
-atmos_model = Atmosphere(8500, 20)
-rho = atmos_model.density
 
-Ixx = 0
-Iyy = 0
-Izz = 0
-Ixz = 0
+Ixx = 1609.57013  # kg*m2
+Iyy = 8767.774  # kg*m2
+Izz = 8643.30418  # kg*m2
+Ixy = 0  # kg*m2
+Iyz = 0  # kg*m2
+Ixz = 186.6324083  # kg*m2
 
 #calculate_aircraft_parameters(1870, 8500, rho[0], 132, 25.65, Ixx, Iyy, Izz, Ixz)
 mtom = 1870 #[kg]
 h_cruise = 8500 #[ft]
 V_cruise = 132 #[knots]
-S = 25.65 #m2
+S = 31.4 #m2
 
-
+atmos_model = Atmosphere(h_cruise, 0)
+rho = atmos_model.density
 
 hp0 = h_cruise * FT_TO_M  # Pressure altitude in the stationary flight condition [m]
 V0 = V_cruise * KTS_TO_MS # True airspeed in the stationary flight condition [m/sec]
@@ -39,8 +40,8 @@ th0 = 0  # Pitch angle in the stationary flight condition [rad]
 m = mtom  # Mass [kg]
 
 # Aerodynamic properties
-e = 0.8  # Oswald factor [ ]
-CD0 = 0.4  # Zero-lift drag coefficient [ ]
+e = 0.783  # Oswald factor [ ]
+CD0 = 0.02591  # Zero-lift drag coefficient [ ]
 CLa = 5.76  # Slope of C_L-alpha curve [ ]
 
 # Longitudinal stability
@@ -49,16 +50,16 @@ Cmde = 3.646  # Elevator effectiveness [ ]
 
 # Aircraft geometry
 S = S  # Wing area [m^2]
-Sh = 7.26 # Stabiliser area [m^2]
+Sh = 3.92 # Stabiliser area [m^2]
 Sh_S = Sh / S  # [ ]
-lh = 6.4  # Tail length [m]
-c = 1.792  # Mean aerodynamic cord [m]
+lh = 4.96  # Tail length [m]
+c = 1.87 # Mean aerodynamic cord [m]
 lh_c = lh / c  # [ ]
-b = 15.2  # Wing span [m]
-bh = 5.65  # Stabiliser span [m]
+b = 16.8  # Wing span [m]
+bh = 4.85  # Stabiliser span [m]
 A = b ** 2 / S  # Wing aspect ratio [ ]
 Ah = bh ** 2 / Sh  # Stabiliser aspect ratio [ ]
-Vh_V = 1  # [ ]
+# Vh_V = 1  # [ ]
 ih = 0 # Stabiliser angle of incidence [rad]
 
 # Constant values concerning aircraft inertia
@@ -93,15 +94,15 @@ CXde = -0.0086
 CZ0 = - mtom * np.cos(th0) / (0.5 * rho * V0 ** 2 * S)
 CZu = 0
 CZa = -CLa
-CZadot = -2 * 0.116 * np.pi / 180 * lh * Sh_S * depsda
+CZadot = 0 #-2 * 0.116 * np.pi / 180 * lh * Sh_S * depsda
 CZq = -11.222 #small angle assumption -CLq = CZq
 CZde = -1.16
 
 Cm0 = +0.0297  # wrong but doesnt matter
 Cmu = 0.0073
-Cmadot = +0.17800  #dont know
+Cmadot = 0 
 Cmq = -25.426
-CmTc = -0.0064 #dont know dont need?
+# CmTc = -0.0064 #dont know dont need?
 #
 CYb = 0.19133 
 CYbdot = 0 #assumed zero
