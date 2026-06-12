@@ -27,8 +27,8 @@ def h_v_plot(alts, mtow,cd0,S,AR,e,c_l_max, D_ft, P_bhp):
     
     for i, alt in enumerate(alts):
         rho = Atmosphere(alt, 0).density[0]
-        # V_array= np.linspace(1.3 * stall_speed(mtow, c_l_max, rho, S), 90, 100)
-        V_array= np.linspace(0.1, 90, 100)
+        V_array= np.linspace(1.3 * stall_speed(mtow, c_l_max, rho, S), 90, 100)
+        #V_array= np.linspace(0.1, 90, 100)
         V_ms, P_available_curve= curve(D_ft, rho, P_bhp)
 
         for j, V in enumerate(V_array):
