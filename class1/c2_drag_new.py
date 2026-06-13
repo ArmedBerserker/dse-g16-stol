@@ -419,7 +419,8 @@ def CD0(ac: Aircraft,
 
 
 def CD0_manual(n_engine_inoperative: int = 0, 
-        flight_condition: str = 'cruise' # 'cruise' or 'landing' or 'take-off'
+        flight_condition: str = 'cruise', # 'cruise' or 'landing' or 'take-off'
+        windmilling_addon: bool = False
         ):
     S = 31.4
     MTOW = 1839
@@ -434,8 +435,8 @@ def CD0_manual(n_engine_inoperative: int = 0,
         alt = 2000 * FT_TO_M
         mass_frac = 0.99
         Atm = Atmosphere(alt, temp_shift)
-        temp = float(Atm.temp)
-        density = float(Atm.density)
+        temp = Atm.temp[0]
+        density = Atm.density[0]
         speed = np.sqrt(mass_frac * MTOW * 9.81 / (0.5 * density * C_L * S))
         flap_deflection = 20
         cdash_c_flap = 1
@@ -445,8 +446,8 @@ def CD0_manual(n_engine_inoperative: int = 0,
         temp_shift = 20
         alt = 2000 * FT_TO_M
         Atm = Atmosphere(alt, temp_shift)
-        temp = float(Atm.temp)
-        density = float(Atm.density)
+        temp = Atm.temp[0]
+        density = Atm.density[0]
         mass_frac = 0.9
         # speed = 1.3 * ac.requirements.general['stall_speed'] * KTS_TO_MS
         speed = 1.3 * np.sqrt(mass_frac * MTOW * 9.81 / (0.5 * density * C_L * S))
@@ -458,9 +459,9 @@ def CD0_manual(n_engine_inoperative: int = 0,
     
     # Atmosphere
     Atm = Atmosphere(alt, temp_shift)
-    temp = float(Atm.temp)
-    density = float(Atm.density)
-    mu = float(mu_air(temp))
+    temp = Atm.temp[0]
+    density = Atm.density[0]
+    mu = mu_air(temp)
     M = speed / np.sqrt(1.4 * 287 * temp)
 
     # Geometry
@@ -570,6 +571,8 @@ def CD0_manual(n_engine_inoperative: int = 0,
         wind_milling_inop = 0
         wind_milling = 0
     if flight_condition == 'landing':
+        wind_milling = 0.1 * 0.04 * n_blades * np.pi * 0.25 * prop_d**2
+    if windmilling_addon:
         wind_milling = 0.1 * 0.04 * n_blades * np.pi * 0.25 * prop_d**2
     
     propeller = wind_milling * 2 + wind_milling_inop * n_engine_inoperative
@@ -735,16 +738,18 @@ def cruise_speed_matching(MTOW, CD0):
 
     return W_P, W_S
 
-def MTOW_update(m_pl, fuel_mass_frac, m_oe, MTOW):
-    return m_pl / (1 - fuel_mass_frac - m_oe / MTOW)
+def MTOW_update(m_pl, fuel_mass_frac, m_oe_mtow):
+    return m_pl / (1 - fuel_mass_frac - m_oe_mtow) * 1.005
 
 if __name__ == '__main__':
     CD0_cruise = CD0_manual(n_engine_inoperative=0, flight_condition='cruise')
     CD0_to = CD0_manual(n_engine_inoperative=0, flight_condition='take-off')
     CD0_ld = CD0_manual(n_engine_inoperative=0, flight_condition='landing')
+    CD0_ld_no_flap = CD0_manual(n_engine_inoperative=0, flight_condition='cruise', windmilling_addon=True)
     print(f'Cruise zero-lift drag: {CD0_cruise}')
     print(f'take-off zero-lift drag: {CD0_to}')
     print(f'landing zero-lift drag: {CD0_ld}')
+    print(f'landing zero-lift drag no flaps: {CD0_ld_no_flap}')
     A = 9
     e = 1.78 * (1 - 0.045 * A**0.68) - 0.64
     print(f'e = {e}')
@@ -763,12 +768,24 @@ if __name__ == '__main__':
     m_pl = 662  # kg
     m_oe = 1010 # 892  # kg -> maybe add 54 for an extra supercap
     MTOW_diff = 40
-    init_mtow = 1839
+    init_mtow = 1840
+    # m_oe = 1035 # 892  # kg -> maybe add 54 for an extra supercap
+    # MTOW_diff = 40
+    # init_mtow = 1870
+    # m_oe = 1050 # 892  # kg -> maybe add 54 for an extra supercap
+    # MTOW_diff = 40
+    # init_mtow = 1885
+    # m_oe = 1070 # 892  # kg -> maybe add 54 for an extra supercap
+    # MTOW_diff = 40
+    # init_mtow = 1906
+    # m_oe = 1090 # 892  # kg -> maybe add 54 for an extra supercap
+    # MTOW_diff = 40
+    # init_mtow = 1930
     MTOW = [init_mtow]
     oew_mtow = [m_oe/init_mtow]
 
     while MTOW_diff>10:
-        mtow_new = MTOW_update(m_pl, fuel_mass_frac, m_oe, MTOW[-1])
+        mtow_new = MTOW_update(m_pl, fuel_mass_frac, oew_mtow[-1])
         MTOW_diff = np.abs(MTOW[-1] - mtow_new)
         MTOW.append(mtow_new)
         oew_mtow.append(m_oe/mtow_new)

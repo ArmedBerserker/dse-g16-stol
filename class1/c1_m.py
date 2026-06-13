@@ -195,6 +195,7 @@ def breguet_prop_manual(ld) -> float | tuple[float]:
     e_f = 43000000
     R = 500 * 1000 # convert to meters
     R_eq = 2700 * 132 * KTS_TO_MS + R
+    print(f'Equivalent range: {R_eq}')
     efg = e_f / 9.81
     lnfrac = R_eq / (eta_prop * eta_fuel * ld * efg)
     cruise_frac = np.exp(-lnfrac)
