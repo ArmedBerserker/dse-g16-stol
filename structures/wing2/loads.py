@@ -28,7 +28,7 @@ def schrenk_half_wing_loading(
     dy = y_stations[1] - y_stations[0]
 
     # 2. Define the 2D Lift Curve Slope (a0 approx 2*pi per radian)
-    a0 = 2.0 * np.pi # TODO - CHANGE THIS
+    a0 = 5.6 # TODO - CHANGE THIS
 
     # 3. Calculate Base Shape Factor
     # NOTE: The ellipse still maps to full span 'b' to keep true aerodynamic downwash curve shape
@@ -77,6 +77,8 @@ if __name__  == "__main__":
         delta_cl_aileron=0.9
     )
 
+    total_lift = np.trapezoid(load, y)
+    print(f"Integrated half-wing lift = {total_lift:.2f} N")
     plt.figure()
     plt.plot(y, load, 'b-')
     plt.xlabel("Spanwise Position (m)")

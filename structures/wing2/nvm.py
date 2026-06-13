@@ -16,7 +16,8 @@ def calculate_and_plot_vmt(
         engine_x_loc=0.35,  # Engine CG relative to Leading Edge (meters)
         wtd_mass=15.0,  # Wing Tip Device weight in kg
         wtd_x_loc=0.50,  # WTD CG relative to Leading Edge (meters)
-        n_load_factor=1 # Load Factor (e.g., Limit Load Factor)
+        n_load_factor=1,
+        plot = True # Load Factor (e.g., Limit Load Factor)
 ):
     g = 9.81  # m/s^2
 
@@ -24,7 +25,7 @@ def calculate_and_plot_vmt(
         half_wing_lift_target, b, y_root, c, q,
         flap_start, flap_end, delta_cl_flap,
         aileron_start, aileron_end, delta_cl_aileron,
-        num_points=5000
+        num_points=500
     )
 
     # Clean data sort order (root to tip)
@@ -80,30 +81,31 @@ def calculate_and_plot_vmt(
     # Shift reference axis from Leading Edge to the Elastic Axis (X_bar)
     T_ea = T_le - V * X_bar
 
-    fig, axs = plt.subplots(3, 1, figsize=(10, 11), sharex=True)
+    if plot == True:
+        fig, axs = plt.subplots(3, 1, figsize=(10, 11), sharex=True)
 
-    # Shear Diagram
-    axs[0].plot(y_stations, V / 1000.0, 'b-', linewidth=2)
-    axs[0].set_ylabel('Shear Force [kN]', fontweight='bold')
-    axs[0].grid(True, linestyle=':')
-    axs[0].axvline(x=engine_y_loc, color='orange', linestyle='--', label=f'Engine ({engine_y_loc}m)')
-    axs[0].legend(loc='upper right')
+        # Shear Diagram
+        axs[0].plot(y_stations, V / 1000.0, 'b-', linewidth=2)
+        axs[0].set_ylabel('Shear Force [kN]', fontweight='bold')
+        axs[0].grid(True, linestyle=':')
+        axs[0].axvline(x=engine_y_loc, color='orange', linestyle='--', label=f'Engine ({engine_y_loc}m)')
+        axs[0].legend(loc='upper right')
 
-    # Bending Moment Diagram
-    axs[1].plot(y_stations, M / 1000.0, 'r-', linewidth=2)
-    axs[1].set_ylabel('Bending Moment [kN·m]', fontweight='bold')
-    axs[1].grid(True, linestyle=':')
-    axs[1].axvline(x=engine_y_loc, color='orange', linestyle='--')
+        # Bending Moment Diagram
+        axs[1].plot(y_stations, M / 1000.0, 'r-', linewidth=2)
+        axs[1].set_ylabel('Bending Moment [kN·m]', fontweight='bold')
+        axs[1].grid(True, linestyle=':')
+        axs[1].axvline(x=engine_y_loc, color='orange', linestyle='--')
 
-    # Torque Diagram
-    axs[2].plot(y_stations, T_ea, 'g-', linewidth=2)
-    axs[2].set_ylabel('Torsion [N·m]', fontweight='bold')
-    axs[2].set_xlabel('Spanwise Coordinate y [m]', fontweight='bold')
-    axs[2].grid(True, linestyle=':')
-    axs[2].axvline(x=engine_y_loc, color='orange', linestyle='--')
+        # Torque Diagram
+        axs[2].plot(y_stations, T_ea, 'g-', linewidth=2)
+        axs[2].set_ylabel('Torsion [N·m]', fontweight='bold')
+        axs[2].set_xlabel('Spanwise Coordinate y [m]', fontweight='bold')
+        axs[2].grid(True, linestyle=':')
+        axs[2].axvline(x=engine_y_loc, color='orange', linestyle='--')
 
-    plt.tight_layout()
-    plt.show()
+        plt.tight_layout()
+        plt.show()
 
     return y_stations, V, M, T_ea
 
@@ -122,7 +124,6 @@ if __name__ == "__main__":
     engine_mass_kg = 92.0  #  mass in kg
     wtd_mass_kg = 20.0  # Wing tip device mass in kg
 
-    # Execute Consolidated VMT Evaluation
     y_steps, shear, moment, torsion = calculate_and_plot_vmt(
         # Aerodynamic Arguments
         half_wing_lift_target=10000,
@@ -154,7 +155,7 @@ if __name__ == "__main__":
         engine_x_loc=0.30 * chord_length,  # e.g., Engine CG at 30% local chord
         wtd_mass=wtd_mass_kg,
         wtd_x_loc=0.45 * chord_length,  # Wingtip device twist point
-        n_load_factor=1 # 2.5g maneuver condition
+        n_load_factor=3.8
     )
 
     print(f"Root Shear Force:   {shear[0] / 1000:.2f} kN")
