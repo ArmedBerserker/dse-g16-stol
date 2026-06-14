@@ -206,5 +206,10 @@ for title, x0 in state_disturbances_sym.items():
 for title,x0 in state_disturbances_asym.items():
     plot_response(sys_asym, x0,["beta","phi","p","r"], t_final=200, title=title )
 
-# E = CL*(Clb*Cnr-Cnb*Clr)
-# print(E)
+E = CL*(Clb*Cnr-Cnb*Clr)
+print(E)
+polynomial = np.poly(A_Asym)
+A,B,C,D,E = polynomial
+R = B*C*D - A*D**2 - B**2*E
+
+print(R)

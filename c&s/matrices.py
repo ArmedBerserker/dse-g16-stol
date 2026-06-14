@@ -1,7 +1,7 @@
 import numpy as np
 import control as ctr
 #from derivatives_parameters import *
-from test_params import *
+from derivatives_parameters import *
 
 
 
