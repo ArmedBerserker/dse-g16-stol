@@ -38,12 +38,17 @@ def load_and_process_airfoil(filepath, chord):
 
 
 def generate_megson_idealization(filepath, chord, front_spar_pct, main_spar_pct, num_box_stringers, num_le_booms):
-    """
-    Generates a wing section idealization matching Megson's model.
-    Outputs structured arrays of nodes (coordinates) and elements (connections)
-    suitable for downstream structural calculations.
-    """
     x_up, y_up, x_lo, y_lo = load_and_process_airfoil(filepath, chord)
+
+    # Computes  segments along upper and lower surfaces before shifting
+    dx_up = np.diff(x_up)
+    dy_up = np.diff(y_up)
+    dx_lo = np.diff(x_lo)
+    dy_lo = np.diff(y_lo)
+
+    perimeter_up = np.sum(np.sqrt(dx_up ** 2 + dy_up ** 2))
+    perimeter_lo = np.sum(np.sqrt(dx_lo ** 2 + dy_lo ** 2))
+    total_perimeter = float(perimeter_up + perimeter_lo)
 
     # Create interpolation functions
     interp_up = interp1d(x_up, y_up, kind='linear', fill_value="extrapolate")
@@ -54,16 +59,14 @@ def generate_megson_idealization(filepath, chord, front_spar_pct, main_spar_pct,
     x_main_spar = main_spar_pct * chord
 
     # --- 1. Identify Spar Booms ---
+    # (Kept identical to original setup)
     boom_tf = np.array([x_front_spar, float(interp_up(x_front_spar))])
     boom_bf = np.array([x_front_spar, float(interp_lo(x_front_spar))])
     boom_tm = np.array([x_main_spar, float(interp_up(x_main_spar))])
     boom_bm = np.array([x_main_spar, float(interp_lo(x_main_spar))])
 
     # --- 2. Generate Leading Edge (D-Cell) Booms ---
-    # We step strictly from the nose back to the front spar
     x_le_space = np.linspace(x_le_nose, x_front_spar, num_le_booms + 1, endpoint=False)
-
-    # Exclude index 0 for the lower nose array so we don't duplicate the exact nose point (0,0)
     le_upper_booms = np.array([[x, float(interp_up(x))] for x in x_le_space])
     le_lower_booms = np.array([[x, float(interp_lo(x))] for x in x_le_space])[1:]
 
@@ -89,40 +92,35 @@ def generate_megson_idealization(filepath, chord, front_spar_pct, main_spar_pct,
         box_lower_stringers -= shift_vector
 
     # --- 5. Construct Global Ordered Nodes ---
-    # We loop counter-clockwise: lower rear -> lower front -> nose -> upper front -> upper rear
-    # This forms a single open profile outline, closed at the rear spar web.
-
     nodes_list = []
 
-    # Track critical indices for internal elements (spar webs)
-    idx_bm = len(nodes_list);
+    idx_bm = len(nodes_list)
     nodes_list.append(boom_bm)
 
     if num_box_stringers > 0:
         for b in reversed(box_lower_stringers):
             nodes_list.append(b)
 
-    idx_bf = len(nodes_list);
+    idx_bf = len(nodes_list)
     nodes_list.append(boom_bf)
 
     if len(le_lower_booms) > 0:
         for b in reversed(le_lower_booms):
             nodes_list.append(b)
 
-    # The nose point (index 0 of upper nose sequence)
     nodes_list.append(le_upper_booms[0])
 
     for b in le_upper_booms[1:]:
         nodes_list.append(b)
 
-    idx_tf = len(nodes_list);
+    idx_tf = len(nodes_list)
     nodes_list.append(boom_tf)
 
     if num_box_stringers > 0:
         for b in box_upper_stringers:
             nodes_list.append(b)
 
-    idx_tm = len(nodes_list);
+    idx_tm = len(nodes_list)
     nodes_list.append(boom_tm)
 
     nodes = np.array(nodes_list)
@@ -130,23 +128,57 @@ def generate_megson_idealization(filepath, chord, front_spar_pct, main_spar_pct,
     # --- 6. Construct Elements (Connections) ---
     elements = []
 
-    # Skin Panels along the outer skin profile chain
+    calc_length = lambda p1, p2: float(np.linalg.norm(p2 - p1))
+    calc_swept_area = lambda p1, p2: float(0.5 * (p1[0] * p2[1] - p2[0] * p1[1]))
+
+    # Skin Panels
     for i in range(len(nodes) - 1):
-        elements.append({"type": "skin", "nodes": [i, i + 1]})
+        p1, p2 = nodes[i], nodes[i + 1]
+
+        if idx_bf <= i < idx_tf:
+            assigned_cells = [1]
+        else:
+            assigned_cells = [2]
+
+        elements.append({
+            "type": "skin",
+            "nodes": [i, i + 1],
+            "length": calc_length(p1, p2),
+            "swept_area": calc_swept_area(p1, p2),
+            "cells": assigned_cells
+        })
 
     # Internal Webs
-    elements.append({"type": "spar_front", "nodes": [idx_bf, idx_tf]})
-    elements.append({"type": "spar_main", "nodes": [idx_bm, idx_tm]})
+    p_bf, p_tf = nodes[idx_bf], nodes[idx_tf]
+    front_spar_height = calc_length(p_bf, p_tf)
+    elements.append({
+        "type": "spar_front",
+        "nodes": [idx_bf, idx_tf],
+        "length": front_spar_height,
+        "swept_area": calc_swept_area(p_bf, p_tf),
+        "cells": [1, 2]
+    })
 
-    # Optional closure skin panel for a multi-cell torque setup (Rear skin closure)
-    # elements.append({"type": "skin", "nodes": [idx_tm, idx_bm]})
+    p_bm, p_tm = nodes[idx_bm], nodes[idx_tm]
+    main_spar_height = calc_length(p_bm, p_tm)
+    elements.append({
+        "type": "spar_main",
+        "nodes": [idx_bm, idx_tm],
+        "length": main_spar_height,
+        "swept_area": calc_swept_area(p_bm, p_tm),
+        "cells": [2]
+    })
 
-    # Keep track of structural identifiers for downstream script
+    # --- 7. Pack Meta Dictionary ---
+    # Added new downstream fields here to preserve API compatibility
     meta = {
         "idx_front_spar_bottom": idx_bf,
         "idx_front_spar_top": idx_tf,
         "idx_main_spar_bottom": idx_bm,
-        "idx_main_spar_top": idx_tm
+        "idx_main_spar_top": idx_tm,
+        "airfoil_perimeter": total_perimeter,
+        "front_spar_height": front_spar_height,
+        "main_spar_height": main_spar_height
     }
 
     airfoil_profile = {
@@ -157,7 +189,6 @@ def generate_megson_idealization(filepath, chord, front_spar_pct, main_spar_pct,
     }
 
     return nodes, elements, meta, airfoil_profile
-
 
 if __name__ == "__main__":
     # --- CONFIGURATION ---

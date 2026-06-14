@@ -62,7 +62,7 @@ def analyze_section_properties(nodes, elements, t_skin, t_web, A_spar, A_stringe
         Iyy += Iyy_boom
         Ixy += Ixy_boom
 
-        # Convert to mm and mm2 for the Megson-style tabular output
+        # Convert to mm and mm2 for the tabular output
         x_mm = x_c * 1e3
         y_mm = y_c * 1e3
         B_mm2 = B * 1e6
@@ -81,7 +81,57 @@ def analyze_section_properties(nodes, elements, t_skin, t_web, A_spar, A_stringe
     print(f"  Ixy = {Ixy * 1e12:.4e} mm4 ({Ixy:.4e} m4)")
     print("=" * 85 + "\n")
 
-    return X_bar, Y_bar, total_boom_area, Ixx, Iyy, Ixy
+    # --- STEP 3: Multicell Torsion Properties Accumulation ---
+    Ae1 = 0.0
+    Ae2 = 0.0
+
+    # Line integrals around individual loops:oint(ds/t)
+    integral_ds_t_1 = 0.0
+    integral_ds_t_2 = 0.0
+    integral_ds_t_shared = 0.0
+
+    for el in elements:
+        # Determine geometric wall thickness
+        t_element = t_web if "spar" in el["type"] else t_skin
+        ds_over_t = el["length"] / t_element
+
+        # --- Enclosed Area Accumulations ---
+        if 1 in el["cells"]:
+            # Skin flows naturally counter-clockwise, internal web front spar closes it running downwards
+            Ae1 += el["swept_area"] if el["type"] == "skin" else -el["swept_area"]
+            integral_ds_t_1 += ds_over_t
+
+        if 2 in el["cells"]:
+            if el["type"] == "skin":
+                Ae2 += el["swept_area"]
+            elif el["type"] == "spar_front":
+                Ae2 += el["swept_area"]  # Front spar runs upwards relative to Cell 2 CCW flow
+            elif el["type"] == "spar_main":
+                Ae2 -= el["swept_area"]  # Main spar closes Cell 2 on the right heading downwards
+            integral_ds_t_2 += ds_over_t
+
+        # --- Track shared wall line integrals ---
+        if el["type"] == "spar_front":
+            integral_ds_t_shared = ds_over_t
+
+    Ae1 = abs(Ae1)
+    Ae2 = abs(Ae2)
+
+    total_perimeter = meta["airfoil_perimeter"]
+    h_front = meta["front_spar_height"]
+    h_main = meta["main_spar_height"]
+    A_frontspar = h_front * t_web
+    A_rearspar = h_main * t_web
+
+    # Secondary print block for torsion diagnostics
+    print(f"  Cell 1 Enclosed Area (Ae1): {Ae1:.6f} m2  ({Ae1 * 1e6:.2f} mm2)")
+    print(f"  Cell 2 Enclosed Area (Ae2): {Ae2:.6f} m2  ({Ae2 * 1e6:.2f} mm2)")
+    print(f"  Loop 1 Line Integral  oint(ds/t): {integral_ds_t_1:.4f}")
+    print(f"  Loop 2 Line Integral  oint(ds/t): {integral_ds_t_2:.4f}")
+    print(f"  Shared Wall Integral  int(ds/t) : {integral_ds_t_shared:.4f}")
+    print(total_perimeter)
+
+    return X_bar, Y_bar, total_boom_area, Ixx, Iyy, Ixy, Ae1, Ae2, integral_ds_t_1, integral_ds_t_2, integral_ds_t_shared, A_frontspar, A_rearspar
 
 
 if __name__ == "__main__":
@@ -98,12 +148,12 @@ if __name__ == "__main__":
     )
 
     thickness_skin = 0.001
-    thickness_web = 0.004
+    thickness_web = 0.003
     area_spar_cap = 0.0005
-    area_stringer = 0.0001
+    area_stringer = 7e-5
 
-    # Call structural analysis
-    X_cg, Y_cg, total_mat_area, Ixx, Iyy, Ixy = analyze_section_properties(
+    # Call structural analysis with updated multi-variable unpack
+    outputs = analyze_section_properties(
         nodes=nodes,
         elements=elements,
         t_skin=thickness_skin,
@@ -112,6 +162,12 @@ if __name__ == "__main__":
         A_stringer=area_stringer,
         meta=meta
     )
+
+    (
+        X_cg, Y_cg, total_mat_area, Ixx, Iyy, Ixy,
+        Ae1, Ae2, ds_t1, ds_t2, ds_t_shared,
+        Afs, Ars
+    ) = outputs
 
     # --- Plotting Configuration ---
     plt.figure(figsize=(14, 6))
@@ -153,7 +209,7 @@ if __name__ == "__main__":
     plt.scatter(spar_x, spar_y, s=spar_sizes, color='red', edgecolor='k', zorder=4)
 
     plt.plot(X_cg, Y_cg, 'gX', markersize=14, markeredgecolor='black', zorder=5,
-             label=f'Centroid ({X_cg*1e3:.1f}, {Y_cg*1e3:.1f}) mm')
+             label=f'Centroid ({X_cg * 1e3:.1f}, {Y_cg * 1e3:.1f}) mm')
 
     plt.xlabel("X (m)")
     plt.ylabel("Y (m)")

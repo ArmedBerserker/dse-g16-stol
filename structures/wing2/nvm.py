@@ -75,8 +75,8 @@ def calculate_and_plot_vmt(
 
         # Intercept and append engine point load
         if y_stations[i] <= engine_y_loc < y_stations[i + 1]:
-            V[i] -= W_engine
-            T_le[i] -= W_engine * engine_x_loc
+            V[i] += W_engine
+            T_le[i] += W_engine * engine_x_loc
 
     # Shift reference axis from Leading Edge to the Elastic Axis (X_bar)
     T_ea = T_le - V * X_bar
@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
     # Define External Weights & Point Placements
     engine_spanwise_pos = 2.2 # Engine location along span (m)
-    engine_mass_kg = 92.0  #  mass in kg
+    engine_mass_kg = 122.0  #  mass in kg
     wtd_mass_kg = 20.0  # Wing tip device mass in kg
 
     y_steps, shear, moment, torsion = calculate_and_plot_vmt(
@@ -152,10 +152,10 @@ if __name__ == "__main__":
         # Auxiliary Point Load Configurations
         engine_mass=engine_mass_kg,
         engine_y_loc=engine_spanwise_pos,
-        engine_x_loc=0.30 * chord_length,  # e.g., Engine CG at 30% local chord
+        engine_x_loc=0.3 * chord_length,  # e.g., Engine CG at 30% local chord
         wtd_mass=wtd_mass_kg,
-        wtd_x_loc=0.45 * chord_length,  # Wingtip device twist point
-        n_load_factor=3.8
+        wtd_x_loc=0.25 * chord_length,  # Wingtip device twist point
+        n_load_factor=1
     )
 
     print(f"Root Shear Force:   {shear[0] / 1000:.2f} kN")

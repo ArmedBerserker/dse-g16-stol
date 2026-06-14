@@ -30,8 +30,7 @@ def schrenk_half_wing_loading(
     # 2. Define the 2D Lift Curve Slope (a0 approx 2*pi per radian)
     a0 = 5.6 # TODO - CHANGE THIS
 
-    # 3. Calculate Base Shape Factor
-    # NOTE: The ellipse still maps to full span 'b' to keep true aerodynamic downwash curve shape
+    # 3. Calculate Base Shape Factor (still uses full b to get exact shape)
     base_shape = 0.5 * q * c * a0 * (1.0 + (4.0 / np.pi) * np.sqrt(1.0 - (2.0 * y_stations / b) ** 2))
 
     # 4. Build the Control Surface Step Array (The flat additive blocks)
