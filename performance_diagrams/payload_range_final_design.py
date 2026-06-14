@@ -111,19 +111,19 @@ def plot_payload_range(payload_range_points, m_pl_des, R_des,
 
 if __name__ == '__main__':
     # WEIGHTS
-    m_mto = 1840.3
-    m_e = 1010
+    m_mto = 1821.38
+    m_e = 982.5
     m_pl_des = 662
     m_pl_max = 750
     m_pilot = 77
-    m_f_des = 168
+    m_f_des = 167.8
     m_f_max = 250  
 
     # AERODYNAMICS
     A = 9
     e = 0.783
-    C_d0 = 0.02591
-    L_D_cr = 14.62
+    C_d0 = 0.02727
+    L_D_cr = 14.23
 
     # PROPULSION
     eta_p = 0.76
