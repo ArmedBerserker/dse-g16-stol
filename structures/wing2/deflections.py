@@ -282,13 +282,13 @@ if __name__ == "__main__":
     filepath = "NACA23012.dat"
 
     wing_bays = [
-        {'y_end': 1.5, 'num_box_stringers': 12, 'num_le_booms': 2,
+        {'y_end': 1.5, 'num_box_stringers': 14, 'num_le_booms': 2,
          't_skin': 0.0005, 't_web': 0.0012, 'A_spar': 8.5E-4, 'A_stringer': 7E-5},
 
-        {'y_end': 3.0, 'num_box_stringers': 11, 'num_le_booms': 2,
+        {'y_end': 3.0, 'num_box_stringers': 13, 'num_le_booms': 2,
          't_skin': 0.0005, 't_web': 0.0010, 'A_spar': 6.0E-4, 'A_stringer': 7E-5},
 
-        {'y_end': 4.5, 'num_box_stringers': 8, 'num_le_booms': 1,
+        {'y_end': 4.5, 'num_box_stringers': 9, 'num_le_booms': 1,
          't_skin': 0.0005, 't_web': 0.0009, 'A_spar': 3E-4, 'A_stringer': 7E-5},
 
         {'y_end': 5.8, 'num_box_stringers': 6, 'num_le_booms': 0,
