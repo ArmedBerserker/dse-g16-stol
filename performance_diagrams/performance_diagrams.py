@@ -186,7 +186,7 @@ def max_RoC_altitude(mtow, cd0, S, AR, e, delta_T,P_shaft,D_ft):
     # plt.ylim(-4,6)
     plt.grid(True)
     plt.plot(max_RoCs, alts)
-    plt.xlim(1, 6)
+    plt.xlim(1, 8)
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
@@ -209,7 +209,7 @@ def envelope(C_l_max, mtow, S, cd0, AR, e, P_a, rho_0, n, delta_T, P_shaft, D_ft
 
         V_s = math.sqrt((2 * mtow)/(rho * S * C_l_max))
         V_s_list.append(V_s)
-        V = np.linspace(0.8*V_s, 110, 10000)
+        V = np.linspace(0.8*V_s, 110, 1000)
         V_ms,P_a = curve(D_ft, rho, P_shaft)
 
         C_l = mtow / (0.5 * rho * V ** 2 * S)
@@ -331,9 +331,9 @@ if __name__ == '__main__':
     Aoc = AoC_vs_V(P_a, P_r, mtow, V) #cruise
     P_a_alts, P_r_alts, V_alts = power_curves_altitude(cd0, e, AR, mtow, S,alt_m, 0,P_shaft, D_ft)
     RoC_multiple_alts(P_a_alts, P_r_alts, V_alts, mtow,alt_m)
-    max_RoC_altitude(mtow,cd0, S, AR, e, 0,P_shaft, D_ft)
+    max_roc, alt = max_RoC_altitude(mtow,cd0, S, AR, e, 0,P_shaft, D_ft)
     envelope(C_l_max, mtow, S, cd0, AR, e, P_a, rho_0, n, delta_T,P_shaft,D_ft)
-   
+    print(max_roc)
 
     
 

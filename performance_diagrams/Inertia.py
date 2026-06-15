@@ -4,11 +4,11 @@ import numpy as np
 kgtolbs=2.20462 #conversion
 slugtokg=1.35581795#slug*feet2 to kg*m2
 mtof=3.28084 #meter to feet
-b=14.81*mtof #span [feet]
+b=16.8*mtof #span [feet]
 g=32.2# [ft/s2]
 L= 11*mtof#airplane length [feet]
 r_cg=np.array([1,1,1])#[feet] from ground and axis of symmetry nose
-m= 1809*kgtolbs# [pounds]
+m= 1840*kgtolbs# [pounds]
 #approach
 def Inertia_Class1():
     Rx=[0.260,0.251,0.373,0.240]
@@ -111,6 +111,16 @@ def Inertia_Class2(components, xcg, ycg, zcg):
             Ixx += Ixx_rec
             Iyy += Iyy_rec
             Izz += Izz_rec
+        if c.get('name') == 'Paint':
+            m_i = c['m_i']
+            length=11*mtof
+            radiusinterior=0.72*mtof
+            radiusexterior=0.725*mtof
+            Ixx_rec, Iyy_rec, Izz_rec = self_inertia_fuselage(m_i, length, radiusinterior,radiusexterior)
+
+            Ixx += Ixx_rec
+            Iyy += Iyy_rec
+            Izz += Izz_rec
         if c.get('name') == 'Verticaltail':
             m_i = c['m_i']
             lx = 0.9*mtof
@@ -152,19 +162,28 @@ def Inertia_Class2(components, xcg, ycg, zcg):
 #add all the components given in class 2
 components = [
     # name           m_i [lb]   x_i    y_i    z_i   [meter] shape
-    {'name': 'Wing', 'm_i': 155.9*kgtolbs, 'x_i': 6.212, 'y_i': 0.0, 'z_i': 2.96}, #good mass
-    {'name': 'Fuselage', 'm_i': 174.2*kgtolbs, 'x_i': 5.5, 'y_i':0.0 , 'z_i': 2.11},#good mass
-    {'name': 'Verticaltail', 'm_i': 17*kgtolbs, 'x_i': 8.01, 'y_i': 0.0, 'z_i': 3.76}, #good mass
-    {'name': 'Horizontaltail', 'm_i': 27.6*kgtolbs, 'x_i': 8.01, 'y_i': 0.0, 'z_i':2.96}, #good mass
-    {'name': 'Engine', 'm_i': 82.2*2*kgtolbs, 'x_i': 6.04, 'y_i': 0.0, 'z_i': 2.435}, #good mass +nacelle mass
-    {'name': 'LandingGear1', 'm_i': 9*kgtolbs, 'x_i': 0.605, 'y_i': 0.0, 'z_i': 0.63},  #good
-    {'name': 'LandingGear2', 'm_i': 15*2*kgtolbs, 'x_i': 6.52, 'y_i': 0.0, 'z_i': 0.63},  #good
-    {'name': 'Fuel', 'm_i': (167.8+54)*kgtolbs, 'x_i':6.212, 'y_i': 0.0, 'z_i': 2.96}, #good
-    {'name': 'Cargo', 'm_i': 200 * kgtolbs, 'x_i': 6.7+0.25, 'y_i': 0.0, 'z_i': 2.06},#good
-    {'name': 'Row1', 'm_i': 154 * kgtolbs, 'x_i': 2.92+0.25, 'y_i': 0.0, 'z_i': 1.91},#good
-    {'name': 'Row2', 'm_i': 154 * kgtolbs, 'x_i': 5+0.25, 'y_i': 0.0, 'z_i': 1.91},#good
-    {'name': 'Row3', 'm_i': 154 * kgtolbs, 'x_i': 6+0.25, 'y_i': 0.0, 'z_i': 1.91},#good
-    {'name': 'Supercapacitor', 'm_i': 154 * kgtolbs, 'x_i': 6 + 0.25, 'y_i': 0.0, 'z_i': 1.91},  # good
+    {'name': 'Wing', 'm_i': 161.2*kgtolbs, 'x_i': 4.4+1.87*0.25, 'y_i': 0.0, 'z_i': 0.8+1.7}, #good mass
+    {'name': 'Fuselage', 'm_i': 140*kgtolbs, 'x_i': 5.5, 'y_i':0.0 , 'z_i': 0.8+1.7*0.5},#good mass
+    {'name': 'Verticaltail', 'm_i': 22*kgtolbs, 'x_i': 10.38, 'y_i': 0.0, 'z_i': 0.8+0.5+1.342}, #good mass
+    {'name': 'Horizontaltail', 'm_i': 13.5*kgtolbs, 'x_i': 11.4, 'y_i': 0.0, 'z_i':0.8+2.04+1.342+1.14}, #good mass
+    {'name': 'Engine', 'm_i': 112.2*2*kgtolbs, 'x_i': 3.9, 'y_i': 0.0, 'z_i': 0.8+1.7-0.15}, #good mass +nacelle mass
+    {'name': 'LandingGear1', 'm_i': 8*kgtolbs, 'x_i': 0.88, 'y_i': 0.0, 'z_i': 0.3},  #good
+    {'name': 'LandingGear2', 'm_i': 33*kgtolbs, 'x_i': 6.01, 'y_i': 0.0, 'z_i': 0.3},  #good
+    {'name': 'Fuel', 'm_i': 167.6*kgtolbs, 'x_i':5.1, 'y_i': 0.0, 'z_i': 0.8+1.7}, #good
+    {'name': 'Cargo', 'm_i': 200 * kgtolbs, 'x_i': 7.4, 'y_i': 0.0, 'z_i': 0.8+1.7/2-0.15},#good
+    {'name': 'Row1', 'm_i': 154 * kgtolbs, 'x_i': 3.15, 'y_i': 0.0, 'z_i': 0.8+1.7/2-0.4},#good
+    {'name': 'Row2', 'm_i': 154 * kgtolbs, 'x_i': 4.7, 'y_i': 0.0, 'z_i': 0.8+1.7/2-0.4},#good
+    {'name': 'Row3', 'm_i': 154 * kgtolbs, 'x_i': 6, 'y_i': 0.0, 'z_i': 0.8+1.7/2-0.4},#good
+    {'name': 'Supercapacitor', 'm_i': 105 * kgtolbs, 'x_i': 9.8, 'y_i': 0.0, 'z_i': 0.8+0.9},  # good
+    {'name': 'Propeller', 'm_i': 29 * kgtolbs, 'x_i': 3.7, 'y_i': 0.0, 'z_i': 0.8+1.7-0.15},  # good
+    {'name': 'FuelSystem', 'm_i': 22.7 * kgtolbs, 'x_i': 4.4, 'y_i': 0.0, 'z_i': 0.8+1.7-0.1},  # good
+    {'name': 'TrappedFuel', 'm_i': 9.2 * kgtolbs, 'x_i': 5.1, 'y_i': 0.0, 'z_i': 0.8+1.7},  # good
+    {'name': 'FlightControls', 'm_i': 38 * kgtolbs, 'x_i': 5.335, 'y_i': 0.0, 'z_i': 0.8+1.7},  # good
+    {'name': 'HPS_ELS', 'm_i': 71.44 * kgtolbs, 'x_i': 5.29, 'y_i': 0.0, 'z_i': 0.8},  # good
+    {'name': 'API', 'm_i': 110, 'x_i': 6.66, 'y_i': 0.0, 'z_i': 0.8+1.7},  # good
+    {'name': 'Paint', 'm_i': 5.5 * kgtolbs, 'x_i': 5.5, 'y_i': 0.0, 'z_i': 0.8+1.7/2},  # good
+    {'name': 'Furnishing', 'm_i': 43.08 * kgtolbs, 'x_i': 6.82, 'y_i': 0.0, 'z_i': 0.8+1.7/2-0.4},  # good
+    {'name': 'IAE', 'm_i': 32.07 * kgtolbs, 'x_i': 1, 'y_i': 0.0, 'z_i': 0.8+1.7/3},  # good
 
 
 ]

@@ -142,7 +142,7 @@ def eff(D_ft,rho_kgm3,P_bhp,J):
 
 def curve( D_ft,rho_kgm3,P_bhp):
     #power shaft in horsepower per singel engine
-    V = np.linspace(20, 150, 1000)  # knots
+    V = np.linspace(20, 180, 1000)  # knots
     Vnew = V * ktastofeet
 
     RPM = P_to_RPM(P_bhp)
@@ -202,9 +202,9 @@ def curve( D_ft,rho_kgm3,P_bhp):
 D_ft=5.66667
 T_static,Vnew,eff1=curve(D_ft,1.02,160)
 
-delta_T=20
-altitudes = np.arange(0, 8000, 50)
-P_available = []
+# delta_T=20
+# altitudes = np.arange(0, 8000, 50)
+# P_available = []
 
 """
 for alt in altitudes:

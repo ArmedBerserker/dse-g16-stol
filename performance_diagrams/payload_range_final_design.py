@@ -1,7 +1,12 @@
+import sys
+import os
+
+# Fix path FIRST, before any local imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-import os
+# import os
 from pathlib import Path
 from lookups.consts import *
 
@@ -101,29 +106,29 @@ def plot_payload_range(payload_range_points, m_pl_des, R_des,
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     print(f"Figure saved to: {save_path}")
-
+    plt.show()
     plt.close()
 
 if __name__ == '__main__':
     # WEIGHTS
-    m_mto = 1809
-    m_e = 970
+    m_mto = 1821.38
+    m_e = 982.5
     m_pl_des = 662
     m_pl_max = 750
     m_pilot = 77
-    m_f_des = m_mto - m_e - m_pl_des
-    m_f_max = 250
+    m_f_des = 167.8
+    m_f_max = 250  
 
     # AERODYNAMICS
-    A = 10.2
-    e = 0.752
-    C_d0 = 0.0346
-    L_D_cr = 12.12
+    A = 9
+    e = 0.783
+    C_d0 = 0.02727
+    L_D_cr = 14.23
 
     # PROPULSION
-    eta_p = 0.8
+    eta_p = 0.76
     eta_eng = 0.25
-    e_f = 43000000
+    e_f = 44400000
 
     # DESIGN CHOICES
     R_des = 500 * 1000
