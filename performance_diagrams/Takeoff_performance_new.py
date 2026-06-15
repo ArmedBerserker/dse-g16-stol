@@ -19,7 +19,7 @@ T_ISA_K = 304.188  # temperature at take off altitude 2000ft ISA +20°C #Kelvin
 theta = rho / rho_SL  # ratio of density
 W_TO = 1839 * kgtolbs  # [lbs]#change
 S = 333.6812 # surface area of wing [feet2]
-C_LmaxTO = 0.8*1.68 # max take off lift coefficient
+C_LmaxTO =1.68 # max take off lift coefficient
 C_LTO = C_LmaxTO / 1.21  # Lift coefficient at lift off
 h = 2.5# height of wing above ground [feet]
 b = 16.8 # span of wing [feet]
@@ -42,7 +42,7 @@ d_TO = 656.168  # [feet] max take-off distance
 S_TOG = d_TO  # distance take off
 h_TO = 50  # feet
 g = 32.2  # [feet/s**2]
-mu = 0.08  # ground roll coefficient on wet grass without braking
+mu = 0.05  # ground roll coefficient on hard turf without braking
 
 V_STO = np.sqrt(2 * W_TO / (rho * S * C_LmaxTO))  # Stall speed during take off [feet/s]
 
@@ -146,10 +146,7 @@ def GORENBEEK_TO_3(dt=0.05, max_time=200):
         L = q * S * C_LTO
         D = q * S * (C_D0 + CDi_IGE)
         T=thrust(V, P_TO)
-
-
         a = g / W_TO * (T - D - mu * (W_TO - L))
-
         trajectory.append([t, V, s, a, L, T])
 
         if not lifted and V >= V_LOF:
@@ -168,7 +165,6 @@ def GORENBEEK_TO_3(dt=0.05, max_time=200):
         V = max(V + a * dt, 0.1)
         s = s + V * dt + 0.5 * a * dt ** 2
         t += dt
-
     return s, V, t, np.array(trajectory), T_TR, V1, s_LO, V_LO
 
 
@@ -196,12 +192,12 @@ def rest(T_TR):
     S_TR = 0.2156 * V_STO ** 2 * np.sin(angle)  # distance before transition to straight flight
     h_TR = 0.2156 * V_STO ** 2 * (1 - np.cos(angle))  # transition height  [feet]
     S_C = (h_TO - h_TR) / (np.tan(angle))  # climb disantce until top of obstacle [ft]
-
     if S_C < 0:
         S_C = 0
         print("obstacle cleared during transition")
-    S_OBS = S_TR + S_ROT + S_C
-    return S_OBS, h_TR
+
+    S_OBS = S_TR + S_C
+    return S_OBS, h_TR, S_ROT
 
 
 def ground_run_for(rho_local, w_local, slope_rad, dt=0.05, max_time=200.0):
@@ -210,7 +206,7 @@ def ground_run_for(rho_local, w_local, slope_rad, dt=0.05, max_time=200.0):
     rho_SI = rho_local / kgtoslug
     CDi_IGE = CDi_ground_effect(h, b, c_Di)
     V, s, t = 0.1, 0.0, 0.0
-
+    V_LOF = 1.556 * np.sqrt(W_TO / (rho * S * C_LmaxTO))  # [ft/s]
     s_LO =0
 
     while t < max_time:
@@ -219,6 +215,7 @@ def ground_run_for(rho_local, w_local, slope_rad, dt=0.05, max_time=200.0):
         L = q * S * C_LTO
         D = q * S * (C_D0 + CDi_IGE)
         T = thrust(V, P_TO)
+
 
         a = (g / w_local) * (T - D - mu * (w_local - L) - w_local * np.sin(slope_rad))
 
@@ -233,8 +230,10 @@ def ground_run_for(rho_local, w_local, slope_rad, dt=0.05, max_time=200.0):
 
         V, s = V_new, s_new
         t += dt
+    S_ROT = V_LOF  # rotation distance if small aircraft is assumed to be 1sec
+    ST=s_LO+S_ROT
 
-    return s_LO
+    return ST
 
 
 def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, max_time=200.0):
@@ -252,14 +251,14 @@ def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, 
                 atmos_model = Atmosphere(alt / mstofps, delta_T)
                 rho_local = atmos_model.density[0]*kgtoslug
                 s_LO = ground_run_for(rho_local, W_TO, slope_rad, dt=dt, max_time=max_time)
-                s_LO_list.append(s_LO)
+                s_LO_list.append(s_LO*1/mstofps)
 
-            ax.plot(s_LO_list, altitudes, label=f"Slope = {slope_deg}°")
+            ax.plot(s_LO_list, altitudes*1/mstofps, label=f"Slope = {slope_deg}°")
 
-        ax.axvline(d_TO, linestyle="--", color="red", label=f"Field limit = {d_TO:.0f} ft")
-        ax.set_xlabel("Ground run to lift-off  [ft]")
-        ax.set_ylabel("Altitude above sea level [ft]")
-        ax.set_title("Sensitivity: runway slope")
+        ax.axvline(d_TO*1/mstofps, linestyle="--", color="red", label=f"Field limit = {d_TO*1/mstofps:.0f} m")
+        ax.set_xlabel("Ground run to lift-off  [m]")
+        ax.set_ylabel("Altitude above sea level [m]")
+        #ax.set_title("Sensitivity: runway slope")
         ax.grid(True)
         ax.legend()
         plt.tight_layout()
@@ -276,14 +275,14 @@ def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, 
                 atmos_model = Atmosphere(alt / mstofps, dT)
                 rho_local = atmos_model.density[0]*kgtoslug
                 s_LO = ground_run_for(rho_local, W_TO, 0, dt=dt, max_time=max_time)
-                s_LO_list.append(s_LO)
+                s_LO_list.append(s_LO*1/mstofps)
 
-            ax.plot(s_LO_list, altitudes, label=f"ISA + {dT:.0f} °C")
+            ax.plot(s_LO_list, altitudes*1/mstofps, label=f"ISA + {dT:.0f} °C")
 
-        ax.axvline(d_TO, linestyle="--", color="red", label=f"Field limit = {d_TO:.0f} ft")
-        ax.set_xlabel("Ground run to lift-off  [ft]")
-        ax.set_ylabel("Altitude above sea level  [ft]")
-        ax.set_title("Sensitivity: temperature deviation (ISA + ΔT)")
+        ax.axvline(d_TO*1/mstofps, linestyle="--", color="red", label=f"Field limit = {d_TO*1/mstofps:.0f} m")
+        ax.set_xlabel("Ground run to lift-off  [m]")
+        ax.set_ylabel("Altitude above sea level  [m]")
+        #ax.set_title("Sensitivity: temperature deviation (ISA + ΔT)")
         ax.grid(True)
         ax.legend()
         plt.tight_layout()
@@ -301,15 +300,15 @@ def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, 
                 atmos_model = Atmosphere(alt / mstofps, delta_T)
                 rho_local = atmos_model.density[0]*kgtoslug
                 s_LO = ground_run_for(rho_local, w, 0, dt=dt, max_time=max_time)
-                s_LO_list.append(s_LO)
+                s_LO_list.append(s_LO*1/mstofps)
 
             frac = w / W_TO
-            ax.plot(s_LO_list, altitudes, label=f"{frac * 100:.0f}% MTOW ({w:.0f} lbs)")
+            ax.plot(s_LO_list, altitudes*1/mstofps, label=f"{frac * 100:.0f}% MTOW ")
 
-        ax.axvline(d_TO, linestyle="--", color="red", label=f"Field limit = {d_TO:.0f} ft")
-        ax.set_xlabel("Ground run to lift-off  [ft]")
-        ax.set_ylabel("Altitude above sea level  [ft]")
-        ax.set_title("Sensitivity: take-off weight (80–120% MTOW)")
+        ax.axvline(d_TO*1/mstofps, linestyle="--", color="red", label=f"Field limit = {d_TO*1/mstofps:.0f} m")
+        ax.set_xlabel("Ground run to lift-off  [m]")
+        ax.set_ylabel("Altitude above sea level  [m]")
+        #ax.set_title("Sensitivity: take-off weight (80–120% MTOW)")
         ax.grid(True)
         ax.legend(fontsize=8)
         plt.tight_layout()
@@ -345,9 +344,11 @@ if __name__ == "__main__":
     print(f"    V1     = {V1:.2f} ft/s" if V1 is not None else "    V1     = not reached before lift-off")
 
     # Rest of the phase
-    S_OBS, h_TR = rest(T_TR)
-    S_TO_total = s_LO + S_OBS
+    S_OBS, h_TR,S_ROT = rest(T_TR)
+    S_TO_total = s_LO + S_OBS+S_ROT
+    s_G=S_ROT+s_LO
     print(f"    Airborne distance = {S_OBS:.1f} ft ")
+    print(f"    ground distance = {s_G:.1f} ft ")
     print(f"    Taake-off distance = {S_TO_total:.1f} ft  ")
 
     # -- Sensitivity analyses --

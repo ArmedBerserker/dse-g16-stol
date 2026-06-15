@@ -15,7 +15,7 @@ rho=1.07896*kgm3_to_slugft3#density at landing altitude 2000t ISA +20°C #slug/f
 W_TO=1839*kgtolbs#[lbs]#change
 W_LD=0.99*W_TO #[lbs]
 g=32.2 #[feet/s**2]
-CLmax_L=1.7#change
+CLmax_L=1.94 #change
 h_L=50 #[feet] CS23 requirement
 V_sl_isa = 50 * kntstofps  # knots since close to MTOW and will go down with density
 mu=0.4#assume hard turf
@@ -73,7 +73,7 @@ C_d0=0.08777
 deltaf =60  # flap deflection
 h=2.5 #height of wing above ground [m]
 b=16.8 #span of wing [m]
-V_STO_L = np.sqrt(2 * W_TO / (rho * S_w * CLmax_L))  # Stall speed during take off [feet/s]
+V_STO_L = np.sqrt(2 * W_LD / (rho * S_w * CLmax_L))  # Stall speed during take off [feet/s]
 theta_app = np.radians(3)  # radians or 6 check both
 
 #calculations
@@ -112,7 +112,6 @@ def GORENBEEK_landing(W_LD,rho):
     L_ld=1/2*C_L_ldg*rho*(V_BR/np.sqrt(2))**2*S_w #verified
 
     S_BR=-(V_BR**2*W_LD)/(2*g*((T_BR-D_lg-mu*(W_LD-L_ld))))
-    #a=g*(T_BR - D_lg - mu * (W_LD - L_ld))/W_LD
     S_LDG=S_A+S_F+S_FR+S_BR
     S_GR=S_FR+S_BR
     return S_LDG,S_GR,D_lg,L_ld
@@ -143,6 +142,7 @@ def sensitivity_altitude():
         for h in altitudes:
             atmos_model = Atmosphere(h/mstofps, delta_T)
             rho_ref = atmos_model.density[0]*kgm3_to_slugft3
+            V_STO_L = np.sqrt(2 * W_LD / (rho_ref * S_w * CLmax_L))  # Stall speed during take off [feet/s]
             rad=np.radians(deg)
             V_0 = 1.1 * V_STO_L
             V = 0
@@ -173,6 +173,7 @@ def sensitivity_altitude():
         for h in altitudes:
             atmos_model = Atmosphere(h/mstofps, Temp)
             rho_ref = atmos_model.density[0]*kgm3_to_slugft3
+            V_STO_L = np.sqrt(2 * W_LD / (rho_ref * S_w * CLmax_L))  # Stall speed during take off [feet/s]
             V_0 = 1.1 * V_STO_L
             V = 0
             S_FR = V_0
@@ -204,6 +205,7 @@ def sensitivity_altitude():
             W_LDc=w * W_LD
             atmos_model = Atmosphere(h / mstofps, delta_T)
             rho_ref = atmos_model.density[0]*kgm3_to_slugft3
+            V_STO_L = np.sqrt(2 * W_LDc / (rho * S_w * CLmax_L))  # Stall speed during take off [feet/s]
             V_0 = 1.1 * V_STO_L
             V = 0
             S_FR = V_0
