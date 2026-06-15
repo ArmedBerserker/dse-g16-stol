@@ -713,7 +713,7 @@ def cruise_speed_matching(MTOW, CD0):
     e = 0.783
     # _, e = k(ac)
 
-    eta_p = 0.84
+    eta_p = 0.83
 
     # NOTE: first eqn for piston, second for turboprop, third for electric, check ADSEE I book for details (dep on propeller type)
     # engine.Phi: power split parameter
@@ -766,12 +766,12 @@ if __name__ == '__main__':
     print(f'fuel mass frac: {fuel_mass_frac}')
     
     m_pl = 662  # kg
-    m_oe = 1010 # 892  # kg -> maybe add 54 for an extra supercap
-    MTOW_diff = 40
-    init_mtow = 1840
-    # m_oe = 1035 # 892  # kg -> maybe add 54 for an extra supercap
+    # m_oe = 1010 # 892  # kg -> maybe add 54 for an extra supercap
     # MTOW_diff = 40
-    # init_mtow = 1870
+    # init_mtow = 1840
+    m_oe = 1035 # 892  # kg -> maybe add 54 for an extra supercap
+    MTOW_diff = 40
+    init_mtow = 1870
     # m_oe = 1050 # 892  # kg -> maybe add 54 for an extra supercap
     # MTOW_diff = 40
     # init_mtow = 1885

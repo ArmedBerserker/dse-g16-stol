@@ -7,7 +7,8 @@ from scipy.interpolate import interp1d
 ''' TODO:
     - Add curved plate functions
     - Set up stringer spacing and finsing points they are at along sections (make it symmetric, start at top or bottom center)
-    - Check correct material properties and thicknesses are used everywhere'''
+    - Check correct material properties and thicknesses are used everywhere
+    - Stringer pitch, area, and skin thickness plot with contours areas colors mass or if viable'''
 
 material_database = {  # https://www.aerospacemetals.com/wp-content/uploads/2023/06/Aluminum-2024-T3.pdf
     'AA2024-T3': {
@@ -100,7 +101,7 @@ def stiffener_crippling_stress(stringer_area, material_properties: dict, stiffen
     stringer = stringers_database[stiffener_type]
     bounds = stringer['boundary conditions']
     b_rel = stringer['rel length']
-    B_scale = (stringer_area - t**2 * len(b_rel)) / (t * np.sum(b_rel))
+    B_scale = (stringer_area - t**2 * (len(b_rel)-1)) / (t * np.sum(b_rel))
     b = B_scale * b_rel
     crip_stress_elements = np.zeros_like(b)
     A_elem = np.zeros_like(b)
@@ -199,42 +200,48 @@ if __name__ == '__main__':
 
     t_skin_vals = np.arange(0.0003, 0.0009, 0.0001)  # 0.5-1.5mm, steps of 0.1mm
     t_stringer_vals = np.arange(0.0008, 0.001, 0.0001)  # 0.8-3.4mm, steps of 0.2mm
-    A_stringer = (1e-6) * np.arange(10, 35, 5)  # 30-250mm^2, steps of 10mm^2
+    A_stringer = (1e-6) * np.arange(35, 75, 5)  # 30-250mm^2, steps of 10mm^2
     A_frame = 20*1e-6  # Set to constant 60mm^2 for now (not included in buckling calculations)
-    stringer_pitch = np.arange(0.1, 0.3, 0.02)  # 100-200mm, steps of 10mm
-    frame_pitch = np.arange(0.3, 0.8, 0.05)  # 300-500mm, steps of 10mm
+    stringer_pitch = np.arange(0.1, 0.22, 0.02)  # 100-200mm, steps of 10mm
+    frame_pitch = np.arange(0.3, 0.5, 0.05)  # 300-500mm, steps of 10mm
 
     # Check how to size each section so they have the same stress they can take
     viable_solutions = []
 
-    for i, t_skin in enumerate(t_skin_vals):
-        for j, t_stringer in enumerate(t_stringer_vals):
-            for k, A_string in enumerate(A_stringer):
-                for l, b_pitch in enumerate(stringer_pitch):
-                    n_stringers = math.ceil(perimeter / b_pitch)
+    for h, stringer_type in enumerate(list(stringers_database.keys())):
+        for i, t_skin in enumerate(t_skin_vals):
+            for j, t_stringer in enumerate(t_stringer_vals):
+                for k, A_string in enumerate(A_stringer):
+                    for l, b_pitch in enumerate(stringer_pitch):
+                        n_stringers = math.ceil(perimeter / b_pitch)
 
-                    # Load applied
-                    A_cross_section = n_stringers * A_string + perimeter * t_skin
-                    applied_stress = F_crit / A_cross_section
-                    for m, a_pitch in enumerate(frame_pitch):
-                        n_frames = math.ceil(l_section / a_pitch)
+                        # Load applied
+                        A_cross_section = n_stringers * A_string + perimeter * t_skin
+                        applied_stress = F_crit / A_cross_section
+                        for m, a_pitch in enumerate(frame_pitch):
+                            n_frames = math.ceil(l_section / a_pitch)
 
-                        # Load it can withstand
-                        buck_stress_pan = pannel_buckling_stress(A_string, stringer_type, material_properties_skin, material_properties_stringer, b_pitch, a_pitch, t_skin, t_stringer)
-                        viable_solution: bool = applied_stress <= buck_stress_pan
-                        if viable_solution:
-                            mass = mass_est(n_stringers, A_string, n_frames, A_frame, t_skin, l_section, perimeter, material_properties_skin, material_properties_stringer)
-                            margin = (buck_stress_pan - applied_stress) / applied_stress * 100
-                            viable_solutions.append({"mass [kg]": mass,
-                                                     "skin thickness [mm]": t_skin*1e3, 
-                                                     "stringer thickness [mm]": t_stringer*1e3, 
-                                                     "stringer cross-section area [mm2]": A_string*1e6,
-                                                     "frame cross-section area [mm2]": A_frame*1e6,
-                                                     "stringer pitch [mm]": b_pitch*1e3,
-                                                     "frame pitch [mm]": a_pitch*1e3,
-                                                     "stringer/frame material": material_stringer,
-                                                     "skin material": material_skin,
-                                                     "stress margin [%]": margin})
+                            # Load it can withstand
+                            buck_stress_pan = pannel_buckling_stress(A_string, stringer_type, material_properties_skin, material_properties_stringer, b_pitch, a_pitch, t_skin, t_stringer)
+                            viable_solution: bool = applied_stress <= buck_stress_pan
+                            if viable_solution:
+                                mass = mass_est(n_stringers, A_string, n_frames, A_frame, t_skin, l_section, perimeter, material_properties_skin, material_properties_stringer)
+                                margin = (buck_stress_pan - applied_stress) / applied_stress * 100
+                                # Change e for rivet type: 4 = flathead, 3 = brazier head, 1 = countersunk
+                                e = 1
+                                p = t_skin / np.sqrt(12 * (1 - material_database[material_skin]['nu']**2) * applied_stress / (e * np.pi**2 * material_database[material_skin]['E'])) # * 0.000145038
+                                viable_solutions.append({"mass [kg]": mass,
+                                                         "rivet spacing [mm]": p*1000,
+                                                         "stringer type": stringer_type,
+                                                         "skin thickness [mm]": t_skin*1e3, 
+                                                         "stringer thickness [mm]": t_stringer*1e3, 
+                                                         "stringer cross-section area [mm2]": A_string*1e6,
+                                                         "frame cross-section area [mm2]": A_frame*1e6,
+                                                         "stringer pitch [mm]": b_pitch*1e3,
+                                                         "frame pitch [mm]": a_pitch*1e3,
+                                                         "stringer/frame material": material_stringer,
+                                                         "skin material": material_skin,
+                                                         "stress margin [%]": margin})
     if len(viable_solutions) == 0:
         print(f'No viable solutions found')
     else:
