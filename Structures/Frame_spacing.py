@@ -19,7 +19,7 @@ material_database = {  # https://www.aerospacemetals.com/wp-content/uploads/2023
         'UTS': 483000000,
         'CYS': 345000000,
         'UCS': 483000000,
-        'tau max': 283000000000,
+        'tau max': 207000000,
         'nu': 0.33,
         'alpha': 0.8,
         'n': 0.6
@@ -73,7 +73,7 @@ stringers_database = {
     },
     'z': {
         'boundary conditions': ['SSFS', 'SSSS', 'SSFS'],
-        'rel length': np.array([0.9, 2.44, 0.9])},
+        'rel length': np.array([0.9, 0.6, 0.9])},
     'formed z': {
         'boundary conditions': ['SSFS', 'SSSS', 'SSSS', 'SSFS'],
         'rel length': np.array([0.33, 0.9, 2.44, 0.9])
@@ -107,7 +107,7 @@ def stiffener_crippling_stress(stringer_area, material_properties: dict, stiffen
     A_elem = np.zeros_like(b)
     for i, b_part in enumerate(b):
         C = C_flat_plate(bounds[i], a_b=l_stringer/b_part)
-        print(f'C={C}')
+        # print(f'C={C}')
         crip_stress_frac = material_properties['alpha'] * (C / material_properties['CYS'] * np.pi**2 * material_properties['E'] / (12 * (1 * material_properties['nu']**2)) * (t / b_part)**2)**(1 - material_properties['n'])
         if crip_stress_frac < 1:
             crip_stress_elements[i] = crip_stress_frac * material_properties['CYS']
@@ -175,6 +175,7 @@ if __name__ == '__main__':
                   np.pi/2*r_lower, w-2*r_lower, np.pi/2*r_lower, 
                   h-r_upper-r_lower, np.pi/2*r_upper]
     perimeter = sum(s_sections)
+    print(perimeter, l_section)
 
     # Define loads from accelerations
     F = []
@@ -198,12 +199,18 @@ if __name__ == '__main__':
     # stringer_pitch = np.arange(0.1, 0.21, 0.1)  # 100-200mm, steps of 10mm
     # frame_pitch = np.arange(0.3, 0.51, 0.1)  # 300-500mm, steps of 10mm
 
-    t_skin_vals = np.arange(0.0003, 0.0009, 0.0001)  # 0.5-1.5mm, steps of 0.1mm
-    t_stringer_vals = np.arange(0.0008, 0.001, 0.0001)  # 0.8-3.4mm, steps of 0.2mm
-    A_stringer = (1e-6) * np.arange(35, 75, 5)  # 30-250mm^2, steps of 10mm^2
-    A_frame = 20*1e-6  # Set to constant 60mm^2 for now (not included in buckling calculations)
-    stringer_pitch = np.arange(0.1, 0.22, 0.02)  # 100-200mm, steps of 10mm
-    frame_pitch = np.arange(0.3, 0.5, 0.05)  # 300-500mm, steps of 10mm
+    # t_skin_vals = np.arange(0.0003, 0.0009, 0.0001)  # 0.5-1.5mm, steps of 0.1mm
+    # t_stringer_vals = np.arange(0.0008, 0.001, 0.0001)  # 0.8-3.4mm, steps of 0.2mm
+    # A_stringer = (1e-6) * np.arange(35, 75, 5)  # 30-250mm^2, steps of 10mm^2
+    # A_frame = 20*1e-6  # Set to constant 60mm^2 for now (not included in buckling calculations)
+    # stringer_pitch = np.arange(0.1, 0.22, 0.02)  # 100-200mm, steps of 10mm
+    # frame_pitch = np.arange(0.3, 0.5, 0.05)  # 300-500mm, steps of 10mm
+    t_skin_vals = np.arange(0.0003, 0.00039, 0.0001)  # 0.5-1.5mm, steps of 0.1mm
+    t_stringer_vals = np.arange(0.0012954, 0.002, 0.001)  # 0.8-3.4mm, steps of 0.2mm
+    A_stringer = (1e-6) * np.arange(70, 75, 5)  # 30-250mm^2, steps of 10mm^2
+    A_frame = 70*1e-6  # Set to constant 60mm^2 for now (not included in buckling calculations)
+    stringer_pitch = np.arange(0.2, 0.22, 0.02)  # 100-200mm, steps of 10mm
+    frame_pitch = np.arange(0.45, 0.5, 0.05)  # 300-500mm, steps of 10mm
 
     # Check how to size each section so they have the same stress they can take
     viable_solutions = []
@@ -225,6 +232,7 @@ if __name__ == '__main__':
                             buck_stress_pan = pannel_buckling_stress(A_string, stringer_type, material_properties_skin, material_properties_stringer, b_pitch, a_pitch, t_skin, t_stringer)
                             viable_solution: bool = applied_stress <= buck_stress_pan
                             if viable_solution:
+                                print(f'Buckling stress panel: {buck_stress_pan}, applied: {applied_stress}')
                                 mass = mass_est(n_stringers, A_string, n_frames, A_frame, t_skin, l_section, perimeter, material_properties_skin, material_properties_stringer)
                                 margin = (buck_stress_pan - applied_stress) / applied_stress * 100
                                 # Change e for rivet type: 4 = flathead, 3 = brazier head, 1 = countersunk

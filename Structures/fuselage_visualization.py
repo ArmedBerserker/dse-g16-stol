@@ -151,6 +151,8 @@ def build_stringers(y_cs, z_cs, spacing):
         z_rot
     )
 
+    print(f'y_stringers = {y_stringers} \n z_stringers = {z_stringers}')
+
     return y_stringers, z_stringers
 
 # =============================================================================
