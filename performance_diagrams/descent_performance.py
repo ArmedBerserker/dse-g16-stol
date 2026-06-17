@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-clmax = 1.38
+clmax = 1.44
 def stall_speed(W, C_l_max, rho, S):
     return math.sqrt((2 * W)/(rho * S * C_l_max))
 
@@ -42,7 +42,7 @@ def descent_perf(delta_T, W, cd0,S,AR,e,T, C_l_max):
         k = 1/ (np.pi*e*AR)
         LD = C_L/ C_D
         idx_min_angle = np.argmax(LD)
-        V_min_angle = np.sqrt(2/rho * np.sqrt(k/Cdmin)*W/S)
+        V_min_angle = np.sqrt(2/rho * np.sqrt(k/cd0)*W/S)
         LD_max = LD[idx_min_angle]
         min_angle = np.degrees(np.arctan(1/LD_max))
         range_m = alt*LD_max
@@ -76,7 +76,7 @@ def descent_perf(delta_T, W, cd0,S,AR,e,T, C_l_max):
 
 
         plt.plot(V, -rod, label=f"{alt} m")
-        plt.scatter(V_s, -rod[idx_stall], marker='x')
+        # plt.scatter(V_s, -rod[idx_stall], marker='x')
 
     # print(rod_list)
     plt.xlabel("Velocity [m/s]")
@@ -96,7 +96,7 @@ def required_airspeed(aod_unpowered, C_L, W,S,rho):
     return V_req
 
 # def descent_perf(delta_T, W, cd0,S,AR,e,T, C_l_max)
-descent_perf(0, (1821*9.81), 0.03376, 24.23,10.18, 0.7521, 200000,1.38)
+descent_perf(0, (1871*9.81), 0.0259, 31.4,10.18, 0.783, 200000,1.44)
 
 
 #high AR negative effect on stall vs optimal

@@ -1,3 +1,8 @@
+import sys
+import os
+
+# Fix path FIRST, before any local imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline
@@ -5,7 +10,7 @@ import pandas as pd
 from classes.isa import *
 from scipy.optimize import curve_fit
 #propeller chosen https://www.propellor.com/ap431hapf-snl68e
-graphdata = pd.read_csv("ctcp")
+graphdata = pd.read_csv("performance_diagrams\ctcp")
 
 #check units
 kgtoslug = 0.00194032
@@ -168,7 +173,7 @@ def curve( D_ft,rho_kgm3,P_bhp):
     P_useful = eff1 * P_bhp
     #T_static= ctcp*550*P_bhp/(n*D_ft)#t_static according to Raymer
     T_static=0.85*(P_bhp*550)**(2/3)*(2*rho_kgm3*desnityconversion*A)**(1/3) #one engine and overestimate due to the fact they dont take into account blockage
-    P_useful_w = T*Vnew* 745.7*2 #both engines in watts
+    P_useful_w = P_useful* 745.7*2 #both engines in watts
     P1=P_useful*745.7*2
     V_ms = Vnew * 0.3048
 
@@ -196,11 +201,11 @@ def curve( D_ft,rho_kgm3,P_bhp):
 
     plt.show()
     """
-    return T_static,Vnew,eff1
-    #return V_ms,P_useful_w
+    #return T_static,Vnew,eff1
+    return V_ms,P_useful_w
 
-D_ft=5.66667
-T_static,Vnew,eff1=curve(D_ft,1.02,160)
+# D_ft=5.66667
+# T_static,Vnew,eff1=curve(D_ft,1.02,160)
 
 # delta_T=20
 # altitudes = np.arange(0, 8000, 50)
