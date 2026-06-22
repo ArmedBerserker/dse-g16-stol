@@ -45,7 +45,7 @@ Pmax=160 #[hp] maximum power per engine
 
 graphtorrenbeek=np.sqrt(Vcruise*fpskph*P_to)
 maxdiameter=2*mstofps
-# print(graphtorrenbeek)
+print(graphtorrenbeek)
 
 value=4.1 #find on graph toreenbeedk hp/feet2
 
@@ -64,7 +64,7 @@ def prop_diameter_power_limit(Pmax,n):
     Pblmax=4.8
     Pblmin=2.8
     return (((4*Pmax)/(np.pi*n*Pblmin))**(1/2),((4*Pmax)/(np.pi*n*Pblmax))**(1/2)) #ft pMax is the maximum power from enfine during take off and n is number of propeller
-
+print(prop_diameter_power_limit(240,3))
 #not really useful in the end
 def prop_diameter_blade(P_bhp):
     #Phbp engine power
@@ -109,7 +109,7 @@ def P_to_RPM(P):
     yfine = spline(xfine)
 
 
-    return float(spline(P))
+    return 2300
 
 def cp_calculation(D_ft, rho_kgm3, P_bhp,RPM):
     rho_slug = rho_kgm3*desnityconversion    # slug/ft³
@@ -188,14 +188,14 @@ def curve( D_ft,rho_kgm3,P_bhp):
     Vnew=V*ktastofeet
     plt.figure()
     plt.plot( V_ms , eff1)
-    plt.xlabel("Velocity [ms]")
+    plt.xlabel("Velocity [m/s]")
     plt.ylabel("Propeller efficiency")
     plt.grid()
     print(V_ms,eff1)
 
     plt.figure()
     plt.plot(V_ms, P_useful)
-    plt.xlabel("Velocity [ms]")
+    plt.xlabel("Velocity [m/s]")
     plt.ylabel("Useful power [w]")
     plt.grid()
 
