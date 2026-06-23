@@ -102,29 +102,29 @@ def plot_disturbance_response_asym(sys, t_final, labels, title, a_angle, r_angle
 #short period
 idx_sp = np.argmax(np.abs(np.imag(eigenvals_sym))) #largest imaginary eigenvalue is sp
 x0_sp = np.real(eigenvecs_sym[:,idx_sp]) 
-plot_response(sys_sym, x0_sp, ["u", r'$\alpha$',r'$\theta$','q'],t_final=5, title = "short period")
+plot_response(sys_sym, x0_sp, ["u [m/s]", r'$\alpha$ [deg]',r'$\theta$ [deg]','q [deg/s]'],t_final=5, title = "short period")
 
 #phugoid
 complex_modes = np.where(np.abs(np.imag(eigenvals_sym)) > 1e-6)[0]
 idx_ph = complex_modes[np.argmin(np.abs(np.imag(eigenvals_sym[complex_modes])))]
 x0_ph = np.real(eigenvecs_sym[:, idx_ph])
-plot_response(sys_sym, x0_ph, ["u",r"$\alpha$",r"$\theta$","q"], t_final=200, title = 'phugoid')
+plot_response(sys_sym, x0_ph, ["u [m/s]",r"$\alpha$ [deg]",r"$\theta$ [deg]","q [deg/s]"], t_final=200, title = 'phugoid')
 
 #Dutch roll
 idx_dr = np.argmax(np.abs(np.imag(eigenvals_asym)))
 x0_dr = np.real(eigenvecs_asym[:, idx_dr])
-plot_response(sys_asym, x0_dr, [r"$\beta $",r"$\phi$","p","r"], t_final = 10, title = 'dutch roll')
+plot_response(sys_asym, x0_dr, [r"$\beta$ [deg]",r"$\phi$ [deg]","p [deg/s]","r [deg/s]"], t_final = 10, title = 'dutch roll')
 
 #Aperiodic roll
 real_modes = np.where(np.abs(np.imag(eigenvals_asym)) < 1e-6 )[0]
 idx_ar = real_modes[np.argmin(np.real(eigenvals_asym[real_modes]))]
 x0_ar = np.real(eigenvecs_asym[:, idx_ar])
-plot_response(sys_asym, x0_ar,[r"$\beta$",r"$\phi$","p","r"], t_final=3, title = 'aperiodic roll')
+plot_response(sys_asym, x0_ar,[r"$\beta$ [deg]",r"$\phi [deg]$","p [deg/s]","r [deg/s]"], t_final=3, title = 'aperiodic roll')
 
 #Spiral
 idx_spiral = real_modes[np.argmax(np.real(eigenvals_asym[real_modes]))]
 x0_spiral = np.real(eigenvecs_asym[:, idx_spiral])
-plot_response(sys_asym, x0_spiral, [r"$\beta$",r"$\phi$","p","r"], t_final = 200, title = 'spiral')
+plot_response(sys_asym, x0_spiral, [r"$\beta$ [deg]",r"$\phi$ [deg]","p [deg/s]","r [deg/s]"], t_final = 200, title = 'spiral')
 
 #disturbance due to control input
 plot_disturbance_response_sym(sys_sym, 10, ["u", 'alpha','theta','q'], title = "short period disturbance", e_angle=2)
@@ -202,9 +202,9 @@ state_disturbances_asym = {
     "r_dist": np.array([0,0,0,np.deg2rad(10)])
 }
 for title, x0 in state_disturbances_sym.items():
-    plot_response(sys_sym,x0, ["u", "alpha", "theta", "q"], t_final=200, title=title)
+    plot_response(sys_sym,x0, ["u [m/s]", "alpha [deg]", "theta [deg]", "q [deg/s]"], t_final=200, title=title)
 for title,x0 in state_disturbances_asym.items():
-    plot_response(sys_asym, x0,["beta","phi","p","r"], t_final=200, title=title )
+    plot_response(sys_asym, x0,["beta [deg]","phi [deg]","p [deg/s]","r [deg/s]"], t_final=200, title=title )
 
 E = CL*(Clb*Cnr-Cnb*Clr)
 print(E)
