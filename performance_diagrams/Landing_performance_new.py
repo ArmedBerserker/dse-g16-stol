@@ -12,7 +12,7 @@ mstofps=3.28084
 d_lG=492.126 #[feet] max landing distance
 Vs_L=50#stall speed in landing configuration at MTOW and sea level [knots]
 rho=1.07896*kgm3_to_slugft3#density at landing altitude 2000t ISA +20°C #slug/feet^3
-W_TO=1839*kgtolbs#[lbs]#change
+W_TO=1871*kgtolbs#[lbs]#change
 W_LD=0.99*W_TO #[lbs]
 g=32.2 #[feet/s**2]
 CLmax_L=1.94 #change
@@ -60,6 +60,7 @@ def Roskam_landing():
 #P_BHP=0.07*270.886 #power at VB/Sqrt2
 T_static1,V,eff1= curve(D_ft,rho*1/kgm3_to_slugft3,P_TO)
 T_static=2*T_static1
+
 T_BR=0.07*T_static
 
 #T_BR=-0.4*T_STATIC reverse thrust
@@ -73,9 +74,9 @@ C_d0=0.08777
 deltaf =60  # flap deflection
 h=2.5 #height of wing above ground [m]
 b=16.8 #span of wing [m]
-V_STO_L = np.sqrt(2 * W_LD / (rho * S_w * CLmax_L))  # Stall speed during take off [feet/s]
-theta_app = np.radians(3)  # radians or 6 check both
-
+V_STO_L = np.sqrt(2 * W_LD / (rho * S_w * CLmax_L))  # Stall speed during landing [feet/s]
+theta_app = np.radians(6)  # radians or 6 check both
+print("help",V_STO_L)
 #calculations
 
 def CDi_ground_effect(h,b,c_Di):
@@ -124,7 +125,7 @@ print("Ground run", s_LG)
 print("Results GORENBEEK")
 S_LDG,S_GR,D_lg,L_ld=GORENBEEK_landing(W_LD,rho)
 print("Landing distance", S_LDG,S_GR)
-
+print(V_STO_L)
 
 def sensitivity_altitude():
     rho = 1.07896 * kgm3_to_slugft3
@@ -156,12 +157,12 @@ def sensitivity_altitude():
             V_0 = V_0 * np.sqrt(rho /rho_ref)
             S_BR=(V**2-V_0**2)/(2*a)
             S_GR=S_BR+S_FR
-            S.append(S_GR)
-        axs[0].plot(S, altitudes, label=f"{deg}°")
-    axs[0].axvline(d_lG, linestyle="--", color="red", label=f"Field limit = {d_lG:.0f} ft")
-    axs[0].set_title("Slope sensitivity")
-    axs[0].set_xlabel("Ground run [ft]")
-    axs[0].set_ylabel("Altitude [ft]")
+            S.append(S_GR*1/mstofps)
+        axs[0].plot(S, altitudes*1/mstofps, label=f"{deg}°")
+    axs[0].axvline(d_lG*1/mstofps, linestyle="--", color="red", label=f"Field limit = {d_lG*1/mstofps:.0f} m")
+    #axs[0].set_title("Slope sensitivity")
+    axs[0].set_xlabel("Ground run [m]")
+    axs[0].set_ylabel("Altitude [m]")
     axs[0].grid()
     axs[0].legend()
 
@@ -186,13 +187,13 @@ def sensitivity_altitude():
             V_0 = V_0 * np.sqrt(rho / rho_ref)
             S_BR = (V ** 2 - V_0 ** 2) / (2 * a)
             S_GR = S_BR + S_FR
-            S.append(S_GR)
+            S.append(S_GR*1/mstofps)
 
-        axs[1].plot(S, altitudes, label=f"{Temp:.1f} temperature")
-    axs[1].axvline(d_lG, linestyle="--", color="red", label=f"Field limit = {d_lG:.0f} ft")
-    axs[1].set_title("Altitude VS temperature [ft]")
-    axs[1].set_xlabel("Ground run")
-    axs[1].set_ylabel("Altitude [ft]")
+        axs[1].plot(S, altitudes*1/mstofps, label=f"{Temp:.1f} temperature")
+    axs[1].axvline(d_lG*1/mstofps, linestyle="--", color="red", label=f"Field limit = {d_lG*1/mstofps:.0f} m")
+    #axs[1].set_title("Altitude VS temperature [ft]")
+    axs[1].set_xlabel("Ground run [m]")
+    axs[1].set_ylabel("Altitude [m]")
     axs[1].grid()
     axs[1].legend()
 
@@ -218,15 +219,53 @@ def sensitivity_altitude():
             V_0 = V_0 * np.sqrt(rho / rho_ref)
             S_BR = (V ** 2 - V_0 ** 2) / (2 * a)
             S_GR = S_BR + S_FR
-            S.append(S_GR)
-        axs[2].plot(S, altitudes, label=f"{w:.1f} MTOW")
-    axs[2].axvline(d_lG, linestyle="--", color="red", label=f"Field limit = {d_lG:.0f} ft")
-    axs[2].set_title("Weight sensitivity")
-    axs[2].set_xlabel("ground run [ft]")
-    axs[2].set_ylabel("Altitude [ft]")
+            S.append(S_GR*1/mstofps)
+        axs[2].plot(S, altitudes*1/mstofps, label=f"{w:.1f} MTOW")
+    axs[2].axvline(d_lG*1/mstofps, linestyle="--", color="red", label=f"Field limit = {d_lG*1/mstofps:.0f} m")
+    #axs[2].set_title("Weight sensitivity")
+    axs[2].set_xlabel("Ground run [m]")
+    axs[2].set_ylabel("Altitude [m]")
     axs[2].grid()
     axs[2].legend()
 
+    plt.tight_layout()
+    plt.show()
+
+    # weight vs ISA
+    fig2, ax = plt.subplots(figsize=(9, 5))
+
+    weight_fractions2 = np.linspace(0.8, 1.2, 60)
+    weights_lbs2 = W_LD * weight_fractions2
+    weights_kg2 = weights_lbs2 / kgtolbs
+
+    for Temp in delta_T_list:
+        s_list = []
+        for w in weights_lbs2:
+            atmos_model = Atmosphere(2000 / mstofps, Temp)
+            rho_ref = atmos_model.density[0] * kgm3_to_slugft3
+            V_STO_L_local = np.sqrt(2 * w / (rho_ref * S_w * CLmax_L))
+            V_0 = 1.1 * V_STO_L_local
+            V = 0
+            S_FR = V_0
+            T = 0.07 * T_static
+            S_LDG, S_GR, D_lg, L_ld = GORENBEEK_landing(w, rho_ref)
+            a = g / w * (T - D_lg - mu * (w - L_ld))
+            V_0 = V_0 * np.sqrt(rho / rho_ref)
+            S_BR = (V ** 2 - V_0 ** 2) / (2 * a)
+            S_GR = (S_BR + S_FR) / mstofps
+            s_list.append(S_GR)
+        ax.plot(s_list, weights_kg2, linewidth=1.8, label=f"ISA +{Temp:.0f} °C")
+
+    ax.axvline(d_lG / mstofps, linestyle="--", color="red", linewidth=1.2,
+               label=f"Field limit = {d_lG / mstofps:.0f} m")
+    ax.axhline(W_LD / kgtolbs, linestyle=":", color="blue", linewidth=1.0, alpha=0.7,
+               label=f"MLW = {W_LD / kgtolbs:.0f} kg")
+    ax.set_xlabel("Ground run [m]")
+    ax.set_ylabel("Landing weight  [kg]")
+    ax.set_ylim(weights_kg2[0], weights_kg2[-1])
+    ax.set_xlim(90,180)
+    ax.grid(True)
+    ax.legend(fontsize=9)
     plt.tight_layout()
     plt.show()
 

@@ -42,9 +42,10 @@ d_TO = 656.168  # [feet] max take-off distance
 S_TOG = d_TO  # distance take off
 h_TO = 50  # feet
 g = 32.2  # [feet/s**2]
-mu = 0.05  # ground roll coefficient on hard turf without braking
+mu = 0.05 # ground roll coefficient on hard turf without braking
 
 V_STO = np.sqrt(2 * W_TO / (rho * S * C_LmaxTO))  # Stall speed during take off [feet/s]
+print("help:", V_STO)
 
 
 # ROSKAM METHOD
@@ -137,6 +138,7 @@ def GORENBEEK_TO_3(dt=0.05, max_time=200):
     V_LO = None
     T_TR = None
     V1 = None
+    t_LO = None
     lifted = False
 
     trajectory = []
@@ -152,6 +154,7 @@ def GORENBEEK_TO_3(dt=0.05, max_time=200):
         if not lifted and V >= V_LOF:
             s_LO = s
             V_LO = V
+            t_LO=t
             lifted = True
 
         if T_TR is None and V >= V_TR:
@@ -165,8 +168,75 @@ def GORENBEEK_TO_3(dt=0.05, max_time=200):
         V = max(V + a * dt, 0.1)
         s = s + V * dt + 0.5 * a * dt ** 2
         t += dt
-    return s, V, t, np.array(trajectory), T_TR, V1, s_LO, V_LO
+    return s, V, t, np.array(trajectory), T_TR, V1, s_LO, V_LO, t_LO
 
+
+
+
+
+def GORENBEEK_TO_3(dt=0.05, max_time=200, extra_power_per_engine=0):
+    V = 0.1
+    s = 0.0
+    t = 0.0
+    V_LOF = 1.556 * np.sqrt(W_TO / (rho * S * C_LmaxTO))  # [ft/s]
+    V_TR = 1.15 * V_STO
+    CDi_IGE = CDi_ground_effect(h, b, c_Di)
+    P_boost = P_TO + 2 * extra_power_per_engine  # total power with booster [hp]
+
+    s_LO = None
+    V_LO = None
+    T_TR = None
+    V1 = None
+    t_LO = None
+    lifted = False
+
+    # first pass: estimate lift-off distance at base power to find halfway point
+    V_pre, s_pre, t_pre = 0.1, 0.0, 0.0
+    while t_pre < max_time:
+        q = 0.5 * rho * V_pre ** 2
+        L = q * S * C_LTO
+        D = q * S * (C_D0 + CDi_IGE)
+        T = thrust(V_pre, P_TO)
+        a = g / W_TO * (T - D - mu * (W_TO - L))
+        if V_pre >= V_LOF:
+            break
+        V_pre = max(V_pre + a * dt, 0.1)
+        s_pre = s_pre + V_pre * dt + 0.5 * a * dt ** 2
+        t_pre += dt
+    s_halfway = s_pre /2.5   # booster kicks in at halfway point
+
+    # second pass: actual integration with booster after halfway
+    trajectory = []
+    while t < max_time:
+        q = 0.5 * rho * V ** 2
+        L = q * S * C_LTO
+        D = q * S * (C_D0 + CDi_IGE)
+
+        if s >= s_halfway and extra_power_per_engine > 0:
+            T = thrust(V, P_boost)
+        else:
+            T = thrust(V, P_TO)
+
+        a = g / W_TO * (T - D - mu * (W_TO - L))
+        trajectory.append([t, V, s, a, L, T])
+
+        if not lifted and V >= V_LOF:
+            s_LO = s
+            V_LO = V
+            t_LO = t
+            lifted = True
+
+        if T_TR is None and V >= V_TR:
+            T_TR = T
+
+        if V >= 1.3 * V_STO:
+            break
+
+        V = max(V + a * dt, 0.1)
+        s = s + V * dt + 0.5 * a * dt ** 2
+        t += dt
+
+    return s, V, t, np.array(trajectory), T_TR, V1, s_LO, V_LO, t_LO
 
 def rest(T_TR):
     V_LOF = 1.556 * np.sqrt(W_TO / (rho * S * C_LmaxTO))
@@ -192,6 +262,7 @@ def rest(T_TR):
     S_TR = 0.2156 * V_STO ** 2 * np.sin(angle)  # distance before transition to straight flight
     h_TR = 0.2156 * V_STO ** 2 * (1 - np.cos(angle))  # transition height  [feet]
     S_C = (h_TO - h_TR) / (np.tan(angle))  # climb disantce until top of obstacle [ft]
+    print(S_C,S_TR)
     if S_C < 0:
         S_C = 0
         print("obstacle cleared during transition")
@@ -236,7 +307,7 @@ def ground_run_for(rho_local, w_local, slope_rad, dt=0.05, max_time=200.0):
     return ST
 
 
-def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, max_time=200.0):
+def sensitivity_analysis(steep=False, temperature=False, weight=False,weight_isa=False, dt=0.05, max_time=200.0):
     altitudes = np.arange(0, 5001, 50)  # altitude above 0 [ft]
 
     # steepness change
@@ -314,6 +385,35 @@ def sensitivity_analysis(steep=False, temperature=False, weight=False, dt=0.05, 
         plt.tight_layout()
         plt.show()
 
+    if weight_isa:
+        delta_T_list = np.arange(0, 41, 10)
+        weight_fractions = np.linspace(0.8, 1.2, 60)
+        weights_lbs = W_TO * weight_fractions
+        weights_kg = weights_lbs / kgtolbs
+
+        fig, ax = plt.subplots(figsize=(9, 5))
+
+        for dT in delta_T_list:
+            atmos_model = Atmosphere(2000 / mstofps, dT)
+            rho_local = atmos_model.density[0] * kgtoslug
+            s_list = [ground_run_for(rho_local, w, 0, dt=dt, max_time=max_time) / mstofps
+                      for w in weights_lbs]
+            ax.plot(s_list, weights_kg, linewidth=1.8, label=f"ISA +{dT:.0f} °C")
+
+        ax.axvline(d_TO / mstofps, linestyle="--", color="red", linewidth=1.2,
+                   label=f"Field limit = {d_TO / mstofps:.0f} m")
+        ax.axhline(W_TO / kgtolbs, linestyle=":", color="blue", linewidth=1.0, alpha=0.7,
+                   label=f"MTOW = {W_TO / kgtolbs:.0f} kg")
+        ax.set_xlabel("Ground run to lift-off  [m]")
+        ax.set_ylabel("Take-off weight  [kg]")
+        ax.set_xlim(140,230)
+        ax.set_ylim(1650, weights_kg[-1])
+        ax.grid(True, linestyle="--", alpha=0.4)
+        ax.legend(fontsize=9)
+        plt.tight_layout()
+        plt.show()
+
+
 
 # set up everything
 if __name__ == "__main__":
@@ -338,7 +438,7 @@ if __name__ == "__main__":
 
     # Torenbeek numerical
     print("Gorenbeek Method (numerical integration)")
-    s, V, t, traj, T_TR, V1, s_LO, V_LO = GORENBEEK_TO_3()
+    s, V, t, traj, T_TR, V1, s_LO, V_LO,t_LO = GORENBEEK_TO_3()
     print(f"    Lift-off distance = {s_LO:.1f} ft")
     print(f"    Lift-off speed    = {V_LO:.2f} ft/s  ({V_LO / kntstofps:.1f} kts)")
     print(f"    V1     = {V1:.2f} ft/s" if V1 is not None else "    V1     = not reached before lift-off")
@@ -349,12 +449,15 @@ if __name__ == "__main__":
     s_G=S_ROT+s_LO
     print(f"    Airborne distance = {S_OBS:.1f} ft ")
     print(f"    ground distance = {s_G:.1f} ft ")
+    print(f"    lift off time = {t_LO:.1f} s  ")
     print(f"    Taake-off distance = {S_TO_total:.1f} ft  ")
+    print(f"   Thrust = {T_TR:.1f} ft  ")
 
     # -- Sensitivity analyses --
     sensitivity_analysis(steep=True)
     sensitivity_analysis(temperature=True)
     sensitivity_analysis(weight=True)
+    sensitivity_analysis(weight_isa=True)
     """
         # BFL
         V1_speed, BFL = V1calculation(d_TO)

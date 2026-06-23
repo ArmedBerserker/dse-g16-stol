@@ -83,8 +83,8 @@ def plot_payload_range(payload_range_points, m_pl_des, R_des):
     plt.text(1080/2, m_pl_des,f'Design Payload = {m_pl_des:.0f} kg', color='red',fontsize=9,
              horizontalalignment='center', verticalalignment='bottom')
 
-    plt.hlines(y=m_pl_des-200, xmin=0, xmax=1930, colors='pink', linestyle='--', linewidth=1)
-    plt.text(1930 / 2, m_pl_des-200, f'Passenger only = {m_pl_des-200:.0f} kg', color='pink', fontsize=9,
+    plt.hlines(y=m_pl_des-200, xmin=0, xmax=1930, colors='orange', linestyle='--', linewidth=1)
+    plt.text(1930 / 2, m_pl_des-200, f'Passenger only = {m_pl_des-200:.0f} kg', color='orange', fontsize=9,
              horizontalalignment='center', verticalalignment='bottom')
     #
     # plt.vlines(x=R_des/1000, ymin=0, ymax=m_pl_des, colors='red', linestyle='--', linewidth=1)
