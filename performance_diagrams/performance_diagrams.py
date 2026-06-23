@@ -46,7 +46,7 @@ def RoC_vs_V(excess_power, V, mtow):
     max_RoC = RoC[idx_max]
 
     # print(f"Velocity for maximum RoC: {V_max_RoC}")
-    # print(f"Maximum RoC: {max_RoC}")
+    print(f"Maximum RoC: {max_RoC}")
     save_path=Path(__file__).parent / "performance_figures/roc_v.png"
     plt.xlabel("Velocity [m/s]")
     plt.ylabel("Rate of Climb [m/s]")
@@ -328,21 +328,21 @@ if __name__ == '__main__':
 
     
     # ---- Design parameters ----
-    e = 0.747
+    e = 0.783
     AR = 9
     mtow = 1871 * 9.81  # [N]
 
     atmos_model = Atmosphere(alt, delta_T)
     rho_0 = atmos_model.density[0]
     
-    C_l_max = 1.44+0.287 #cruise
+    C_l_max = 1.44 #cruise
     S = 31.4
     n = 1
     # print(rho_0)
     # print(mtow)
     # print(S)
     # print(C_l_max)
-    cd0 = 0.0314
+    cd0 = 0.0259
     D_ft=5.675853 #propeller diameter
     V = np.linspace(1.3 * stall_speed(mtow, C_l_max, rho_0, S), 90, 1000)
     
